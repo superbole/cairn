@@ -1,0 +1,15 @@
+{
+  "name": "superbole",
+  "description": "Session re-entry tooling for working across several projects without holding state between sessions.",
+  "owner": {
+    "name": "superbole",
+    "email": "10409989+superbole@users.noreply.github.com"
+  },
+  "plugins": [
+    {
+      "name": "cairn",
+      "source": "./plugins/cairn",
+      "description": "Session re-entry for people who cannot hold state between sessions: a NEXT.md queue and dated watches printed at session start, plus /cairn:next to re-enter and /cairn:wrap to exit cleanly."
+    }
+  ]
+}
