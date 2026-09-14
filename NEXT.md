@@ -34,6 +34,9 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Watching
 
+**W1. Apply the interpreter workaround on SBOLE-NB1** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-14` · check after `first pull of this repo on SBOLE-NB1`
+Detail: [BACKLOG.md](BACKLOG.md) B1.
+
 ---
 
 `cairn` — session re-entry for people who cannot hold state between sessions.
