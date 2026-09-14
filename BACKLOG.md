@@ -9,7 +9,15 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B1. Apply the interpreter workaround on SBOLE-NB1
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-14` · issue `#1`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-14` · closed `2026-09-14` · issue `#1`
+
+**CLOSED — moved to `workspace`, not done.** Machine-gated setup does not live in a plugin
+repo: `workspace/docs/decisions.md` (2026-08-31) decided that, and its rejected option was
+keeping exactly these reminders in the plugin's own `NEXT.md`. Now `workspace` **W5**, briefed
+at `workspace/docs/briefs/nb1-sync.md` (section dated 2026-09-14), where it merged with the
+marketplace repoint that was `agent-reentry` W3. Relabelled `HITL` there: the repoint needs a
+Claude Code restart, which a session cannot do to itself.
+**The durable fix stays here — Queue item 1**, the cross-platform hook interpreter.
 `SBOLE-NB1` is the same Windows + WSL shape as `SBOLE-NB5`, so its WSL side has the same silent
 failure: hooks enabled, `claude plugin list` green, and none of the five global files written.
 Confirm, then apply the same local workaround until Queue item 1 lands a real fix.
