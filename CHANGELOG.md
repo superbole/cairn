@@ -3,6 +3,26 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-14 — two defects found installing v1.56.0 on a second machine
+
+First install of the published plugin into a Linux environment (`SBOLE-NB5`, WSL). It failed
+silently, and nothing in the plugin could say so.
+
+**The interpreter.** All five hooks in `hooks.json` invoke bare `python`, which stock
+Ubuntu/Debian does not have, so every hook fails to start. `session_orientation.py` never runs and
+none of the five global files are written — while `claude plugin list` reports the plugin enabled
+and the skills load normally. The plugin cannot self-report it: the hook that would warn is the
+hook that cannot run. `python3` is not the fix; no interpreter name is common to all three
+platforms. Queued; brief in `briefs/cross-platform-hook-interpreter.md`.
+
+**Line endings.** No `.gitattributes` and `core.autocrlf` unset, so the Windows checkout read from
+WSL shows 87 files and 25,751 changed lines — all CRLF, no content. `git status` cannot tell real
+work from noise there. Queued; brief in `briefs/gitattributes-eol-normalization.md`.
+
+Neither is fixed here. `SBOLE-NB5` carries a local `python -> python3` symlink as a workaround
+only; `B1`/`W1` carry the same for `SBOLE-NB1` after its first pull. `DeepThought` has no WSL and
+is unaffected. No plugin code changed, so no version bump.
+
 ## 2026-09-09 (latest) — v1.56.0: seeded
 
 **This repo begins at v1.56.0, not at v0.1.0, and the history before it is deliberately absent.**

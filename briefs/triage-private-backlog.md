@@ -2,13 +2,17 @@
 
 `Opus 5` · effort `high` · `HITL/Plan`
 
-## Why this is queue item 1
+## Why this item exists
 
 This repo was seeded by a fresh `git init` (`docs/decisions.md` D1), so its working files started
 blank. Development now happens here and installs come from here — but roughly half the actual
 backlog is still in the private source repo, `agent-reentry`. Until this item runs, the queue in
 this repo is thinner than the work that exists, which is exactly the unheld state the plugin is
 built to prevent.
+
+It was queue item 1 from seeding until 2026-09-14, when two shipped defects displaced it to 3.
+Both of those are the footer's aim line failing outright; this item is about queue completeness,
+which matters but does not stop a stranger installing.
 
 **This brief names no path or URL inside the private repo, deliberately** — `docs/decisions.md` D22
 settles that a brief here never points into it. The operator knows where their own clone is.
