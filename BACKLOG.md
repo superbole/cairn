@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 1 -->
+<!-- next-id: 2 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -27,3 +27,29 @@ is added there.
 This is a per-machine workaround, not the fix. The fix is Queue item 1:
 [briefs/cross-platform-hook-interpreter.md](briefs/cross-platform-hook-interpreter.md). Tracked as
 `W1` in NEXT.md so it triggers on that machine after the first pull.
+
+## B2. A wrap from a session rooted outside the project can never earn a receipt
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-14`
+
+`wrap_receipt.py --record` keys its baseline to the session id AND the project the session started
+in. A session started in a parent directory (here `~/Projects`, which is not a repo) that does all
+its work in a project below or beside it gets `? no session baseline` for `next_rewrite`,
+`changelog` and `commit` — the three REQUIRED steps — and therefore `CAIRN OPEN`, however
+completely the wrap ran.
+
+Observed 2026-09-14: receipt `9274cfbf13da` read `CAIRN OPEN` on a wrap that had written a 19-line
+CHANGELOG entry, re-sorted the Queue, committed `e415fb2` and pushed to `0 0`. The `marker` step
+measured `ran` in the same receipt, so the tool could see the repo perfectly well — only the
+baseline was missing.
+
+**Already ruled out:** the marker is not the gap (it read `ran`); `CLAUDE_PROJECT_DIR` was set
+correctly on the invocation (the earlier run without it failed differently, reporting the parent);
+and this is not the `--held` case, since the push was intentional and succeeded.
+
+**Why it matters:** the tool's own note calls this "a wrong place to stand, not a failure", which
+is accurate and is the problem — an `OPEN` that means *you stood in the wrong place* is
+indistinguishable from an `OPEN` that means *you skipped the changelog*. Training the reader to
+discount `OPEN` defeats the verdict, which is the cry-wolf failure `docs/decisions.md` D23 names.
+
+Worth deciding whether the receipt should refuse to record at all from a foreign root (a fourth
+verdict, or a hard error naming the directory), rather than emitting a verdict it cannot support.
