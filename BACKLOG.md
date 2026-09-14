@@ -9,8 +9,7 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B1. Apply the interpreter workaround on SBOLE-NB1
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-14`
-
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-14` · issue `#1`
 `SBOLE-NB1` is the same Windows + WSL shape as `SBOLE-NB5`, so its WSL side has the same silent
 failure: hooks enabled, `claude plugin list` green, and none of the five global files written.
 Confirm, then apply the same local workaround until Queue item 1 lands a real fix.
@@ -29,8 +28,7 @@ This is a per-machine workaround, not the fix. The fix is Queue item 1:
 `W1` in NEXT.md so it triggers on that machine after the first pull.
 
 ## B2. A wrap from a session rooted outside the project can never earn a receipt
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-14`
-
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-14` · issue `#2`
 `wrap_receipt.py --record` keys its baseline to the session id AND the project the session started
 in. A session started in a parent directory (here `~/Projects`, which is not a repo) that does all
 its work in a project below or beside it gets `? no session baseline` for `next_rewrite`,
