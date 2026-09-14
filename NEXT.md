@@ -19,6 +19,19 @@ record is the one thing in a repo that cannot be re-derived from the repo.
    servers, clients and machines and stays where it is. Until this runs, this repo's queue is
    thinner than the actual work.
 
+2. **Fix the hook interpreter so Linux installs work** — Opus 5 · high · HITL/Plan
+   Brief: [briefs/cross-platform-hook-interpreter.md](briefs/cross-platform-hook-interpreter.md)
+   All five hooks invoke bare `python`, which does not exist on stock Ubuntu/Debian. Every hook
+   fails to start, so a Linux installer gets none of the five global files and the plugin cannot
+   warn about it — the hook that would report the problem is the hook that cannot run. Found on
+   `SBOLE-NB5` 2026-09-11. `python3` is not the fix; it moves the breakage to Windows.
+
+3. **Normalize line endings with `.gitattributes`** — Sonnet 5 · medium · HITL/Auto
+   Brief: [briefs/gitattributes-eol-normalization.md](briefs/gitattributes-eol-normalization.md)
+   No `.gitattributes` and `core.autocrlf` unset, so the Windows checkout reads as 87 files and
+   25,751 changed lines from WSL — all of it CRLF, no content change. `git status` cannot tell a
+   real change from a clean tree there. Land this before committing item 2 from a Linux session.
+
 ## Watching
 
 ---
