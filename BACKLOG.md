@@ -8,35 +8,8 @@ Items marked `queued` are on the Queue right now and stay listed here until the 
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
 
-## B1. Apply the interpreter workaround on SBOLE-NB1
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-14` · closed `2026-09-14` · issue `#1`
-
-**CLOSED — moved to `workspace`, not done.** Machine-gated setup does not live in a plugin
-repo: `workspace/docs/decisions.md` (2026-08-31) decided that, and its rejected option was
-keeping exactly these reminders in the plugin's own `NEXT.md`. Now `workspace` **W5**, briefed
-at `workspace/docs/briefs/nb1-sync.md` (section dated 2026-09-14), where it merged with the
-marketplace repoint that was `agent-reentry` W3. Relabelled `HITL` there: the repoint needs a
-Claude Code restart, which a session cannot do to itself.
-**The durable fix stays here — Queue item 1**, the cross-platform hook interpreter.
-`SBOLE-NB1` is the same Windows + WSL shape as `SBOLE-NB5`, so its WSL side has the same silent
-failure: hooks enabled, `claude plugin list` green, and none of the five global files written.
-Confirm, then apply the same local workaround until Queue item 1 lands a real fix.
-
-Check `~/.claude/` for `CLAUDE.md`, `reentry-profile.md`, `MISTAKES.md`, `CREDENTIALS.md` and
-`MACHINES.md`. If they are missing and `command -v python` is empty, symlink
-`~/.local/bin/python -> /usr/bin/python3` and re-run `hooks/session_orientation.py` once; it is
-idempotent and prints nothing on a second run. `MACHINES.md` should end up with the same three
-rows as `SBOLE-NB5`.
-
-`DeepThought` is personal and has no WSL at present, so it is not affected — revisit only if WSL
-is added there.
-
-This is a per-machine workaround, not the fix. The fix is Queue item 1:
-[briefs/cross-platform-hook-interpreter.md](briefs/cross-platform-hook-interpreter.md). Tracked as
-`W1` in NEXT.md so it triggers on that machine after the first pull.
-
 ## B2. A wrap from a session rooted outside the project can never earn a receipt
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-14` · issue `#2`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-14` · issue `#2` · queued
 `wrap_receipt.py --record` keys its baseline to the session id AND the project the session started
 in. A session started in a parent directory (here `~/Projects`, which is not a repo) that does all
 its work in a project below or beside it gets `? no session baseline` for `next_rewrite`,

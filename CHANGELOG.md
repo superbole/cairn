@@ -3,6 +3,14 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-16 — `.gitattributes` normalizes line endings to LF
+
+Added `.gitattributes` (`* text=auto eol=lf`) so a WSL checkout of this Windows-authored repo
+stops reading all 87 tracked files as modified. `git add --renormalize .` staged nothing — the
+index already held LF throughout, so the fix is the rule going forward, not a rewrite of history.
+No `.bat`/`.ps1`/`.cmd` files are tracked here, so no CRLF exception was needed. Unblocks a
+Linux-side commit for item 1 (the hook interpreter fix).
+
 ## 2026-09-14 — two defects found installing v1.56.0 on a second machine
 
 First install of the published plugin into a Linux environment (`SBOLE-NB5`, WSL). It failed

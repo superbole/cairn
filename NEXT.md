@@ -21,11 +21,11 @@ record is the one thing in a repo that cannot be re-derived from the repo.
    `SBOLE-NB5` 2026-09-11. `python3` is not the fix; it moves the breakage to Windows. First
    because it is the aim line failing: today a stranger on Ubuntu gets silence.
 
-2. **Normalize line endings with `.gitattributes`** — Sonnet 5 · medium · HITL/Auto
-   Brief: [briefs/gitattributes-eol-normalization.md](briefs/gitattributes-eol-normalization.md)
-   No `.gitattributes` and `core.autocrlf` unset, so the Windows checkout reads as 87 files and
-   25,751 changed lines from WSL — all of it CRLF, no content change. `git status` cannot tell a
-   real change from a clean tree there. Cheap, and it unblocks item 1 from a Linux session.
+2. **Fix `wrap_receipt.py` for a foreign session root** — Opus 5 · high · AFK/Auto
+   Brief: [briefs/wrap-receipt-foreign-root.md](briefs/wrap-receipt-foreign-root.md)
+   A session started outside the repo it works in gets `? no session baseline` on the REQUIRED
+   steps and a false `CAIRN OPEN`, indistinguishable from an actually-incomplete wrap — the exact
+   cry-wolf failure the verdict exists to prevent. Pulled from `BACKLOG.md` B2.
 
 3. **Triage the private backlog into this repo** — Opus 5 · high · HITL/Plan
    Brief: [briefs/triage-private-backlog.md](briefs/triage-private-backlog.md)
