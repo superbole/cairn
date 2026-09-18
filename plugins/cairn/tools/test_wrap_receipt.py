@@ -6,8 +6,9 @@ WHAT THIS FILE IS ACTUALLY DEFENDING. B87's mechanism only works if the token is
 rather than vocabulary. Three properties carry that, and each has a section here:
 
   1. A verdict is never `SET` unless the required steps were MEASURED to have run — in
-     particular, "no baseline" must produce `OPEN`, never a hopeful `SET` (section 2).
-  2. All THREE verdicts come from the tool. "No wrap needed" was the exact sentence
+     particular, "no baseline" must never produce a hopeful `SET`, nor a `NOT DUE`
+     (section 2).
+  2. All FOUR verdicts come from the tool. "No wrap needed" was the exact sentence
      WORKSTATION produced, so a tool owning only the affirmative moves the impersonation
      one door down rather than closing it (section 4).
   3. A fabricated id fails `--verify`. That is the whole difference between a coined word
@@ -16,6 +17,12 @@ rather than vocabulary. Three properties carry that, and each has a section here
 The fourth property is negative and just as load-bearing: `unverifiable` must never be
 counted as `ran` (section 6). A receipt that quietly ticks the steps it cannot see is the
 same defect one level down from the one B87 reported.
+
+The fifth is B2's, and it is that same defect a level further down: `unverifiable` must not
+be reported as `skipped` EITHER. A wrap that ran in full but could not be measured reads
+`UNKNOWN`; only a wrap measured incomplete reads `OPEN`; a wrap that is both reads `OPEN`.
+Section 11 holds the ordering that guarantees it, and the prevention that makes `UNKNOWN`
+rare rather than routine.
 
 Runs entirely against throwaway git repos under `tempfile.mkdtemp()`, with
 `CLAUDE_PROJECT_DIR`, `CLAUDE_CONFIG_DIR` and `CLAUDE_CODE_SESSION_ID` pointed at fixtures
@@ -132,7 +139,9 @@ v2, why2 = wrap_receipt.verdict(r2, None, st2)
 check("next_rewrite is unverifiable, not ran", st2["next_rewrite"]["state"], "unverifiable")
 check("changelog is unverifiable, not ran", st2["changelog"]["state"], "unverifiable")
 check("commit is unverifiable, not ran", st2["commit"]["state"], "unverifiable")
-check("verdict is OPEN, not SET", v2, "OPEN")
+check("verdict is never SET without measurement", v2 != "SET")
+check("nor NOT DUE — the tool cannot see this session at all", v2 != "NOT DUE")
+check("it is UNKNOWN, not OPEN: nothing was measured skipped (B2)", v2, "UNKNOWN")
 check("and it says why", bool(why2))
 
 
@@ -200,7 +209,9 @@ check("committed-then-clean is NOT 'nothing to wrap' — this is the false-repor
 r4d = new_repo("not-due-no-baseline")
 st4d = wrap_receipt.steps(r4d, None)
 check("without a baseline the tool cannot see this session, so never claims NOT DUE",
-      wrap_receipt.verdict(r4d, None, st4d)[0], "OPEN")
+      wrap_receipt.verdict(r4d, None, st4d)[0] != "NOT DUE")
+check("and it is UNKNOWN, not OPEN (B2)",
+      wrap_receipt.verdict(r4d, None, st4d)[0], "UNKNOWN")
 
 
 print("\n5. A fabricated id fails --verify — the property the whole mechanism rests on")
@@ -292,7 +303,10 @@ rc, out = cli(r8, "--check")
 check("--check does not mint an id", "does not record" in out)
 rc, out = cli(new_repo("cli-open"), "--check")
 check("a project that never wrapped this session exits 1 from --check", rc, 1)
-check("and says OPEN", "CAIRN OPEN" in out)
+check("and says UNKNOWN — blind, not measured incomplete", "CAIRN UNKNOWN" in out)
+check("never OPEN, which would be the cry-wolf B2 reported", "CAIRN OPEN" not in out)
+check("and the note names the real cause rather than blaming a plain terminal",
+      "started somewhere else" in out)
 
 # --------------------------------------------------------------------------------------
 # 9. B122 — a `git pull` must not green a step this session did not perform.
@@ -493,6 +507,75 @@ moved = wrap_receipt.baseline(r10)
 check("and it really moved", moved != first)
 check("which is exactly what discredits the work",
       wrap_receipt.steps(r10, moved)["next_rewrite"]["state"], "skipped")
+
+# --------------------------------------------------------------------------------------
+# 11. B2 — a session rooted outside the project it works in.
+#
+# Two halves, and the order matters. PREVENTION (11a): a session start in a directory that
+# is not itself a project stamps baselines for its opted-in children, so the ordinary shape
+# — a parent folder full of repos — earns a real verdict. HONESTY (11b/11c): where
+# prevention cannot reach, `unverifiable` reads `UNKNOWN`, never `OPEN`, and `skipped` still
+# outranks it.
+#
+# The bug being defended against: a wrap that wrote a 19-line CHANGELOG entry, rewrote
+# NEXT.md, committed and pushed reported `CAIRN OPEN` — the same token an actually-skipped
+# changelog produces. Receipt 9274cfbf13da, 2026-09-14.
+# --------------------------------------------------------------------------------------
+print("\n11a. A parent directory stamps baselines for its opted-in children (B2)")
+parent = Path(tempfile.mkdtemp(prefix="cairn-parent-"))
+_kid = new_repo("child")
+kid = parent / _kid.name
+shutil.move(str(_kid), str(kid))
+plain = parent / "not-a-repo"                 # a NEXT.md, but no .git
+plain.mkdir()
+(plain / "NEXT.md").write_text(NEXT_MD, encoding="utf-8")
+_out = new_repo("opted-out")                  # a real repo that never joined the system
+(_out / "NEXT.md").unlink()
+opted_out = parent / _out.name
+shutil.move(str(_out), str(opted_out))
+
+check("the parent is not itself a project", (parent / "NEXT.md").is_file(), False)
+check("so the child has no baseline yet", wrap_receipt.baseline(kid) is None)
+stamped = wrap_receipt.stamp_child_baselines(parent)
+check("stamping the parent's children reaches the opted-in child", kid in stamped)
+check("a NEXT.md-less repo is NOT reached — that gate is the security boundary",
+      opted_out not in stamped)
+check("nor is a NEXT.md-carrying directory that is not a repo", plain not in stamped)
+check("the child now has a real session-start baseline",
+      isinstance(wrap_receipt.baseline(kid), dict))
+
+do_wrap(kid)
+body11 = wrap_receipt.record(kid)
+check("so a wrap of the child earns the SAME verdict as one started inside it",
+      body11["verdict"], "SET")
+check("and a real receipt id with it", len(body11["id"]), 12)
+
+print("\n11b. Where prevention cannot reach, a blind wrap is UNKNOWN — never OPEN")
+r11 = new_repo("foreign-root")
+do_wrap(r11)                                  # a complete wrap; nothing stamped a baseline
+st11 = wrap_receipt.steps(r11, None)
+v11, why11 = wrap_receipt.verdict(r11, None, st11)
+check("every tracked step is unverifiable, not skipped",
+      [st11[n]["state"] for n in ("next_rewrite", "changelog", "commit")],
+      ["unverifiable"] * 3)
+check("the verdict is UNKNOWN", v11, "UNKNOWN")
+check("and the reasons name what could not be measured",
+      any("baseline" in reason for reason in why11))
+body11b = wrap_receipt.record(r11)
+check("UNKNOWN still RECORDS a receipt — refusing would leave nothing to quote",
+      body11b["verdict"], "UNKNOWN")
+check("with a verifiable id", wrap_receipt.verify(r11, body11b["id"])[0])
+check("and the next session is told it was unmeasured, not that it did not wrap",
+      "could not be measured" in (wrap_receipt.orientation_line(r11) or ""))
+
+print("\n11c. `skipped` still outranks `unverifiable` — UNKNOWN is not a soft landing")
+r11c = new_repo("blind-and-skipped", inbox="# INBOX\n\n- an un-triaged thing\n")
+do_wrap(r11c)                                 # no baseline AND a required step measurably gone
+st11c = wrap_receipt.steps(r11c, None)
+check("inbox is measured skipped even with no baseline", st11c["inbox"]["state"], "skipped")
+check("so the verdict is OPEN, not UNKNOWN — verdict()'s ordering is the guarantee",
+      wrap_receipt.verdict(r11c, None, st11c)[0], "OPEN")
+
 
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)

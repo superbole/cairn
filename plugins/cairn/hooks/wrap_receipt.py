@@ -75,7 +75,31 @@ REJECTED
   false reports were made in.
 - **A verdict the tool can only emit for success.** "No wrap needed" was the exact sentence
   produced, so a tool owning only the affirmative leaves the impersonation intact one door
-  down. All three verdicts below come from here or none of them do.
+  down. All four verdicts below come from here or none of them do.
+
+THE FOURTH VERDICT, AND THE FOREIGN ROOT  (B2, 2026-09-18)
+-----------------------------------------------------------
+`verdict()` used to return `OPEN` for two opposite states: a step that was MEASURED not to
+have run, and a step that could not be measured at all. A session started in a directory
+that is not the project it works in -- `~/Projects`, say, which is not itself a repo -- gets
+no session-start baseline for that project, so `next_rewrite`, `changelog` and `commit` are
+all blind, and the receipt read `CAIRN OPEN` on a wrap that had done every one of them.
+
+That is the cry-wolf failure the verdict exists to prevent, one level down: an `OPEN` meaning
+*you stood in the wrong place* is indistinguishable from an `OPEN` meaning *you skipped the
+changelog*, and a reader who learns to discount the first discounts the second too. So the
+two states are now two verdicts -- `OPEN` when a required step was measured skipped,
+**`UNKNOWN`** when none was skipped but some could not be measured. `skipped` is tested
+first, so a wrap that is both incomplete AND blind still reads `OPEN`; `UNKNOWN` is reachable
+only when the measuring apparatus is missing, never when the work is.
+
+`UNKNOWN` still RECORDS a receipt with a real id. Refusing to record was the other option and
+it is worse: the id and `--verify` are the whole reason the token is evidence, so a refusal
+leaves the agent with nothing to quote, which is precisely the gap prose walks into.
+
+And prevention comes first: `stamp_child_baselines()` below means the ordinary foreign-root
+session -- a parent directory whose child repos are the real projects -- gets a real baseline
+and therefore a real verdict, so `UNKNOWN` is the backstop rather than the everyday answer.
 """
 from __future__ import annotations
 
@@ -102,6 +126,15 @@ STEM = "CAIRN"
 RECEIPT_NAME = "wrap_receipt.json"
 BASELINE_SUBDIR = "wrap_baseline"
 BASELINE_TTL_DAYS = 7
+
+# How many child projects one foreign-root session start will stamp a baseline for. Matches
+# `repo_sweep.MAX_SIBLINGS` and exists for the same reason: a bound on a loop whose length is
+# a directory listing the user controls, not a limit anyone is near. Measured 2026-09-18
+# against the real `~/Projects`: 12 opted-in children, 881 ms for the lot (73 ms each, almost
+# all of it the `git rev-parse` subprocess spawn). Paid ONLY when the session's own root has
+# no NEXT.md -- an ordinary session in a real project stamps exactly one baseline, as before,
+# and this constant never comes into it.
+MAX_CHILD_BASELINES = 25
 
 # Forensic only. The predicate needs `head` and `at`, both present in schema-1 baselines,
 # so old ones keep working and there is no window where sessions go blind. It exists
@@ -251,6 +284,90 @@ def stamp_baseline(root: Path, session: str = "", force: bool = False) -> bool:
     except OSError:
         return False
     return True
+
+
+def _opted_in_children(root: Path) -> list[Path]:
+    """Immediate subdirectories of `root` that are git repos carrying their own NEXT.md.
+
+    THE `NEXT.md` REQUIREMENT IS THE SECURITY BOUNDARY, NOT ONLY AN OPT-IN FILTER — the same
+    gate, for the same reason, as `repo_sweep.sibling_repos()`, whose docstring argues it at
+    length. `stamp_baseline()` runs `git rev-parse` inside whatever this returns, and git
+    executes the TARGET repo's own config (`core.pager`, `core.fsmonitor`, `core.sshCommand`,
+    aliases). So the set of directories reachable from here is the set that can influence this
+    process, and the only thing bounding it is that a repo must have joined this system by
+    having its own `NEXT.md`. A clone dropped under the parent directory is inert until
+    someone puts a `NEXT.md` in it. **Do not widen this gate to "has a `.git`".**
+
+    IMMEDIATE children only, deliberately. `~/Projects/cairn` is depth 1 from `~/Projects`,
+    which is the shape B2 was filed on; `~/Projects/group/repo` is not caught, and recursing
+    to find it would mean walking — and then running git inside — directories nobody opened.
+    A project nested deeper falls to the `UNKNOWN` verdict, which is honest, rather than to a
+    wider scan, which is not free.
+
+    Sorted, and any unreadable entry is skipped rather than raised: this runs on the
+    SessionStart path, where nothing is worth failing an orientation over.
+    """
+    out: list[Path] = []
+    try:
+        candidates = sorted(root.iterdir(), key=lambda q: q.name.lower())
+    except Exception:
+        return []
+    for child in candidates:
+        try:
+            if not child.is_dir():
+                continue
+            if not (child / ".git").exists():
+                continue             # not a repo — an ordinary folder
+            if not (child / "NEXT.md").is_file():
+                continue             # not opted into this system — see docstring
+        except OSError:
+            continue
+        out.append(child)
+        if len(out) >= MAX_CHILD_BASELINES:
+            break
+    return out
+
+
+def stamp_child_baselines(root: Path, session: str = "") -> list[Path]:
+    """Stamp a session-start baseline for each opted-in child project of `root` (B2).
+
+    THE WHOLE OF B2's PREVENTION HALF. A baseline can only be taken at SESSION START — it is
+    a snapshot of the tracked files before this session touched them — and it is keyed by
+    `state_dir(<project>)`, which is derived from the project's own resolved path. So a
+    session that starts in `~/Projects` and does all its work in `~/Projects/cairn` gets no
+    baseline for `cairn`: the SessionStart hook stamped nothing, because `~/Projects` has no
+    `NEXT.md`, and by the time anything reveals which child the session cares about the files
+    have already changed. There is no later moment to recover — hence stamping every
+    candidate up front rather than resolving one lazily.
+
+    CALLED ONLY WHEN `root` ITSELF HAS NO `NEXT.md`, and that gate is what makes the cost
+    zero for everyone else: an ordinary session in a real project stamps exactly one baseline
+    and never reaches this function. A root with no `NEXT.md` is not a project, so a session
+    standing there is either in a parent directory (the B2 case) or somewhere unrelated, and
+    in the unrelated case `_opted_in_children()` returns nothing.
+
+    Measured 2026-09-18 against the real `~/Projects`: 12 opted-in children, 881 ms total.
+    That is paid at a session start which prints no orientation at all, so nobody is waiting
+    on it. Re-measure before quoting this as current.
+
+    Deliberately NOT extended to SIBLINGS (a session rooted in project A that works in
+    project B). That case would put the same cost on EVERY ordinary session, which is the
+    trade `repo_sweep` already refused inline for the same portfolio; it falls to `UNKNOWN`.
+
+    Returns the projects actually stamped. Best-effort and silent throughout, like
+    `stamp_baseline()` itself — a baseline is never worth failing an orientation over.
+    """
+    session = session or session_id()
+    if not session:
+        return []
+    stamped: list[Path] = []
+    for child in _opted_in_children(root):
+        try:
+            if stamp_baseline(child, session):
+                stamped.append(child)
+        except Exception:
+            continue
+    return stamped
 
 
 def baseline(root: Path, session: str = "") -> dict | None:
@@ -762,7 +879,19 @@ def _nothing_to_wrap(root: Path, base: dict | None, attrib: dict | None = None) 
 
 def verdict(root: Path, base: dict | None, step_states: dict,
             attrib: dict | None = None) -> tuple[str, list[str]]:
-    """(`SET` | `NOT DUE` | `OPEN`, reasons). All three come from here, or none do."""
+    """(`SET` | `NOT DUE` | `OPEN` | `UNKNOWN`, reasons). All four come from here, or none do.
+
+    `OPEN` and `UNKNOWN` are the two halves of what used to be one answer (B2), and the
+    ORDER of the two tests below is the whole guarantee. `skipped` — measured absent — is
+    checked FIRST, so a wrap that both skipped a step and could not measure another still
+    reads `OPEN`. `UNKNOWN` is reachable only when NOTHING was measured skipped and something
+    could not be measured at all: the apparatus is missing, not the work.
+
+    That ordering is what stops `UNKNOWN` becoming the soft landing an incomplete wrap gets.
+    Do not reverse it, and do not fold `unverifiable` back into `OPEN` "to be safe" — an
+    `OPEN` that cries wolf teaches the reader to discount the `OPEN` that does not, which is
+    the failure the verdict exists to prevent.
+    """
     if _nothing_to_wrap(root, base, attrib):
         return "NOT DUE", ["no commits, no file changes and a clean tree since session start"]
     skipped = [name for name in REQUIRED if step_states.get(name, {}).get("state") == "skipped"]
@@ -771,7 +900,7 @@ def verdict(root: Path, base: dict | None, step_states: dict,
     if skipped:
         return "OPEN", [f"{n}: {step_states[n]['detail']}" for n in skipped]
     if blind:
-        return "OPEN", [f"{n}: {step_states[n]['detail']}" for n in blind]
+        return "UNKNOWN", [f"{n}: {step_states[n]['detail']}" for n in blind]
     return "SET", []
 
 
@@ -856,6 +985,12 @@ def orientation_line(root: Path) -> str | None:
     head = git(root, "rev-parse", "HEAD") or ""
     when = time.strftime("%Y-%m-%d %H:%M", time.localtime(float(data.get("at", 0))))
     state = data.get("verdict", "?")
+    if state == "UNKNOWN":
+        # NOT "did not wrap" (B2). The previous session may have wrapped perfectly; what the
+        # receipt records is that it could not be measured from where that session stood.
+        # Saying otherwise here would reintroduce the cry-wolf the fourth verdict removed.
+        return (f"Last {STEM}: UNKNOWN at {when} — the previous session's wrap could not be "
+                f"measured from where it was started, so whether it ran is unrecorded.")
     if state != "SET":
         return (f"Last {STEM}: {state} at {when} — the previous session did not record a "
                 f"completed wrap.")
@@ -875,19 +1010,33 @@ def orientation_line(root: Path) -> str | None:
 
 # --------------------------------------------------------------------------------- CLI
 
-def _print_receipt(body: dict) -> None:
+def _print_receipt(body: dict, root: Path | None = None) -> None:
     # Say it FIRST, not in a footnote. Three of the six REQUIRED steps are measured against a
-    # baseline the SessionStart hook writes, keyed to the session id -- so a run from a plain
-    # terminal has no baseline and CANNOT answer them, and the table below is eight `?` rows that
-    # look like a broken tool rather than a wrong place to stand. Measured twice on 2026-09-08:
-    # the same `--check` was pasted from a PowerShell prompt on two machines, read as a result both
-    # times, and it was not one.
+    # baseline the SessionStart hook writes, keyed to the session id -- so a run without one
+    # CANNOT answer them, and the table below is eight `?` rows that look like a broken tool
+    # rather than a wrong place to stand. Measured twice on 2026-09-08: the same `--check` was
+    # pasted from a PowerShell prompt on two machines, read as a result both times, and it was
+    # not one.
+    #
+    # B2 -- there are TWO ways to have no baseline and they have opposite remedies, and this
+    # note used to assert the first for both: "a plain terminal does not have [a session id]"
+    # is simply false of a real in-session wrap run from a parent directory, which is the case
+    # B2 was filed on. One message for two opposite states is the defect this whole file
+    # exists to catch, so the cause is now read off the session id rather than assumed.
     if body.get("attributed") is False and "baseline" in (body.get("attribution_reason") or ""):
+        where = f" for {root}" if root is not None else ""
         print()
         print("  NOTE: no session baseline, so next_rewrite / changelog / commit CANNOT be")
-        print("  measured here. That is a wrong place to stand, not a failure: the baseline is")
-        print("  written at SessionStart and keyed to the session id, which a plain terminal does")
-        print("  not have. Run this from INSIDE a Claude Code session to get a real answer.")
+        print("  measured here. That is a wrong place to stand, not a failure.")
+        if body.get("session"):
+            print(f"  This process HAS a session id ({body['session'][:24]}), but no baseline")
+            print(f"  was stamped{where}. A baseline is written at SessionStart for the directory")
+            print("  the session STARTED in; this session started somewhere else, so the three")
+            print("  tracked steps are blind here. Hence UNKNOWN rather than OPEN: the wrap may")
+            print("  have run in full, and this tool cannot say either way.")
+        else:
+            print("  The baseline is keyed to the session id, which a plain terminal does not")
+            print("  have. Run this from INSIDE a Claude Code session to get a real answer.")
     order = list(REQUIRED) + list(CONDITIONAL) + list(UNVERIFIABLE)
     glyph = {"ran": "ran ", "skipped": "SKIP", "n/a": "n/a ", "unverifiable": "  ? "}
     for name in order:
@@ -952,19 +1101,23 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args[0] == "--record":
         body = record(root, held="--held" in args)
-        _print_receipt(body)
+        _print_receipt(body, root)
         return 0 if body["verdict"] in ("SET", "NOT DUE") else 1
     if args[0] == "--check":
         base = baseline(root)
         attrib = attribution(root, base)
         step_states = steps(root, base, attrib)
         state, reasons = verdict(root, base, step_states, attrib)
+        # `session` carried here too, though `--check` mints no id: the printer's NOTE reads it
+        # to tell "no session at all" from "a session that started elsewhere" (B2), and `--check`
+        # from a foreign root is the commoner of the two ways to meet that question.
         body = {"steps": step_states, "verdict": state, "reasons": reasons,
+                "session": session_id(),
                 "measurements": measurements(root, base, "--held" in args, attrib),
                 "attributed": attrib.get("paths") is not None,
                 "attribution_reason": attrib.get("reason") or "",
                 "advisory": advisory(root), "id": ""}
-        _print_receipt(body)
+        _print_receipt(body, root)
         print("  (--check does not record; only --record emits a receipt id)")
         return 0 if state in ("SET", "NOT DUE") else 1
     if args[0] == "--verify":

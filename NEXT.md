@@ -21,13 +21,7 @@ record is the one thing in a repo that cannot be re-derived from the repo.
    `SBOLE-NB5` 2026-09-11. `python3` is not the fix; it moves the breakage to Windows. First
    because it is the aim line failing: today a stranger on Ubuntu gets silence.
 
-2. **Fix `wrap_receipt.py` for a foreign session root** — Opus 5 · high · AFK/Auto
-   Brief: [briefs/wrap-receipt-foreign-root.md](briefs/wrap-receipt-foreign-root.md)
-   A session started outside the repo it works in gets `? no session baseline` on the REQUIRED
-   steps and a false `CAIRN OPEN`, indistinguishable from an actually-incomplete wrap — the exact
-   cry-wolf failure the verdict exists to prevent. Pulled from `BACKLOG.md` B2.
-
-3. **Triage the private backlog into this repo** — Opus 5 · high · HITL/Plan
+2. **Triage the private backlog into this repo** — Opus 5 · high · HITL/Plan
    Brief: [briefs/triage-private-backlog.md](briefs/triage-private-backlog.md)
    About half the private repo's backlog is plugin-generic and belongs here; the rest names work
    servers, clients and machines and stays where it is. Until this runs, this repo's queue is

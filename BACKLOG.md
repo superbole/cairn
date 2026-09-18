@@ -9,7 +9,7 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B2. A wrap from a session rooted outside the project can never earn a receipt
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-14` · issue `#2` · queued
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-14` · issue `#2` · closed `2026-09-18`
 `wrap_receipt.py --record` keys its baseline to the session id AND the project the session started
 in. A session started in a parent directory (here `~/Projects`, which is not a repo) that does all
 its work in a project below or beside it gets `? no session baseline` for `next_rewrite`,
@@ -32,3 +32,11 @@ discount `OPEN` defeats the verdict, which is the cry-wolf failure `docs/decisio
 
 Worth deciding whether the receipt should refuse to record at all from a foreign root (a fourth
 verdict, or a hard error naming the directory), rather than emitting a verdict it cannot support.
+
+**Closed in v1.57.0.** Two halves: `CAIRN UNKNOWN`, a fourth verdict, so "could not be measured"
+stops sharing a token with "measured not to have run"; and `stamp_child_baselines()`, which makes
+a parent-directory session stamp a real baseline for each opted-in child, so the observed shape
+earns `CAIRN SET` rather than the backstop. Rationale and the rejected options in
+`docs/decisions.md` D26. The sibling case (rooted in project A, working in project B) is
+deliberately NOT covered and falls to `UNKNOWN` — covering it would put the cost on every
+ordinary session.

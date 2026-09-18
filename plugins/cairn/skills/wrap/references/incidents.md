@@ -1213,3 +1213,49 @@ it as the unmarked alternative to a stated exception.**
 **What did NOT change:** `--held` still exists and is still the agent's declaration, because whether
 a push was intended is genuinely not visible in git. The fix is about presentation order, not about
 moving the judgement.
+
+## Step 8c — one verdict for "measured absent" and "could not be measured" (2026-09-14, B2)
+
+Receipt `9274cfbf13da` read **`CAIRN OPEN`** on a wrap that had written a 19-line `CHANGELOG.md`
+entry, re-sorted the Queue in `NEXT.md`, committed `e415fb2` and pushed to `0 0`. Nothing had been
+skipped. The session had simply been started in `~/Projects` — a parent directory, not itself a
+repo — and done all its work in a project below it.
+
+`stamp_baseline()` is called from `session_orientation.main()` and gated on `root/NEXT.md`
+existing. A parent directory has none, so no baseline was written for the child the session
+actually worked in, and `next_rewrite` / `changelog` / `commit` — three of the six REQUIRED steps —
+all read `unverifiable`. `verdict()` returned `OPEN` for those exactly as it did for a step
+measured to have been skipped. The `marker` step read `ran` in the same receipt, so the tool could
+see the repo perfectly well; only the session baseline was missing.
+
+**Why that is worse than it looks.** The tool's own printed note called it *"a wrong place to
+stand, not a failure"* — accurate, and the problem. An `OPEN` meaning *you stood in the wrong
+place* is indistinguishable from an `OPEN` meaning *you skipped the changelog*, and a reader who
+learns to discount the first discounts the second. That is the cry-wolf failure the verdict exists
+to prevent, reproduced one level down inside the mechanism built to prevent it.
+
+The printed note made it worse in a second way: it asserted *"the baseline is keyed to the session
+id, which a plain terminal does not have"*. That is one message for two opposite causes, which is
+the exact defect `wrap_receipt.py`'s own docstring is written against — and it is simply false of
+a real in-session wrap, so it sent the reader after the wrong remedy.
+
+**The fix is two halves, and the order between them matters.**
+
+*Honesty.* `verdict()` now returns **`CAIRN UNKNOWN`** when no REQUIRED step was measured skipped
+and some could not be measured at all. `skipped` is tested FIRST, so a wrap that is both incomplete
+and blind still reads `OPEN` — `UNKNOWN` is reachable only when the apparatus is missing, never
+when the work is. **Do not reverse that ordering, and do not fold `unverifiable` back into `OPEN`
+"to be safe".** `UNKNOWN` still records a receipt with a real id: refusing to record was the other
+option and it leaves the agent nothing to quote, which is the gap prose walks into.
+
+*Prevention.* `stamp_child_baselines()` runs at `SessionStart` when the session's own root has no
+`NEXT.md`, and stamps a baseline for each immediate child that is a git repo carrying its own
+`NEXT.md` — the same opt-in gate, and the same security boundary, as `repo_sweep.sibling_repos()`.
+A baseline can only be taken before the session touches anything, so there is no later moment to
+recover one; stamping every candidate up front is the only shape that works. Cost is zero for an
+ordinary session in a real project, which still stamps exactly one.
+
+**What this means for an agent reading a receipt.** `UNKNOWN` is not `OPEN` and must never be
+relayed as one — say plainly that the wrap may have run in full and the tool cannot tell. It is
+also not a `SET` you may infer from what you remember doing; that is the composed verdict the whole
+mechanism exists to prevent.

@@ -913,9 +913,21 @@ def main() -> None:
     # id, so a second run of this hook (a hand-invocation, or a client re-firing SessionStart
     # on a compaction refill) leaves the real session-start snapshot alone. Never pass
     # `force=True` from here: that is the explicit `--stamp-baseline` operator path only.
+    #
+    # B2 -- the `if NEXT.md` gate above is correct and is also why a whole class of session
+    # got no baseline at all. A session started in a PARENT directory (`~/Projects`, which is
+    # not itself a repo) that does all its work in a child project below it falls through this
+    # gate, so the wrap of that child had nothing to measure against and read a false
+    # `CAIRN OPEN`. A baseline can only be taken NOW, before anything is touched, so there is
+    # no later moment to recover it -- hence stamping every opted-in child up front. Gated on
+    # the root NOT being a project, so an ordinary session still stamps exactly one baseline
+    # and pays nothing for this. See `wrap_receipt.stamp_child_baselines()` for the cost
+    # measurement and for why siblings are deliberately not covered.
     try:
         if wrap_receipt and (root / "NEXT.md").is_file():
             wrap_receipt.stamp_baseline(root)
+        elif wrap_receipt:
+            wrap_receipt.stamp_child_baselines(root)
     except Exception:
         pass                     # a baseline is never worth failing an orientation over
 
@@ -1084,7 +1096,7 @@ def main() -> None:
     # read seconds earlier. Keep it to FOUR LINES: it is a floor, not a second copy.
     always_on = [] if _rules_in_context else [
         "[to the agent] Reporting session state? The WRAP VERDICT is a QUOTATION: run "
-        "`hooks/wrap_receipt.py --check` and quote CAIRN SET/NOT DUE/OPEN. Never compose one "
+        "`hooks/wrap_receipt.py --check` and quote CAIRN SET/NOT DUE/OPEN/UNKNOWN. Never compose one "
         "yourself, and never give git mechanics; a clean tree is not a wrapped session.",
         "[to the agent] Anything with a future trigger — \"check after the deploy\", \"keep an "
         "eye on X\" — is a queue item or a dated watch, never a sentence in chat. The user cannot "

@@ -142,6 +142,11 @@ working wrap never needs it.
    (step 8c): it reads **`CAIRN OPEN`**, correctly, because the marker step has not run. Quote it,
    and add in the same breath that **the push is waiting on them.**
 
+   **If it reads `CAIRN UNKNOWN` instead, quote that** — and say what it means, because the two
+   are not interchangeable. `UNKNOWN` is what a session started outside the project it worked in
+   gets: no session-start baseline, so `next_rewrite` / `changelog` / `commit` are blind. It is not
+   a claim that anything was skipped, and it is not a `SET` you may infer from memory.
+
    **Verify the stop held — B86, and do not skip this.** Deciding not to push and reporting that
    decision is exactly the thing B86 says cannot be trusted from inside the session. Run
 

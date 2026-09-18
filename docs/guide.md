@@ -313,11 +313,20 @@ is the actual test for whether something belongs there.
    CAIRN SET · 3f119b5df86c
    ```
 
-   The agent quotes that line; it never composes a verdict of its own. There are exactly three,
-   and all three come from the tool — `CAIRN SET` (with a receipt id), `CAIRN NOT DUE` (there was
-   genuinely nothing to wrap), and `CAIRN OPEN` followed by the steps that are missing. Owning
-   only the affirmative would not have helped: *"no wrap needed"* is just as ordinary a sentence,
-   so it has to be the tool's to say too.
+   The agent quotes that line; it never composes a verdict of its own. There are exactly four,
+   and all four come from the tool — `CAIRN SET` (with a receipt id), `CAIRN NOT DUE` (there was
+   genuinely nothing to wrap), `CAIRN OPEN` followed by the steps that are missing, and
+   `CAIRN UNKNOWN`. Owning only the affirmative would not have helped: *"no wrap needed"* is just
+   as ordinary a sentence, so it has to be the tool's to say too.
+
+   **`UNKNOWN` is the one that is easy to misread.** `OPEN` means a step was measured not to have
+   run. `UNKNOWN` means nothing could be measured — you started the session in a directory that is
+   not the project you then worked in, so there was no session-start snapshot to compare against.
+   The wrap may have been perfect; the tool is saying it cannot tell. Keeping that separate from
+   `OPEN` is the whole point: a warning that fires when nothing is wrong trains you to ignore the
+   one that fires when something is. Starting the session inside the project is what avoids it,
+   and for the common shape — a parent folder full of repos — the plugin handles it for you by
+   snapshotting each opted-in child at session start.
 
    **Why the id and not just the coined word.** The word has to be written down in the
    instructions the agent reads *before* wrapping, so on its own it is copyable. The id is a hash

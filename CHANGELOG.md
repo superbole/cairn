@@ -3,6 +3,38 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-18 — v1.57.0: a wrap receipt can no longer cry wolf about where you stood
+
+**`CAIRN UNKNOWN`, a fourth verdict.** `verdict()` returned `OPEN` for two opposite states: a
+required step measured *not to have run*, and one that *could not be measured*. Receipt
+`9274cfbf13da` (2026-09-14) read `CAIRN OPEN` on a wrap that had written a 19-line CHANGELOG entry,
+rewritten `NEXT.md`, committed `e415fb2` and pushed to `0 0` — the same token a skipped changelog
+produces. `skipped` is now tested before `unverifiable`, so a wrap that is both still reads `OPEN`
+and `UNKNOWN` cannot become a soft landing for an incomplete one. `UNKNOWN` records a receipt with
+a real, verifiable id; refusing to record was rejected, because the id is the whole reason the
+token is evidence.
+
+**And the cause is prevented, not just reported.** `SessionStart` in a directory with no `NEXT.md`
+— a parent folder full of repos, the shape this was filed on — now stamps a session-start baseline
+for each immediate child that is a git repo carrying its own `NEXT.md`, so a wrap of that child
+earns the same verdict it would have from inside it. Same opt-in gate, and same security boundary,
+as `repo_sweep.sibling_repos()`: a clone with no `NEXT.md` is never reached. Measured on the real
+`~/Projects`: 12 opted-in children, 881 ms, paid only by a session start that prints no orientation
+anyway. An ordinary session in a real project still stamps exactly one baseline and pays nothing.
+Siblings are deliberately not covered — that would put the cost on every session — and fall to
+`UNKNOWN`.
+
+**The printed note named the wrong cause.** It asserted *"the baseline is keyed to the session id,
+which a plain terminal does not have"* for every missing baseline, which is false of an in-session
+wrap run from a parent directory and sent the reader after the wrong remedy. It now reads the
+session id and distinguishes the two.
+
+Closes `BACKLOG.md` B2 (issue `#2`), queue item 2. Rationale in `docs/decisions.md` D26; the
+incident record is in `plugins/cairn/skills/wrap/references/incidents.md`. `rules/CLAUDE.md`,
+`skills/wrap/SKILL.md`, `docs/guide.md` and `docs/design-notes.md` all state the fourth verdict and
+that `UNKNOWN` must never be relayed as `OPEN`. 29/29 test files pass; the new section 11 of
+`test_wrap_receipt.py` fails against the pre-fix code, verified.
+
 ## 2026-09-16 — `.gitattributes` normalizes line endings to LF
 
 Added `.gitattributes` (`* text=auto eol=lf`) so a WSL checkout of this Windows-authored repo

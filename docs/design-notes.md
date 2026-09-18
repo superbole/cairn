@@ -45,12 +45,18 @@ rule was missing — two were present, in bold, in the always-loaded rules file,
 followed. The failure is that *"wrapped"* is a word an honest agent produces from ambient evidence.
 So the fix is not a third rule. It is to make the verdict a **token no amount of speaking English
 can produce**, emitted by a tool that measured the steps: `CAIRN SET · <id>` / `CAIRN NOT DUE` /
-`CAIRN OPEN`.
+`CAIRN OPEN` / `CAIRN UNKNOWN`.
 
-Three things it took to make that hold:
+Four things it took to make that hold:
 
-- **All three verdicts, or none.** The exact sentence produced was *"no wrap needed"*. A tool that
+- **All four verdicts, or none.** The exact sentence produced was *"no wrap needed"*. A tool that
   can only emit the affirmative moves the impersonation one door down rather than closing it.
+- **"Measured absent" and "could not be measured" are two verdicts, not one.** They were one
+  (`OPEN`) until B2, and the cost was a wrap that had done everything reporting the same token as
+  a wrap that had skipped the changelog. A warning that fires when nothing is wrong is how a
+  reader learns to discount the one that fires when something is — so `OPEN` is now measured
+  absence only, and `UNKNOWN` is blindness. `skipped` is tested first, so a wrap that is both
+  still reads `OPEN`.
 - **A per-run id, not just a coined word.** The word has to be documented in the skill file the
   agent reads *before* wrapping, so a fixed string is copyable by exactly the party being guarded
   against. The id is a hash of the receipt and fails `--verify` if invented. That raises a false

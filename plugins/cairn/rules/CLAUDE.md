@@ -58,11 +58,20 @@ python "$CLAUDE_PLUGIN_ROOT/hooks/wrap_receipt.py" --record    # the wrap's own 
 Add `--held` **only** on the `AFK` path where the push was deliberately stopped; it turns on an
 alert whose shape an ordinary successful push also has.
 
-It prints exactly one of **`CAIRN SET · <id>`**, **`CAIRN NOT DUE`**, or **`CAIRN OPEN`** with the
-steps that are missing. **All three come from the tool — including the negatives.** *"No wrap
-needed"* is ordinary English and an agent produces it without lying, which is precisely how a
-diligent impersonation became indistinguishable from a wrap (twice, 2026-09-06). A coined token
-with a receipt id cannot be produced by speaking English.
+It prints exactly one of **`CAIRN SET · <id>`**, **`CAIRN NOT DUE`**, **`CAIRN OPEN`** with the
+steps that are missing, or **`CAIRN UNKNOWN`**. **All four come from the tool — including the
+negatives.** *"No wrap needed"* is ordinary English and an agent produces it without lying, which
+is precisely how a diligent impersonation became indistinguishable from a wrap (twice,
+2026-09-06). A coined token with a receipt id cannot be produced by speaking English.
+
+**`CAIRN UNKNOWN` is NOT `CAIRN OPEN`, and reporting it as one is a bug.** `OPEN` means a required
+step was **measured** not to have run. `UNKNOWN` means the steps could not be measured at all —
+almost always because this session started somewhere other than the project it worked in, so no
+session-start baseline was stamped for it. **Relay it as what it is**: the wrap may have run in
+full, the tool cannot say, and nothing here is evidence that anything was skipped. Do not
+"upgrade" it to `SET` on the strength of what you remember doing — that is the composed verdict
+this whole mechanism exists to prevent — and do not relay it as `OPEN`, because an `OPEN` that
+cries wolf teaches them to discount the `OPEN` that does not.
 
 **If you have no token, you have no verdict.** Say that plainly — *"I cannot produce a wrap verdict
 — `wrap_receipt.py` did not run"* — and never substitute an account of what you did.
