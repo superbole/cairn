@@ -25,7 +25,9 @@ record is the one thing in a repo that cannot be re-derived from the repo.
    Brief: [briefs/triage-private-backlog.md](briefs/triage-private-backlog.md)
    About half the private repo's backlog is plugin-generic and belongs here; the rest names work
    servers, clients and machines and stays where it is. Until this runs, this repo's queue is
-   thinner than the actual work.
+   thinner than the actual work. **It also empties the private `NEXT.md` and ends by removing the
+   private clone** (the operator asked for this 2026-09-23), so the brief's new last step asks before
+   deleting anything.
 
 ## Watching
 
