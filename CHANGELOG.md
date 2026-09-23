@@ -3,6 +3,34 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-23 — v1.60.0: the new guard had a hole in the only case it was written for
+
+**`staged_review_guard` shipped an hour earlier with seven passing tests and would have caught
+nothing.** It resolved the repository from the SESSION's cwd, honouring `git -C <path>` but not
+`cd <path> && git …` — and `cd` is the ordinary shape for touching a second repo. So a commit into
+any repo other than the session's own was evaluated against the session's repo, found "nothing
+staged", and allowed. **The defect that prompted the guard was a commit into `workspace` from a
+`bsr-tools` session**, reached by exactly that `cd`, so the guard was blind to its own motivating
+incident.
+
+**It passed its tests because they were written the same way the code was.** Every case ran with
+`cwd` set to the target repo, which is the one arrangement that hides the bug. It was found within
+minutes of a real session loading it, by running it against live `cd`-style commands rather than
+against a fixture — the first thing `NEXT.md` W1 asked for, and the reason that watch existed.
+
+**Also fixed: the guard fired on any command that merely CONTAINED the words.** Matching was
+against raw command text, so a heredoc, a `grep` pattern or a JSON test payload mentioning the two
+verbs was refused — which made the guard's own test script unrunnable, and then blocked the commit
+of this very changelog entry. Git verbs now only count at a command position (start of string, or
+after `;`, `&&`, `||`, `|`, a newline, `then` or `do`).
+
+**Known and accepted:** bootstrapping a fresh repo (`git init && git add . && git commit`) is still refused,
+because it is genuinely a stage-and-commit in one call. The workaround is to split it, and no
+exception was added — a carve-out written by the session that wrote the rule is how guards rot.
+
+**The lesson is about the test, not the code.** A hook cannot be exercised by the session that
+writes it, so "tested" meant "tested as a standalone script against payloads I invented". That is
+weaker evidence than it reads as, and the gap between the two was a whole class of commit.
 ## 2026-09-23 — v1.59.0: the `NEXT.md` re-read rule was never about `NEXT.md`
 
 **`/cairn:wrap` has always said "RE-READ `NEXT.md` FROM DISK FIRST, never from your context",** and

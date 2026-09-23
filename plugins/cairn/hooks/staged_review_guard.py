@@ -64,14 +64,40 @@ def _repo_root(cwd):
     return out.strip() or None
 
 
+# A git verb only counts at a COMMAND POSITION -- start of string, or after a
+# separator. Without this the guard fires on any command that merely CONTAINS the
+# words, such as a heredoc, a grep pattern or a JSON payload literal, which made its
+# own test script unrunnable (2026-09-23).
+_AT_CMD = r"(?:^|[\n;|]|&&|\|\||\bthen\b|\bdo\b)\s*"
+RE_ADD = re.compile(_AT_CMD + r"git\s+(?:-C\s+\S+\s+)?add\b")
+RE_COMMIT = re.compile(_AT_CMD + r"git\s+(?:-C\s+\S+\s+)?commit\b")
+RE_DIFF = re.compile(_AT_CMD + r"git\s+(?:-C\s+\S+\s+)?diff\b")
+RE_CD = re.compile(_AT_CMD + r"cd\s+(\"[^\"]+\"|'[^']+'|[^\s;&|]+)")
+RE_DASH_C = re.compile(r"git\s+(?:--\w[\w-]*\s+)*-C\s+(\"[^\"]+\"|'[^']+'|\S+)")
+
+
 def _cwd_for(command, hook_cwd):
-    """Honour `git -C <path>`; otherwise the session's cwd."""
-    m = re.search(r"git\s+(?:--\w[\w-]*\s+)*-C\s+(\"[^\"]+\"|'[^']+'|\S+)", command)
+    """Where the git command will ACTUALLY run.
+
+    `git -C <path>` wins, then the last `cd <path>` in the command, then the session's
+    cwd. The `cd` case is not an edge case: `cd <repo> && git commit` is the ordinary
+    shape for touching a second repository, and while it was unhandled the guard
+    silently evaluated the SESSION's repo instead -- reporting "nothing staged" and
+    allowing the commit. That is the exact multi-repo situation the guard was written
+    for, so it passed its standalone tests and would have caught nothing in practice
+    (found 2026-09-23 by running it against a real session).
+    """
+    m = RE_DASH_C.search(command)
     if m:
-        p = m.group(1).strip("\"'")
-        if os.path.isdir(p):
-            return p
-    return hook_cwd
+        candidate = m.group(1).strip("\"'")
+        if os.path.isdir(candidate):
+            return candidate
+    last = None
+    for m in RE_CD.finditer(command):
+        candidate = os.path.expanduser(m.group(1).strip("\"'"))
+        if os.path.isdir(candidate):
+            last = candidate
+    return last or hook_cwd
 
 
 def _state_path(root):
@@ -119,8 +145,7 @@ def main() -> int:
     # Checked BEFORE any state lookup: this shape is wrong on its face and needs no
     # history to judge. It also has to survive a state dir that cannot be read, which is
     # exactly when a guard is most likely to be quietly doing nothing.
-    if re.search(r"git\s+(?:-C\s+\S+\s+)?add\b", command) and re.search(
-            r"git\s+(?:-C\s+\S+\s+)?commit\b", command):
+    if RE_ADD.search(command) and RE_COMMIT.search(command):
         return _refuse(
             "This command stages and commits in one step, so nothing reads the diff in "
             "between. That is how six lines written by a scheduled task were committed "
@@ -135,9 +160,9 @@ def main() -> int:
 
     # A diff that shows staged content counts as the review. `git show` of a commit does
     # not -- that is reading history, not what is about to become history.
-    reads_staged_diff = re.search(r"git\s+(?:-C\s+\S+\s+)?diff\b", command) and "--stat" not in command
-    stages = re.search(r"git\s+(?:-C\s+\S+\s+)?add\b", command)
-    commits = re.search(r"git\s+(?:-C\s+\S+\s+)?commit\b", command)
+    reads_staged_diff = RE_DIFF.search(command) and "--stat" not in command
+    stages = RE_ADD.search(command)
+    commits = RE_COMMIT.search(command)
 
     if stages:
         state["staged_at"] = now

@@ -1,7 +1,7 @@
 {
   "name": "cairn",
   "description": "Never lose your place between sessions. Prints the project's NEXT.md queue, any due watches, and a one-line BACKLOG.md summary at session start, and provides /cairn:next to re-enter work and /cairn:wrap to end a session so the next one starts from disk. BACKLOG.md syncs to GitHub Issues where the repo has them.",
-  "version": "1.59.0",
+  "version": "1.60.0",
   "author": {
     "name": "superbole"
   },
