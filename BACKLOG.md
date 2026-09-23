@@ -61,7 +61,7 @@ behind master, and warning on every one would be wallpaper. The ancestor test is
 specific to the merged-and-forgotten case.
 
 ## B6. `/clear` starts a new session with no baseline, so its wrap reads `CAIRN UNKNOWN`
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-23`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-23` · issue `#6`
 **Root cause, measured 2026-09-23 on NB5 (CLI, WSL, `bsr-tools`):** `/clear` gives the session a
 **new `session_id`** (a new transcript file, `8116a414…`, whose first entry is the `/clear` itself)
 but cairn stamps no baseline for it, on two layers:
@@ -106,3 +106,9 @@ routinely? A cheap option to cost: stamp a baseline for a sibling repo lazily, o
 the PostToolUse recorder sees there (`touched_repos.py` already records which repos were touched),
 so the cost lands only on sessions that actually cross repos. Not related to agent-reentry B143
 (no-baseline reads SKIPPED in the session's OWN repo).
+
+**Same pattern in `tools/sync_backlog.py` (seen 2026-09-23):** run from inside `cairn` during a
+`bsr-tools` session, it synced **`bsr-tools`** ("synced with issr/bsr-tools"). It resolves the
+project from the session and ignores the cwd, and it has no `--root` flag. Setting
+`CLAUDE_PROJECT_DIR=$PWD` works around it. That run wrote nothing, but only because nothing had
+changed in bsr-tools.
