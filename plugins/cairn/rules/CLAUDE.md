@@ -380,7 +380,16 @@ the user's own working style, and this list is not.
 - **Attendance and mode:** say `AFK` or `HITL` before anything starts, and for `HITL` name the
   point it stops at — starting something is a decision about the user's own attention. Flag a mode
   mismatch with this session **before** starting; it cannot be fixed once you are running.
-- **Stage commits with explicit pathspecs** (`git add path/to/file`), never `git add .`.
+- **Stage commits with explicit pathspecs** (`git add path/to/file`), never `git add .` — **and
+  read `git diff -- <path>` for each one before you stage it.** A pathspec is not a review: it says
+  which FILES you take, and quietly assumes a named file is entirely yours. That is false for
+  anything a background process appends to — a capture inbox, a generated report, a scan log. **If
+  `git diff --cached --stat` disagrees with what you think you changed, STOP and read the diff: a
+  count you cannot account for is a defect, not a curiosity.** Changes that are not yours get their
+  own commit and their own message, or get left unstaged — never folded into yours. **Never stage
+  and commit in the same shell call**; nothing can read the diff in between, which is exactly how
+  six lines written by a scheduled task shipped under a message describing one (2026-09-23,
+  `workspace`). `hooks/staged_review_guard.py` refuses both shapes.
 - **Verify, don't assume.** Shown numbers from real calls beat asserted reasoning.
 - **Never say a tool, file or capability does not exist without searching in the same turn** —
   and say which search you ran. An absence feels like something you know; it is something you

@@ -3,6 +3,37 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-23 — v1.58.0: a pathspec is not a review
+
+**`git add <file>` obeyed the rule and committed someone else's work anyway.** The rule said
+*"stage with explicit pathspecs, never `git add .`"*, and a session on 2026-09-23 did exactly that
+— `git add INBOX.md` — sweeping in six bullets the nightly divergence scan had appended to that
+file, under a commit message describing only the one line the session wrote.
+
+**The rule governs FILES and assumes a named file is entirely yours.** That is false for anything a
+background process appends to: a capture inbox, a generated report, a scan log. No wording about
+pathspecs could have caught it, so the rule now requires reading `git diff -- <path>` **before**
+staging, forbids staging and committing in one shell call, and says plainly that a `--cached
+--stat` count you cannot account for is a defect rather than a curiosity.
+
+**The check already existed and was skipped, which is why this also ships a hook.**
+`git diff --cached --stat` printed *"7 insertions"* for a one-line change; it was read, noted as
+odd, and committed regardless. `hooks/staged_review_guard.py` (`PreToolUse`, `Bash`) makes the
+existing check non-optional rather than adding a new one. It refuses two shapes: a command that
+stages *and* commits, and a `git commit` where nothing has read the staged diff since it was
+staged. `--stat` does not count as reading it — that was the actual failure. Refusals name the
+staged paths and say to commit foreign changes separately or unstage them.
+
+**Failure posture is allow.** Unparseable input, no repo, no readable state dir, any exception:
+exit 0. The stage-and-commit check deliberately runs *before* any state lookup, so it still fires
+when the state dir cannot be read — the moment a guard is most likely to be silently doing nothing.
+A `--amend` with an empty index passes; a 15-minute TTL keeps a stale read from authorising a much
+later commit.
+
+**What it does NOT do: anything about the remote.** It cannot tell you `origin` has moved, or that
+you are committing onto a merged branch. That gap is real and is tracked separately — the
+orientation's divergence banner compares against `@{u}`, so a merged, abandoned branch reads as
+perfectly in sync while the default branch has moved on.
 ## 2026-09-18 — v1.57.0: a wrap receipt can no longer cry wolf about where you stood
 
 **`CAIRN UNKNOWN`, a fourth verdict.** `verdict()` returned `OPEN` for two opposite states: a
