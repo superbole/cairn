@@ -61,7 +61,7 @@ behind master, and warning on every one would be wallpaper. The ancestor test is
 specific to the merged-and-forgotten case.
 
 ## B7. On WSL with the Windows `gh.exe`, every GitHub issue re-body fails ("cannot find the file")
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23` · issue `#7`
 **Seen 2026-09-23 on NB5 (WSL):** `sync_backlog.py` in `cairn` printed `! B5 — could not update #5:
 open /tmp/tmpXXXX.md: The system cannot find the file specified.` On NB5, `~/.local/bin/gh` is a
 **symlink to `/mnt/c/Program Files/GitHub CLI/gh.exe`**. `hooks/issue_host.py` `_body_file()`
