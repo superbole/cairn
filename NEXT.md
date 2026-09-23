@@ -29,6 +29,17 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Watching
 
+**W1. Verify `staged_review_guard` actually loads and blocks on a real session** — `Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-23` · check after `next Claude Code restart with v1.58.0 installed`
+Shipped 2026-09-23 (`adc5ea2`) and tested against seven shapes **as a standalone script** — never
+once through Claude Code's own `PreToolUse` plumbing, because a hook cannot be loaded by the
+session that writes it. Until that is confirmed, this is a guard nobody has seen fire in anger.
+**Do:** reinstall/repoint to v1.58.0, restart, then in a scratch repo run `git add f && git commit`
+in one call — it must be refused. Then `git commit` alone with something staged — also refused.
+Then `git diff --cached`, then commit — must pass.
+**If it misfires, remove the `PreToolUse` block from `hooks.json` first and diagnose after**: this
+is the plugin's first blocking hook, and a false positive stops every commit on every machine.
+
+
 
 ---
 
