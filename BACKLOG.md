@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 7 -->
+<!-- next-id: 8 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -59,6 +59,27 @@ say *"this branch is merged; <default> is N ahead — switch?"*. Offer, never sw
 **Ruled out:** comparing to the default branch always — an unmerged feature branch is legitimately
 behind master, and warning on every one would be wallpaper. The ancestor test is what makes it
 specific to the merged-and-forgotten case.
+
+## B7. On WSL with the Windows `gh.exe`, every GitHub issue re-body fails ("cannot find the file")
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23`
+**Seen 2026-09-23 on NB5 (WSL):** `sync_backlog.py` in `cairn` printed `! B5 — could not update #5:
+open /tmp/tmpXXXX.md: The system cannot find the file specified.` On NB5, `~/.local/bin/gh` is a
+**symlink to `/mnt/c/Program Files/GitHub CLI/gh.exe`**. `hooks/issue_host.py` `_body_file()`
+writes the body with `tempfile.mkstemp()` into WSL's `/tmp` and passes that Linux path to a
+Windows exe, which can't open it.
+
+**What is and isn't affected:** `create` passes the body in argv (see the comment near line 632),
+so **filing** new issues works (B6 was filed as #6 in the same session). Only `update` (line 477,
+re-bodying an existing issue) fails, and it fails every time. The sync reports "file is still
+right", so nothing is lost locally, but GitHub issue bodies stop updating on this machine without
+anyone noticing. `glab` on NB5 is a native Linux ELF, so GitLab projects (`bsr-tools`) aren't
+affected.
+
+**Likely fix:** when the resolved CLI is a `.exe` running under WSL (`/proc/version` contains
+`microsoft`), put the temp file somewhere Windows can see (e.g. under `/mnt/c/Users/<u>/AppData/
+Local/Temp`) and pass the path converted with `wslpath -w`. Or pass the body in argv, as `create`
+already does. The alternative is a native Linux `gh` on NB5, which is machine state for
+`workspace`, not a plugin fix.
 
 ## B6. `/clear` starts a new session with no baseline, so its wrap reads `CAIRN UNKNOWN`
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-23` · issue `#6`
