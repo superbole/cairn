@@ -28,6 +28,22 @@ after `;`, `&&`, `||`, `|`, a newline, `then` or `do`).
 because it is genuinely a stage-and-commit in one call. The workaround is to split it, and no
 exception was added — a carve-out written by the session that wrote the rule is how guards rot.
 
+**VERIFIED LIVE, same day, on a restarted session running v1.60.0** — six shapes, each a real Bash
+call through Claude Code's own `PreToolUse` plumbing rather than a fixture:
+
+| shape | result |
+|---|---|
+| fresh-repo bootstrap, stage + commit in one call | refused (by design) |
+| `cd <repo> && git commit`, staged but diff unread | **refused, and it named the staged path** |
+| `git diff --cached` | allowed |
+| commit after reading the diff | allowed, commit landed |
+| prose merely mentioning the two verbs | allowed |
+| `--stat` read, then commit | **refused** |
+
+The second row is the v1.60.0 fix and the fifth is the false positive, both confirmed against the
+live hook. The last row is the original 2026-09-23 defect's exact shape: a `--stat` glanced at and
+a commit made anyway. It is now impossible. `NEXT.md` W1 is closed.
+
 **The lesson is about the test, not the code.** A hook cannot be exercised by the session that
 writes it, so "tested" meant "tested as a standalone script against payloads I invented". That is
 weaker evidence than it reads as, and the gap between the two was a whole class of commit.
