@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 3 -->
+<!-- next-id: 5 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -72,3 +72,45 @@ missing steps, so the D4 false-wrap failure does not recur through this path.
 
 **Why it matters:** this box also carries uncommitted-file warnings. Firing it on every machine
 switch — his normal NB1↔NB5 pattern — trains him to skip it (the cry-wolf boundary, `item_open.py`).
+
+## B4. A merged feature branch reads as in-sync, so the orientation shows a stale NEXT.md silently
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-23`
+The divergence banner compares HEAD to `@{u}`. A checkout left on a feature branch after its MR
+merged is `0 0` against its own upstream with a clean tree — no banner, no warning — while the
+default branch has moved on and rewritten `NEXT.md`. The orientation then relays the branch's copy.
+
+**Observed 2026-09-23, NB5 WSL `bsr-tools`:** sat on `feat/pen-test-headers-53` after MR !5 merged.
+`0 0` against `origin/feat/pen-test-headers-53`; `master` was **41** commits behind `origin/master`
+by the time it was noticed (3+ at first sighting), and those commits included wraps rewriting
+`NEXT.md`. Fixed by hand: `git switch master && git merge --ff-only origin/master`.
+
+**Candidate fix:** when the current branch is not the default branch, also compare HEAD to
+`origin/<default>` (from `git symbolic-ref refs/remotes/<remote>/HEAD`, remote taken from `@{u}` —
+several repos' upstream is not `origin`). If HEAD is an ancestor of it (`merge-base --is-ancestor`),
+say *"this branch is merged; <default> is N ahead — switch?"*. Offer, never switch unasked.
+
+**Ruled out:** comparing to the default branch always — an unmerged feature branch is legitimately
+behind master, and warning on every one would be wallpaper. The ancestor test is what makes it
+specific to the merged-and-forgotten case.
+
+## B5. The wrap receipt cannot verdict a sibling repo — hit 3x in one legitimate multi-repo session
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-23`
+`wrap_receipt.py --record` against any repo other than the session's own project prints `CAIRN
+UNKNOWN` ("no session baseline to compare HEAD against"), even when that repo is clean, committed
+and pushed. **This is the case B2's fix deliberately left out** (`docs/decisions.md` D26: *"rooted
+in project A, working in project B … falls to UNKNOWN — covering it would put the cost on every
+ordinary session"*).
+
+**Observed 2026-09-23:** one session worked across `bsr-tools`, `workspace` and `cairn`; 2 of the 3
+repos could only ever read `UNKNOWN`. The same pattern again the same day: a `workspace` session on
+NB5 committed to `cairn` and to WSL repos. Cross-repo work is his normal pattern, not an edge case.
+
+**Why it matters:** the rules make the receipt the one thing to trust over English. A mechanism that
+cannot answer for most of the repos a session touches pushes the verdict back onto prose — the
+failure it exists to prevent.
+
+**Decide before building (hence Plan):** is D26's cost estimate still right given it now fires
+routinely? A cheap option to cost: stamp a baseline for a sibling repo lazily, on the first write
+the PostToolUse recorder sees there (`touched_repos.py` already records which repos were touched),
+so the cost lands only on sessions that actually cross repos. Not related to agent-reentry B143
+(no-baseline reads SKIPPED in the session's OWN repo).
