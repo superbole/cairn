@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 2 -->
+<!-- next-id: 3 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -40,3 +40,35 @@ earns `CAIRN SET` rather than the backstop. Rationale and the rejected options i
 `docs/decisions.md` D26. The sibling case (rooted in project A, working in project B) is
 deliberately NOT covered and falls to `UNKNOWN` — covering it would put the cost on every
 ordinary session.
+
+## B3. "Commits since the last wrap" ignores wraps made on another machine
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-23`
+`reentry_state.unwrapped_commits()` counts `rev-list <.last_wrap>..HEAD`, and `.claude/.last_wrap`
+is gitignored — so it only knows wraps made on the machine reading it. A wrap on one machine,
+pulled to another, makes the second raise **"THE LAST SESSION DID NOT FINISH CLEANLY — N commits
+since the last wrap"** (`session_orientation.py` ~l.709, `dirty_tree_warning.py` ~l.146) about
+work that was wrapped properly.
+
+**Observed 2026-09-23, `workspace` on SBOLE-NB5:** 12 commits flagged. NB5's marker said `6b4fdaa`;
+NB1 had since wrapped twice (`df5378f`, `323d835`, each with a CHANGELOG entry and a `NEXT.md`
+rewrite), and the rest were committed inbox/backlog captures. Reconciling it cost a session's
+first round of work and found nothing wrong.
+
+**Proposed fix:** count from the NEWER of the local marker and the newest commit reachable from
+HEAD that is wrap-shaped — touches both `CHANGELOG.md` and `NEXT.md`, or subject starts `wrap:`.
+`last_commit_is_wrap_shaped()` already sits beside it and only looks at HEAD; generalise it to
+"newest such commit" (`git log -1 --format=%H -- CHANGELOG.md` intersected with `NEXT.md`, scoped
+by `_scope(root)`).
+
+**Ruled out:**
+- **Tracking the marker in git** — every wrap would commit it, and two machines wrapping the same
+  day conflict on it. The gitignore is deliberate (`reentry_state.py` docstring).
+- **Changing `wrap_receipt.py`** — not needed. The receipt is the verdict and keys to the session
+  baseline, not this count; this is only the orientation's nudge. Leave the receipt alone.
+
+**Accepted risk:** a session that commits CHANGELOG + NEXT.md together without running `/cairn:wrap`
+reads as wrapped here. That commit IS the substance of a wrap, and the receipt still catches the
+missing steps, so the D4 false-wrap failure does not recur through this path.
+
+**Why it matters:** this box also carries uncommitted-file warnings. Firing it on every machine
+switch — his normal NB1↔NB5 pattern — trains him to skip it (the cry-wolf boundary, `item_open.py`).
