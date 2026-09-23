@@ -29,15 +29,18 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Watching
 
-**W1. Verify `staged_review_guard` actually loads and blocks on a real session** — `Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-23` · check after `next Claude Code restart with v1.58.0 installed`
-Shipped 2026-09-23 (`adc5ea2`) and tested against seven shapes **as a standalone script** — never
-once through Claude Code's own `PreToolUse` plumbing, because a hook cannot be loaded by the
-session that writes it. Until that is confirmed, this is a guard nobody has seen fire in anger.
-**Do:** reinstall/repoint to v1.58.0, restart, then in a scratch repo run `git add f && git commit`
-in one call — it must be refused. Then `git commit` alone with something staged — also refused.
-Then `git diff --cached`, then commit — must pass.
-**If it misfires, remove the `PreToolUse` block from `hooks.json` first and diagnose after**: this
-is the plugin's first blocking hook, and a false positive stops every commit on every machine.
+**W1. Re-verify `staged_review_guard` after the v1.60.0 fix** — `Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-23` · check after `next Claude Code restart with v1.60.0 installed`
+**The first verification DID its job and the watch paid for itself.** v1.59.0 loaded and blocked
+correctly on a real session — then failed the very first live `cd`-style command, because it
+resolved the repo from the SESSION cwd and honoured only `git -C`. Every commit into a second repo
+was evaluated against the wrong one. Fixed in v1.60.0 (`ef52205`), which also stops the guard
+firing on commands that merely mention the verbs in quoted text.
+**So the remaining question is the same one, one version on:** v1.60.0 has again only been tested
+as a standalone script, by the session that wrote it. Restart, then repeat the live checks — the
+`cd <repo> && git ...` shape is the one that matters, not the `git -C` shape that already worked.
+**If it misfires, strip the `PreToolUse` block from the INSTALLED `hooks/hooks.json` first** and
+diagnose after; a false positive stops every commit on this machine.
+**Known and accepted, do not 'fix':** a fresh-repo bootstrap in one call is refused on purpose.
 
 
 
