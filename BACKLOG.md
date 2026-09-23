@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 9 -->
+<!-- next-id: 10 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,22 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B9. `sync_backlog.py` and `validate_next.py` answer for the SESSION's repo, not the one they're run in
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-23`
+Seen twice in one session on SBOLE-NB5, 2026-09-23. The session was opened on the private source
+repo, and `cairn` was then added as an extra directory:
+- `cd …/cairn && python plugins/cairn/tools/validate_next.py` printed **3 watches, 4 decisions**,
+  which are the private repo's counts. With the root passed explicitly it printed **0 and 0**,
+  which is correct for `cairn`.
+- `cd …/cairn && python <plugin>/tools/sync_backlog.py` printed `backlog synced with
+  superbole/agent-reentry`. So `cairn`'s B8 has **not** been filed as an issue yet.
+
+Probably the project root comes from the session's project dir (`CLAUDE_PROJECT_DIR` or
+equivalent) before `cwd`. Not checked. The private repo filed the validate half as B139. A wrong
+repo in a sync is worse than a wrong count: it writes to a different issue host. **Fix direction:**
+prefer the git root of `cwd`, and print the root being used on the first line (sync already names
+the repo; validate does not).
 
 ## B8. `/cairn:next` and `/cairn:wrap` should tell the agent to read files with Read, not a shell chain
 `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23`
