@@ -29,9 +29,27 @@ record is the one thing in a repo that cannot be re-derived from the repo.
    private clone** (the operator asked for this 2026-09-23), so the brief's new last step asks before
    deleting anything.
 
+3. **Cursor adapter v1 — reconcile the hand-written copy that already exists** — Opus 5 · high · HITL/Plan
+   Brief: [briefs/cursor-adapter-reconcile.md](briefs/cursor-adapter-reconcile.md)
+   A 102-line pair of Cursor `next`/`wrap` skills, hand-written 2026-09-04 against a pre-rename
+   plugin, is installed and has drifted ~14 versions. The question is whether it is regenerated from
+   this repo or stays hand-maintained. Backlog B57.
+
+## Decisions
+
+**D29. Can a backlog id carry a letter suffix (`## B2b.`)?** — answer: `here` · added `2026-09-05` · → `BACKLOG.md` B16
+**D30. One D-number sequence per repo, shared by open and answered decisions?** — answer: `here` · added `2026-09-08` · → `docs/decisions.md` D28, `BACKLOG.md` B16
+
 ## Watching
 
+**W2. The empty-Queue backlog offer (v1.18.0) fires in a genuinely NEW session** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-08-28` · check after `the next new session in a project whose Queue is empty`
 
+**W3. The orphan warning (v1.20.0) fires on a real abandoned item** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-08-28` · check after `a session that starts an item and ends without a wrap, on v1.20.0 or later`
+
+**W4. Does an install work on a machine that has never seen the private source repo?** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-09` · check after `someone installs from superbole/cairn on a machine that has never had the private repo`
+The real dogfooding test, and no current machine can run it — every one has had the private repo, so
+all could pass while a stranger fails. When it fires, check: does the orientation print, does
+`install_rules` write the managed block, and does the plugin stay silent in a project with no `NEXT.md`.
 
 ---
 
