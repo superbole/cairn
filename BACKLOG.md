@@ -327,7 +327,7 @@ in the suite. **Also decide:** is a brief pointer into a *different* repo allowe
 pointer went dead when that clone was deleted), or must briefs be copied in?
 
 ## B25. `install_rules` can delete the user's own text, and one rolling backup cannot recover it
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-06` · issue `#23`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-06` · issue `#23` · queued
 Brief: [briefs/install-rules-marker-safety.md](briefs/install-rules-marker-safety.md)
 Was `agent-reentry` B104 (migrated 2026-09-23). `BEGIN = "<!-- reentry:begin"` carries **no closing
 `-->`**, and `_find_block` takes `text.find(BEGIN)` — the first occurrence anywhere. The rewrite is

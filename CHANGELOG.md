@@ -3,6 +3,26 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-23 — the private backlog triaged in; the private source repo frozen
+
+Queue item 2. All 60 items in the private repo's backlog were read in full, and each was closed there
+with a pointer to where it went. **48 migrated here as B10–B57**, rewritten to drop employer,
+server, machine and medical names while keeping every measurement. Two more (the old B139 and B133)
+were the same defect as B9 and were merged into it. Five were closed as shipped, answered, done or
+superseded; five that are about the operator's own setup went to `workspace` `INBOX.md`; and one
+(the Graphify test) went to `bsr-tools` `INBOX.md`. The first keyword estimate was 25 migrate / 30
+stay. Reading the items showed most private names were in the evidence, not the subject.
+
+The private queue's Cursor adapter is now queue item 2 (B57). Its 640-line requirements report is in
+`docs/cursor-adapter-requirements.md`, pseudonymised, with two stale rows fixed. Three publishable
+briefs came across cleaned (B25, B26, B27). New here: decisions D29 and D30 (id rules), watches
+W2–W4 (original `added` dates kept), and `docs/decisions.md` D27 (copied) and D28 (this copy is
+now the writer). The sync filed #8–#57. All 60 private issues are closed, the private `NEXT.md` is
+empty and frozen, and **this machine's clone is deleted** after an ask. It was checked `0 0`, with
+no stashes and only disposable ignored files. The NB1 and DeepThought clones are `workspace` W9 and
+W6. Private-name check: a scanner run over the added lines, fed the private-names file, found 0 hits
+after one fix. It caught 8 of 8 on a control file first.
+
 ## 2026-09-23 — v1.60.0: the new guard had a hole in the only case it was written for
 
 **`staged_review_guard` shipped an hour earlier with seven passing tests and would have caught

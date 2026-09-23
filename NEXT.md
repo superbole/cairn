@@ -21,13 +21,12 @@ record is the one thing in a repo that cannot be re-derived from the repo.
    `SBOLE-NB5` 2026-09-11. `python3` is not the fix; it moves the breakage to Windows. First
    because it is the aim line failing: today a stranger on Ubuntu gets silence.
 
-2. **Triage the private backlog into this repo** — Opus 5 · high · HITL/Plan
-   Brief: [briefs/triage-private-backlog.md](briefs/triage-private-backlog.md)
-   About half the private repo's backlog is plugin-generic and belongs here; the rest names work
-   servers, clients and machines and stays where it is. Until this runs, this repo's queue is
-   thinner than the actual work. **It also empties the private `NEXT.md` and ends by removing the
-   private clone** (the operator asked for this 2026-09-23), so the brief's new last step asks before
-   deleting anything.
+2. **Stop `install_rules` deleting the user's own text in `~/.claude/CLAUDE.md`** — Opus 5 · high · AFK/Auto
+   Brief: [briefs/install-rules-marker-safety.md](briefs/install-rules-marker-safety.md)
+   The marker match is a bare prefix search, and the backup is one rolling copy, so on any
+   installer's machine the managed block can silently swallow text written above it, with no way
+   back after two updates. Backlog B25. Placed above the Cursor item because installs are the aim.
+   It commits locally and stops before the push.
 
 3. **Cursor adapter v1 — reconcile the hand-written copy that already exists** — Opus 5 · high · HITL/Plan
    Brief: [briefs/cursor-adapter-reconcile.md](briefs/cursor-adapter-reconcile.md)
