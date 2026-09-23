@@ -3,6 +3,31 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-23 — v1.59.0: the `NEXT.md` re-read rule was never about `NEXT.md`
+
+**`/cairn:wrap` has always said "RE-READ `NEXT.md` FROM DISK FIRST, never from your context",** and
+the reason it gives — several sessions run at once, so your copy can be hours stale — is a fact
+about the SESSION, not about that file. It was only ever enforced on one file.
+
+**So a session obeyed it perfectly and was wrong about everything else.** 2026-09-23: it re-read
+`NEXT.md` at every wrap, then told the user `MR !5` was open and still needed merging. It had been
+merged hours earlier by another machine. One `glab mr view` would have said so. The same session
+described a queue from a branch that had been superseded, and a second machine independently
+reported a two-week-old `QUEUE.md` as current.
+
+**The rule now covers any external state a session asserts** — an MR or PR, an issue, a branch, a
+remote, what another machine pushed — with the tell to watch for: you are about to describe
+something from memory *because you did the work earlier and remember the answer*.
+
+**Rejected: a boundary on session length.** The obvious reading of that incident is that the
+session ran too long and should have been forced to stop after its first `CAIRN SET` — a
+`PostToolUse` hook refusing to let a wrapped session keep working. It was proposed and the user
+rejected it, correctly: nearly everything of value that day was found *after* a wrap and *because*
+context had accumulated — an unauthenticated-API-surface record, a backlog item, a `glab` install,
+the MR itself, and this plugin's two newest rules. A boundary would have cut each of those at the
+seam and called it hygiene. **Duration was never the defect; asserting stale state was**, and the
+two are easy to confuse because they co-occur. His question, which settled it: *"would those issues
+have been raised or found in a new session?"*
 ## 2026-09-23 — v1.58.0: a pathspec is not a review
 
 **`git add <file>` obeyed the rule and committed someone else's work anyway.** The rule said

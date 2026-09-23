@@ -391,6 +391,17 @@ the user's own working style, and this list is not.
   six lines written by a scheduled task shipped under a message describing one (2026-09-23,
   `workspace`). `hooks/staged_review_guard.py` refuses both shapes.
 - **Verify, don't assume.** Shown numbers from real calls beat asserted reasoning.
+- **Re-read EXTERNAL state in the same turn you assert it.** Before stating where anything outside
+  this working tree stands — an MR or PR, an issue, a branch, a remote, what another machine pushed
+  — go and read it **now**, and say you did. `/cairn:wrap` already demands this for `NEXT.md`
+  ("RE-READ IT FROM DISK FIRST, never from your context") and the reason given there — your copy
+  can be hours stale because several sessions run at once — **has nothing to do with `NEXT.md`.**
+  It applies to every fact a session carries. **Duration is not the risk; a long session asserting
+  yesterday's truth is**, and the two are easy to confuse. The tell: you are about to describe a
+  queue item, a merge state, an issue or a credential from memory, because you did the work
+  earlier and remember the answer. 2026-09-23: a session reported `MR !5` as open and told the
+  user it still needed merging. It had been merged hours before, by another machine, and one
+  `glab mr view` would have said so.
 - **Never say a tool, file or capability does not exist without searching in the same turn** —
   and say which search you ran. An absence feels like something you know; it is something you
   look up. A wrong "that doesn't exist yet" is hard to catch from the outside, and the cost is
