@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 8 -->
+<!-- next-id: 9 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,29 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B8. `/cairn:next` and `/cairn:wrap` should tell the agent to read files with Read, not a shell chain
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23`
+On re-entry, an agent read NEXT.md's Queue, INBOX.md and git state in ONE Bash call:
+`cd /c/…/agent-reentry && sed -n '/^## Queue/,/^## Decisions/p' NEXT.md; ls INBOX.md 2>/dev/null && cat INBOX.md; git log --oneline -3; git status -sb | head -3`.
+Every piece of it is read-only and auto-allowed on its own, but the chain (a `cd` combined with
+`git`, plus `;`, `&&`, a pipe and a redirect) still brought up an **"Allow Claude to run …?"**
+prompt. He asked how to stop it (2026-09-23, `agent-reentry` on SBOLE-NB5). A prompt at the very
+first step of re-entry is the attention cost this plugin exists to remove.
+
+**Fix:** one line in each skill's Procedure — *read `NEXT.md`, `INBOX.md` and `BACKLOG.md` with the
+Read/Grep tools (offset/limit for one section); run each `git` command as its own plain call; never
+chain them behind a `cd`.* Consider the same line in `rules/CLAUDE.md` under "How work gets done",
+since sessions that never load a skill read these files too.
+
+**Ruled out:**
+- **An allowlist rule** — no `permissions.allow` pattern can match an arbitrary compound
+  command, and the prompt comes from the `cd`+`git` combination, not from any single command.
+  (`agent-reentry` got a read-only MCP allowlist the same day; it doesn't cover this case.)
+- **A per-project memory** — saved in `agent-reentry`, but it loads only there.
+
+**Check:** SKILL.md rule changes need an `incidents.md` check in the same commit (this repo's
+CLAUDE.md, if carried over from `agent-reentry`).
 
 ## B3. "Commits since the last wrap" ignores wraps made on another machine
 `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-23` · issue `#3`
