@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 5 -->
+<!-- next-id: 7 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -59,6 +59,31 @@ say *"this branch is merged; <default> is N ahead — switch?"*. Offer, never sw
 **Ruled out:** comparing to the default branch always — an unmerged feature branch is legitimately
 behind master, and warning on every one would be wallpaper. The ancestor test is what makes it
 specific to the merged-and-forgotten case.
+
+## B6. `/clear` starts a new session with no baseline, so its wrap reads `CAIRN UNKNOWN`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-23`
+**Root cause, measured 2026-09-23 on NB5 (CLI, WSL, `bsr-tools`):** `/clear` gives the session a
+**new `session_id`** (a new transcript file, `8116a414…`, whose first entry is the `/clear` itself)
+but cairn stamps no baseline for it, on two layers:
+1. `hooks/hooks.json` — the `SessionStart` matcher is `startup|resume`, so the hook never runs on
+   `source: clear`.
+2. `hooks/session_orientation.py` `_is_reentry_moment()` — even if it did run, `main()` returns on
+   `clear`/`compact` **before** `wrap_receipt.stamp_baseline(root)`.
+
+So every receipt taken after a `/clear` is `CAIRN UNKNOWN`, even when the whole wrap ran (the
+`bsr-tools` session this was found in: CHANGELOG, NEXT.md, commit and push all verifiably happened,
+receipt `UNKNOWN`, then the next session opened with "did not finish cleanly"). **Not WSL- or
+CLI-specific:** it happens anywhere `/clear` is used. The session started from the project dir, so
+this is not B5 or the parent-dir case.
+
+**Also wrong:** `skills/wrap/SKILL.md` (the model-switch table) says `/clear` "keeps the session's
+identity". The transcript shows a new session id.
+
+**Likely fix (decide in Plan):** add `clear` to the matcher, and in `main()` stamp the baseline for a
+`clear` source **silently** (no relay, since the 2026-08-22 incident about relaying the queue
+mid-session still applies), then return. `compact` keeps its session id, so it stays excluded. Open
+question: should a `clear` also count as a re-entry for relay purposes, since the context really is
+empty afterwards?
 
 ## B5. The wrap receipt cannot verdict a sibling repo — hit 3x in one legitimate multi-repo session
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-23` · issue `#5`
