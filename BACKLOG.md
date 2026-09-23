@@ -9,7 +9,7 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B10. With NO baseline at all, the receipt reports a confident `[SKIP]` instead of "cannot tell"
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-20`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-20` · issue `#8`
 Was `agent-reentry` B143 (migrated 2026-09-23). **Re-check against v1.57.0 first** — that release
 added `CAIRN UNKNOWN` and reordered `verdict()` so `skipped` is tested before `unverifiable`, which
 makes this defect *more* consequential, not less: a false `skipped` now always wins.
@@ -40,7 +40,7 @@ worse in the dangerous direction); treating no baseline as `NOT DUE` (hides a re
 **Related:** B11 (the same missing baseline, the resume/crash cause), B6 (`/clear`), B5 (siblings).
 
 ## B11. A baseline keyed only by session id does not survive a crash-and-resume
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06` · issue `#9`
 Was `agent-reentry` B106 (migrated 2026-09-23). **Half of it shipped:** v1.57.0's `CAIRN UNKNOWN` is
 the "distinct token for blindness" this item asked for. The fix that remains is (2) below.
 
@@ -68,7 +68,7 @@ an honest "cannot tell" into a false `skipped` or a false `NOT DUE`.
 **Related:** B10, B6 (`/clear` gives a new id and no stamp — the same mechanism, a different trigger).
 
 ## B12. `sync_backlog.py` silently DROPS a fields-line token it cannot parse, and reports success
-`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-09`
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-09` · issue `#10`
 Was `agent-reentry` B141 (migrated 2026-09-23). **Caused real data loss, invisibly.** Four new items
 were written with ASCII hyphens as field separators instead of the middot `·` the parser splits on.
 The sync rewrote the file, could not see `AFK/Auto`/`HITL/Auto` as a field, and emitted a canonical
@@ -87,7 +87,7 @@ compare tokens to be emitted against tokens read, and if a recognised field woul
 and name the item. A rewrite that loses a field must never be reported as a change count.
 
 ## B13. `sync_backlog.py` filed an issue without writing its number back, then re-imported it as a phantom
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-09`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-09` · issue `#11`
 Was `agent-reentry` B136 (migrated 2026-09-23). **Found live, and it corrupted the file it synced.**
 (1) An item with no `issue` field was synced: `· filed #129`. (2) **The number never reached the
 file** — a later exact-match `Edit` of the fields line would have failed had `· issue #129` been
@@ -110,7 +110,7 @@ carrying `closed|shipped|dropped`, and the lines it flagged said **`fixed`** —
 not know (same narrow-vocabulary shape as B15).
 
 ## B14. `fence_check.py` with no arguments checks nothing and prints a clean pass
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09` · issue `#12`
 Was `agent-reentry` B138 (migrated 2026-09-23). `fence_check.py` is `for path in sys.argv[1:]` with
 **no default file set**. With no arguments it prints `fence check: 0 line(s) inside a fence that a
 parser would read as structure` and **exits 0 having read no files** — byte-identical to a pass.
@@ -125,7 +125,7 @@ hits, all deliberate format examples in `README.md`, `docs/guide.md`, `docs/file
 line-start parser reads — **so the default set must NOT include docs**, or it cries wolf.
 
 ## B15. Bullet counters and `fence_check.py` don't know a bullet inside a fence isn't a bullet
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09` · issue `#13`
 Was `agent-reentry` B132 (migrated 2026-09-23). **Live incident:** an `INBOX.md` intake contract
 carried four example bullets inside a fenced code block, and the file was read as **5 un-triaged
 items instead of 1**. `wrap_receipt.py:_inbox_bullets()` uses `_BULLET_RE = ^\s*[-*]\s+\S` per line
@@ -142,7 +142,7 @@ is how the convention gets guessed wrong. (The affected repo worked around it wi
 when this lands. That repo's own PowerShell scanner has the same shape and is tracked there.)
 
 ## B16. A malformed decision id is INVISIBLE, and nothing warns
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-08`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-08` · issue `#14`
 Was `agent-reentry` B130 (migrated 2026-09-23). **Live incident:** a session in another project wrote
 *"one decision is yours before I build anything (D-a in the brief)"*. The parser is
 `_DECISION_START_RE = ^\*\*D\d`, so `**D-a.**` and `**Da.**` match nothing — verified against the
@@ -178,7 +178,7 @@ repo's D3 and D5, 2026-09-23):
   codes are not ids** — see B55, whose content stays private.
 
 ## B17. A watch trigger has exactly TWO evaluable forms; everything else is prose on a timer
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-08`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-08` · issue `#15`
 Was `agent-reentry` B129 (migrated 2026-09-23). **Measured across a portfolio 2026-09-08: 3 of 8
 watches (38%) carried a trigger the system cannot evaluate.** `check after` understands a
 `YYYY-MM-DD` date and `[the] next session on <machine>` (v1.53.1). Anything else never becomes
@@ -198,7 +198,7 @@ features* and might deserve their own list; (3) mark timer-only explicitly, only
 worse than silence.
 
 ## B18. A short machine id only works as a SUBSTRING of the hostname; `MACHINES.md` is not consulted
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-08`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-08` · issue `#16`
 Was `agent-reentry` B128 (migrated 2026-09-23). The operator proposed a two-letter id for a machine
 whose hostname is one CamelCase word (say `BigDesk` → `BD`). Measured before answering: it **would
 silently never fire.** `_is_here()` (`session_orientation.py`) is case-insensitive substring
@@ -219,7 +219,7 @@ id a function of hostname spelling; the fix becomes something to remember), and 
 (`ORG-LAPTOP1` containing `LAPTOP1` is the normal case).
 
 ## B19. `check_repos.py` collapses two repos that share a basename, and names only the basename
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-16`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-16` · issue `#17`
 Was `agent-reentry` B142 (migrated 2026-09-23). Found during a wrap, at the step whose whole job is to
 stop a CHANGELOG claiming work landed somewhere it did not. A session wrote to three repos: two under
 `~/Projects` (one named `cairn`), and a private config clone *also* named `cairn` under
@@ -240,7 +240,7 @@ entries would render identically — the existing `"%s (in %s)"` branch proves i
 printing the resolved root. (The wrap that found it verified the third repo by hand.)
 
 ## B20. The disclosure checker cannot see gitignored files, and every `.pyc` embeds the username
-`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-09`
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-09` · issue `#18`
 Was `agent-reentry` B140 (migrated 2026-09-23). Running the tests creates `__pycache__/`, and **every
 `.pyc` embeds the absolute path of its source** — verified by reading the bytes (byte 5052 of one
 `.pyc` holds `C:\Users\<username>\Projects\...`). That is one of the GENERIC patterns
@@ -257,7 +257,7 @@ nothing checks that `.gitignore` still contains the line.
 **Related:** B30 (a `~` directory in a repo, fixed by trusting the same unchecked file).
 
 ## B21. The dangling-pointer warning cannot tell a stale pointer from a historical citation
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#19`
 Was `agent-reentry` B92 (migrated 2026-09-23). **Partially fixed 2026-09-08, 48 → 26 lines, precision
 still 0.** `sync_backlog.py` now excludes known-historical paths (`CHANGELOG.md`, `docs/decisions.md`,
 `docs/review/**`, `skills/*/references/incidents.md`) and drops lines carrying
@@ -274,7 +274,7 @@ the id's syntactic position — an exact question about the line, not prose-snif
 exclusions as the belt. **Do not fix this by deleting the citations** — they are the record.
 
 ## B22. A NEW decision can contradict an OLD one, and nothing notices
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-08`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-08` · issue `#20`
 Was `agent-reentry` B127 (migrated 2026-09-23). **Self-inflicted, which makes it better evidence.** An
 agent recorded `docs/decisions.md` D22 **without reading D1's cell**; D22 contradicted D1, a brief
 was rewritten to match D22, and a backlog item was filed praising the "catch". D22 now stands
@@ -294,7 +294,7 @@ decision row and ASK — report-only, but needs precision discipline (B21) befor
 any mechanism against the correction above: here both files were self-consistent at every step.
 
 ## B23. `measure_context.py` hard-fails on any machine without `tiktoken`
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#21`
 Was `agent-reentry` B95 (migrated 2026-09-23). `import tiktoken` is at module level, unguarded; on a
 machine without it (`pip show tiktoken` → not found, Python 3.14.0) the tool dies with
 `ModuleNotFoundError` before printing anything. **Confirmed on a second machine 2026-09-07.**
@@ -308,7 +308,7 @@ dependencies and that is worth something. **Recommend (a), with (c) as the docum
 exact counts.** Blocks B24's real number.
 
 ## B24. Nothing tracks the always-loaded context budget, and the files have grown since the last trim
-`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-07`
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-07` · issue `#22`
 Was `agent-reentry` B117 (migrated 2026-09-23). Trim work shipped (v1.12.0 trimmed the rules, v1.12.1
 an audit tool), then the files kept growing — the expected outcome of a budget nobody owns: every
 rule added since was justified individually and none weighed against a ceiling. Measured 2026-09-07:
@@ -327,7 +327,7 @@ in the suite. **Also decide:** is a brief pointer into a *different* repo allowe
 pointer went dead when that clone was deleted), or must briefs be copied in?
 
 ## B25. `install_rules` can delete the user's own text, and one rolling backup cannot recover it
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-06`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-06` · issue `#23`
 Brief: [briefs/install-rules-marker-safety.md](briefs/install-rules-marker-safety.md)
 Was `agent-reentry` B104 (migrated 2026-09-23). `BEGIN = "<!-- reentry:begin"` carries **no closing
 `-->`**, and `_find_block` takes `text.find(BEGIN)` — the first occurrence anywhere. The rewrite is
@@ -341,7 +341,7 @@ with the outgoing version. `install_rules.py` has no direct test file; this item
 **Do this before B26.**
 
 ## B26. Say what changed in the rules block, not just `vX → vY`
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#24`
 Brief: [briefs/rules-block-change-announcement.md](briefs/rules-block-change-announcement.md)
 Was `agent-reentry` B101 (migrated 2026-09-23); decision row **D9**. `install_rules.py` rewrites
 always-loaded, machine-wide instruction text at every `SessionStart` where the version or rendered
@@ -353,7 +353,7 @@ hand; the silent path stays bit-for-bit silent. Plus a block digest in `check_in
 `wrap_receipt._digest()`. **Depends on B25** — the summary inherits whatever boundaries it finds.
 
 ## B27. Third-party text reaches session context unmarked — label at `pull()`, neutralise at the printer
-`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-06`
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-06` · issue `#25`
 Brief: [briefs/untrusted-text-boundary.md](briefs/untrusted-text-boundary.md)
 Was `agent-reentry` B102 (migrated 2026-09-23); decision row **D10**. **Live now: this repo is public
 and its issues sync.** File content prints into the same stream as the `[to the agent]` lines the
@@ -366,7 +366,7 @@ chokepoints, not ten print sites: `backlog_file.parse()` and `session_orientatio
 `render()`.** Stops once, on the cap for Decisions/Watching and the DUE body.
 
 ## B28. Four on-disk identifiers still say `reentry` after the rename to `cairn`
-`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-07`
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-07` · issue `#26`
 Was `agent-reentry` B111 (migrated 2026-09-23). D18 renamed the plugin (v1.51.0); four identifiers
 naming **live state on every installed machine** were deliberately left:
 
@@ -385,7 +385,7 @@ record of what happened under the old name). Until this lands, `install_rules.py
 rules block"* while writing `reentry:begin`.
 
 ## B29. The payload still says `agent-reentry` in prose, in a repo called `cairn`
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09` · issue `#27`
 Was `agent-reentry` B137 (migrated 2026-09-23), which absorbed the still-open half of `agent-reentry`
 B125. **A quality problem, not a disclosure one** — the name is published by decision (D1, D25).
 Deferred during the seed because a wide editorial pass inside an irreversible commit was the wrong
@@ -404,7 +404,7 @@ means *this project*; keep the name where the sentence is a dated record. **No b
 Renaming the old repo's remote is moot — its local clones are being removed and it is frozen.
 
 ## B30. The system's shell instructions are POSIX idiom, and a private file landed inside a repo because of it
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-07`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-07` · issue `#28`
 Was `agent-reentry` B119 (migrated 2026-09-23). **Live incident 2026-09-07, following a watch's step
 verbatim** on a Windows machine: `git clone <private-store-url> ~/.claude-private/<repo>`.
 **PowerShell expands `~` only for cmdlets and providers, never for arguments to a native
@@ -426,7 +426,7 @@ passing: the watch's commands now use `"$env:USERPROFILE\..."` and `~/` is in `.
 **Ruled out:** telling users to run these in bash — a rule about which shell is something to remember.
 
 ## B31. Cross-project roll-up: the morning chooser across every opted-in project
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-08-28`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-08-28` · issue `#29`
 Was `agent-reentry` B2 (migrated 2026-09-23). Its two briefs stayed in the private repo (they name
 the operator's portfolio); **write a fresh brief here when this is pulled**, from what follows.
 Asked for from a work laptop: is there a projects-wide `/cairn:next` for planning a work week?
@@ -454,7 +454,7 @@ sweep rejected that for siblings and deferred it to B36. Surfacing measured at ~
 for the two designs considered; keep the cheap one.
 
 ## B32. A finding about ANOTHER project has nowhere to go — make `INBOX.md` the cross-project mailbox
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#30`
 Was `agent-reentry` B54 (migrated 2026-09-23). **Incident:** asked whether it had logged an issue in
 another project, a session answered *"No — only logged it in MISTAKES.md"*. Recorded, and recorded
 where the owning project will never read. A session in A that finds work for B can only carry it in
@@ -475,7 +475,7 @@ pattern log, not a delivery mechanism — log AND post; (3) a wrap step cross-re
 against posts made. **Depends on** B35 (every project has an `INBOX.md`) and B56 (verified writes).
 
 ## B33. Several sessions at once — the concurrency rules are implicit
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#31`
 Was `agent-reentry` B55 (migrated 2026-09-23). Operator: *"the problem is the cross checking and
 messaging in one session about work in another session."* Separate repos fix file conflicts and none
 of the coordination; the messaging half is B32. v1.59.0 generalised the re-read rule to all external
@@ -497,7 +497,7 @@ live here?" marker at `SessionStart`, warn never block; (3) feed it into B31. **
 — a stale lock on a machine walked away from is worse than the race. **B34 is the mechanical half.**
 
 ## B34. Make concurrency safety MECHANICAL — stamp the file hash at read, check it before rewrite
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#32`
 Was `agent-reentry` B68 (migrated 2026-09-23). Operator's question: *"can we make it by design?"* — the
 honest answer had been **no, the ordering saved it**. A second session appended to the inbox and ran a
 full wrap while this one worked; nothing was lost only because this session had already pushed.
@@ -517,7 +517,7 @@ the allocation, not only the bytes. **Why a hash, not a lock:** no lifetime, no 
 **Scope: three files only**; `INBOX.md` is append-only and does not race.
 
 ## B35. Every tracked project gets the FULL file set, blank if need be — not just `NEXT.md`
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#33`
 Was `agent-reentry` B57 (migrated 2026-09-23). Operator: *"All projects should get all the .md files
 necessary for the plugin to work! Even if those files are blank."* Only `NEXT.md` is guaranteed; the
 rest are created lazily. **Why lazy is wrong:** absence carries two meanings — a missing `NEXT.md`
@@ -539,7 +539,7 @@ set in `rules/CLAUDE.md` and `README.md`. A multi-repo bootstrap is the largest 
 at a time, explicit pathspecs, report each.
 
 ## B36. The git sweep is per-machine-and-cwd — Windows, WSL and remote checkouts are never swept together
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#34`
 Was `agent-reentry` B59 (migrated 2026-09-23). Extends `repo_sweep.py`, which fetches *siblings of
 cwd*. The ask is one report over **every clone the user owns**: the Windows tree, the WSL tree, and
 checkouts on remote servers. "Siblings of cwd" cannot express that — WSL is not a sibling of Windows
@@ -549,14 +549,14 @@ offer a pull list; never pull unasked; stop on conflict. **Name the environment,
 one repo on Windows, in WSL and on a server is three rows (B40 is why).
 
 ## B37. Nothing ever walks the other projects' `INBOX.md` files
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-04`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-04` · issue `#35`
 Was `agent-reentry` B60 (migrated 2026-09-23). Orientation counts *this* project's inbox; the morning
 ask is "reconcile all the inboxes". **Blocked on B35** — measured 2026-09-04, 1 of 18 repos had an
 `INBOX.md`. Report counts and due-looking bullets per project; **read-only** — a foreign session
 appends and the owner triages (B32).
 
 ## B38. Evening wrap is per-session; there is no driver over the machine
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#36`
 Was `agent-reentry` B61 (migrated 2026-09-23). `/cairn:wrap` closes the repo you stand in; the evening
 ask is "wrap everything, push, archive, so the other machine tomorrow does not skip a beat" — today N
 wraps from a remembered list. Drive it from what this machine touched (`check_repos.py`,
@@ -565,7 +565,7 @@ in (B33). Report push failures honestly. Finish with one line naming the remotes
 should pull tomorrow — that is B36's input. Weekly half is B53.
 
 ## B39. A due watch in another project is invisible while you stay in this one
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#37`
 Was `agent-reentry` B64 (migrated 2026-09-23). The hole in "stay in the project until wrap or block"
 (B31). A dated watch surfaces as `DUE NOW` only at session start in its own project, so a day inside
 project A is a day in which B..N's watches surface nowhere. **Fix in the hub, not the day:** (1) the
@@ -574,7 +574,7 @@ evening driver (B38) reports watches that came due today in projects not opened;
 rejected per-session roll-up. **Do not weaken "stay"**; it is the right choice for re-entry cost.
 
 ## B40. `state_dir()` hashes the resolved path, so one repo has several separate memories
-`Sonnet 5` · effort `medium` · `HITL/Plan` · added `2026-09-04`
+`Sonnet 5` · effort `medium` · `HITL/Plan` · added `2026-09-04` · issue `#38`
 Was `agent-reentry` B63 (migrated 2026-09-23). `state_dir()` keys on `root.resolve()`, so one repo
 checked out on Windows, in WSL (`/mnt/c/...` *or* `~/Projects/...`) and on a server is **separate
 silos** for wrap markers, item-open markers, dirty-tree breadcrumbs and timesheet rows. Git-tracked
@@ -583,7 +583,7 @@ so. **Document it as a constraint first**; aliasing (shaped like `timesheet.py`'
 is a later design. **Related:** B3 (wraps on another machine are invisible — the git-side twin of this).
 
 ## B41. `~/.claude` content is global by location, local by content, and backed up nowhere
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-05`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-05` · issue `#39`
 Was `agent-reentry` B77 (migrated 2026-09-23). `~/.claude` is not a git repo, so `CREDENTIALS.md`,
 `MISTAKES.md`, `MACHINES.md` and every `projects/*/memory/*.md` exist on exactly one machine,
 unversioned. The plugin creates three of them (`ensure_credentials_file.py`,
@@ -597,7 +597,7 @@ blast radius includes a credential inventory (names and locations only, never va
 already solved this for one file (D7/D19's private store); decide whether the same store carries the rest.
 
 ## B42. Nothing detects a commitment made in chat that never reached disk
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06` · issue `#40`
 Was `agent-reentry` B98 (migrated 2026-09-23). Operator, after catching three in one session: *"How
 do we stop this from happening?"* A session about the re-entry system delivered three follow-ups in
 chat, wrote none down, and left the FINISHED item at Queue position 1. **Third instance in two days**
@@ -623,7 +623,7 @@ session *touched*, and this one was never touched. Parsing the wrap's own entry 
 and `` `<repo>` B<n> `` shapes and stat-ing them is a far smaller job than the general case.
 
 ## B43. Nothing detects a good stopping point — the wrap nudge was never mechanised
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-07`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-07` · issue `#41`
 Was `agent-reentry` B113 (migrated 2026-09-23). Operator: *"the plugin hasn't been doing this for a
 while now — suggesting I wrap and start a new session."* **What exists:** `dirty_tree_warning.py` on
 `Stop`/`SessionEnd`, once-per-*worsening* (a per-turn warning became wallpaper). **What doesn't:**
@@ -636,7 +636,7 @@ anti-wallpaper gate; session age / turns since `.last_wrap`. **Rejected in advan
 sentence. **Read `MISTAKES.md` first** (42 entries at filing) as the evidence of which signal helps.
 
 ## B44. The operator wants a hook that blocks closing a session with unwrapped work
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-02`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-02` · issue `#42`
 Was `agent-reentry` B43 (migrated 2026-09-23). Raised after `dirty_tree_warning.py` warned correctly
 mid-session: can the warning become a block? **Read that hook's header first** — *"NEVER BLOCKS. A
 Stop hook that traps a session is worse than a dirty tree … a session that cannot end is a session
@@ -646,7 +646,7 @@ may be too quiet to read as urgent); or use the archive offer as the harder stop
 a moment of attention rather than mid-task. Needs a plan: it changes the moment of leaving.
 
 ## B45. `MISTAKES.md` is written and never read
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#43`
 Was `agent-reentry` B62 (migrated 2026-09-23). The file exists on every machine and `/cairn:wrap`
 appends to it; **nothing reviews it**, and its justification is that a recurring pattern gets
 *designed against* — which needs a reader. Not a dashboard: a skill or a dated review cadence that
@@ -654,7 +654,7 @@ reads the log, clusters repeats, proposes **one** rule or tool change, and write
 row if accepted. **Never auto-edit `rules/CLAUDE.md` unasked** — it installs to every machine.
 
 ## B46. Narrative accumulates in `NEXT.md` between the Queue and `## Decisions`, where no budget applies
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-07`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-07` · issue `#44`
 Was `agent-reentry` B108 (migrated 2026-09-23); only the design question migrates — the file it was
 found in is frozen. **Measured:** eleven italic paragraph blocks, ~80 lines, every one a dated
 narrative of a past session, several already false (a "Queue is at 4" note contradicted by the header
@@ -665,7 +665,7 @@ and a truncation marker; this region has neither** — same always-loaded cost, 
 a date older than N days in a non-footer paragraph — rather than relying on a wrap noticing?
 
 ## B47. The wrap cannot tell whether the session's work left the user-facing docs behind
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06` · issue `#45`
 Was `agent-reentry` B93 (migrated 2026-09-23). **Answered by the operator: DETECT and REPORT, offer per
 session** — `docs/decisions.md` D5. Three existing rules are prose: `wrap/SKILL.md` step 3a, and two
 same-commit rules (version bump → README check; `SKILL.md` rule → `incidents.md` check). The gap is
@@ -679,7 +679,7 @@ config, wrong for other projects); recency only (fires constantly). State the ch
 to it: it cannot see a doc that is wrong without being old.
 
 ## B48. Nothing knows how much code has shipped since anyone last read it
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06` · issue `#46`
 Was `agent-reentry` B94 (migrated 2026-09-23). **Answered in D6:** code review is **offered at the
 COMMIT step with a running total**; security review is trigger-based. B47's pattern does not transfer
 — for docs, detection is free and the fix costs; for code, **the detection is the cost** (an agent
@@ -694,7 +694,7 @@ one over-counts, which fails safe. **Open:** what counts as source (Python and h
 Markdown)? Threshold, or always shown at the commit offer? Does a partial review reset the whole count?
 
 ## B49. A scheduled unattended run that never got going looks identical to one with nothing to do
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#47`
 Was `agent-reentry` B89 (migrated 2026-09-23). **Measured:** a 05:00 batch fired into a session left
 in `Manual` mode and sat **four and a half hours** on a permission dialog for a read of one backlog
 entry, completing only when a human woke and clicked. The mode half is now written in
@@ -711,7 +711,7 @@ recorded nowhere); the plugin setting the mode (cannot, and should not); a kill 
 on a prompt is not a run gone wrong); the plugin deleting tasks itself.
 
 ## B50. Scheduling an unattended run is hand-built from memory every time — it should be `/cairn:schedule`
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06` · issue `#48`
 Was `agent-reentry` B91 (migrated 2026-09-23). The creation half of B49. The 05:00 batch was a
 ~60-line prompt restating from memory the push prohibition, the sync prohibition, the lane partition,
 the dossier shape, the handover and the `AFK`-only rule — all already on disk — then fired into
@@ -727,7 +727,7 @@ leaving it as prose (written the same day it failed); a recurring nightly cron (
 safe work); the skill setting the mode.
 
 ## B51. Archiving a review dossier is a multi-file repointing job done by hand
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#49`
 Was `agent-reentry` B90 (migrated 2026-09-23). `docs/running-a-batch.md` makes `docs/review/` an inbox:
 once a batch is pushed, dossiers move to `docs/review/archive/`. Done by hand once for twenty-five
 files, and every pointer in `NEXT.md`, `BACKLOG.md`, `CHANGELOG.md`, `docs/decisions.md` and both
@@ -740,7 +740,7 @@ says when, not whether anyone owes a read); deleting accepted dossiers (the only
 unattended lane decided).
 
 ## B52. `timesheet.py` on a Cursor laptop reports the wrong machine's work, confidently
-`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-04`
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-04` · issue `#50`
 Was `agent-reentry` B65 (migrated 2026-09-23). Verified from a Cursor shell: the script runs (no Claude
 Code import), reads `~/.claude/projects/`, and reports the few *Claude Code* sessions there — read as
 "this week's work on this laptop", silently wrong where most hours are spent in Cursor. Cursor does
@@ -755,7 +755,7 @@ tree exists and `~/.claude/projects/` is near-empty. `timesheet.py` also asserts
 writes no transcript" — false; fix the comments.
 
 ## B53. There is no end-of-WEEK driver, so the timesheet is still something to remember
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-05`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-05` · issue `#51`
 Was `agent-reentry` B78 (migrated 2026-09-23). Operator: *"a global wrap at the end of the work day…
 And then also one for the end of the week that then calculates the timesheets automatically."* Daily
 half is B38; this is only the weekly half. A driver that runs `timesheet.py` across every
@@ -765,7 +765,7 @@ cross-machine transport has an unresolved design defect. **HITL/Plan:** it produ
 billed against; what counts as a week, parallel sessions, and where it lands are the user's calls.
 
 ## B54. `timesheet_sync.py` copies whole session transcripts where a digest would do
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-07`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-07` · issue `#52`
 Was `agent-reentry` B120 (migrated 2026-09-23). **Measured 2026-09-07, running the tool's own
 documented command:** it copied **35 files, 88.50 MB** of raw `~/.claude/projects/*.jsonl` to a synced
 cloud folder on an employer tenant. Case-sensitive `grep -ral -F` over the copies found the user's
@@ -785,7 +785,7 @@ inside a corporate sync folder unless overridden. **(1) is what it should have d
 The tool is not in any daily sync, so nothing re-uploads unattended — until someone follows the docs.
 
 ## B55. `timesheet.py` reports by directory name, not by the billing code timesheets are filled in with
-`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-08`
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-08` · issue `#53`
 Was `agent-reentry` B126 (migrated 2026-09-23; the actual codes stay private). Timesheets are filled
 in per **project number and activity**; `timesheet.py` already derives per-project hours and handles
 renamed directories via `PROJECT_ALIASES`, but reports by **directory name**, so the last step is
@@ -796,7 +796,7 @@ mechanism ships, the content never does (the D16/profile split). **Not an id:** 
 attribution axis and changes when funding changes; an item id must never change — two fields.
 
 ## B56. The GitLab write path has never run against a real server, and one known server is from 2021
-`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-03`
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-03` · issue `#54`
 Was `agent-reentry` B50 (migrated 2026-09-23). **Check first whether it has run since** — a `glab`
 backlog sync has reported success in at least one WSL work repo (see B5), which may already be the
 evidence. v1.34.0's GitLab backend was verified for **reads** only; every write —
@@ -809,7 +809,7 @@ there (a 14.x endpoint). Token scope was measured as `api`, so scope is not the 
 fix belongs in `GitLabHost`, not callers. **Related:** B7 (the same write path failing on WSL + `gh.exe`).
 
 ## B57. Cursor adapter v1 — RECONCILE the hand-written copy that already exists
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-08` · queued
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-08` · issue `#55` · queued
 Brief: [briefs/cursor-adapter-reconcile.md](briefs/cursor-adapter-reconcile.md) ·
 Requirements: [docs/cursor-adapter-requirements.md](docs/cursor-adapter-requirements.md)
 Was `agent-reentry` B123 and its Queue item 1 (migrated 2026-09-23). A hand-authored adapter is already
@@ -828,7 +828,7 @@ Cursor shell. **Found alongside and NOT this:** `~/.cursor/skills-cursor/` (Curs
 `AGENTS.md` files across project trees (a separate portfolio convention).
 
 ## B9. `sync_backlog.py` and `validate_next.py` answer for the SESSION's repo, not the one they're run in
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-23`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-23` · issue `#56`
 Seen twice in one session on SBOLE-NB5, 2026-09-23. The session was opened on the private source
 repo, and `cairn` was then added as an extra directory:
 - `cd …/cairn && python plugins/cairn/tools/validate_next.py` printed **3 watches, 4 decisions**,
@@ -866,7 +866,7 @@ the repo; validate does not).
   `issues_backlog.py`, `validate_next.py`, `measure_context.py`.
 
 ## B8. `/cairn:next` and `/cairn:wrap` should tell the agent to read files with Read, not a shell chain
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23` · issue `#57`
 On re-entry, an agent read NEXT.md's Queue, INBOX.md and git state in ONE Bash call:
 `cd /c/…/agent-reentry && sed -n '/^## Queue/,/^## Decisions/p' NEXT.md; ls INBOX.md 2>/dev/null && cat INBOX.md; git log --oneline -3; git status -sb | head -3`.
 Every piece of it is read-only and auto-allowed on its own, but the chain (a `cd` combined with
