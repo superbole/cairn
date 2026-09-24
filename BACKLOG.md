@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 58 -->
+<!-- next-id: 59 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1013,3 +1013,24 @@ so the cost lands only on sessions that actually cross repos. Not related to age
 project from the session and ignores the cwd, and it has no `--root` flag. Setting
 `CLAUDE_PROJECT_DIR=$PWD` works around it. That run wrote nothing, but only because nothing had
 changed in bsr-tools.
+
+## B58. The sibling "behind origin" banner still names a repo whose directory is gone
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-24`
+Seen 2026-09-24 in `workspace` on DeepThought. `agent-reentry` had been archived and deleted from
+`~/Projects` that day, yet the next SessionStart printed *"1 sibling repo is behind origin:
+agent-reentry (5 behind)"*. The agent relayed that and offered a pull, and the user had to correct
+it (*"I thought agent-reentry had just been moved to the recycle bin?"*). The directory really is
+gone: `ls ~/Projects` has no `agent-reentry`.
+
+**Cause:** `hooks/repo_sweep.py` works as designed. `summary_line()` reads the JSON cache that the
+PREVIOUS session's detached `--refresh` wrote, and never re-checks it. The repo existed when that
+cache was written, so the deletion won't show up until one more session has passed.
+
+**Fix:** in `summary_line()`, drop any cached name whose `root.parent / name` no longer exists.
+That is one `Path.exists()` per named repo (at most `MAX_NAMED`). It adds no subprocess or network
+call, so the "effectively free at session start" contract holds. Add a case to the test that
+covers `repo_sweep`.
+**Rejected:** refreshing inline at session start. The module docstring says why that can never be
+inline: the hook must not do network I/O.
+**Why it matters:** a warning about a repo that is not there costs a round trip and trust in the
+banner. It is also the one line the agent is told to lead with.
