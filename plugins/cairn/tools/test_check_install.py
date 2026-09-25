@@ -214,6 +214,16 @@ with contextlib.redirect_stdout(buf):
 check("rc 1 — a genuine version mismatch, unaffected by a HEALTHY issue-host report", rc, 1)
 check("the issue-host section still printed", "auth      : OK" in buf.getvalue(), True)
 
+print("   5b2. STALE the other way (B63): rules NEWER than the plugin -- restart will not resync")
+_set_config("1.60.0", "1.62.0")
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    rc = ci.main()
+check("rc 1 — still a mismatch", rc, 1)
+check("says the rules are the newer side", "NEWER than the installed plugin v1.60.0" in buf.getvalue(), True)
+check("does NOT promise a restart resyncs", "resyncs the" in buf.getvalue(), False)
+check("names the plugin update", "claude plugin update cairn@superbole" in buf.getvalue(), True)
+
 print("   5c. UNKNOWN branch (no installed_plugins.json at all): the section still runs")
 _set_config(None, None, missing=True)
 ci.issue_host_report = lambda root: ["", "--- issue host sync ---", "host      : irrelevant here"]
@@ -223,6 +233,42 @@ with contextlib.redirect_stdout(buf):
 check("rc 1 for UNKNOWN install state", rc, 1)
 check("issue-host section still printed even though the version state is UNKNOWN",
       "issue host sync" in buf.getvalue(), True)
+
+print("   5d. B26: the block digest line — present, comparable, never content, never the exit code")
+_set_config("1.39.0", "1.39.0")
+cfg = ci._config_dir()
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    rc = ci.main()
+want = ci.install_rules.block_digest("<!-- reentry:begin v1.39.0 -->\nstuff\n<!-- reentry:end -->\n")
+check("digest line printed", f"block     : {want} (installed)" in buf.getvalue(), True)
+check("no block content printed", "stuff" in buf.getvalue(), False)
+check("rc unchanged (0, versions agree)", rc, 0)
+(cfg / "CLAUDE.md").write_text("my own notes\n" + (cfg / "CLAUDE.md").read_text("utf-8"), encoding="utf-8")
+buf2 = io.StringIO()
+with contextlib.redirect_stdout(buf2):
+    ci.main()
+check("text OUTSIDE the markers does not change the digest",
+      f"block     : {want} (installed)" in buf2.getvalue(), True)
+
+repo = Path(tempfile.mkdtemp())
+(repo / "plugins" / "cairn" / "rules").mkdir(parents=True)
+(repo / "plugins" / "cairn" / "rules" / "CLAUDE.md").write_text("# rules\n\nthe repo's text\n", encoding="utf-8")
+ci._repo_version = lambda start: ("1.39.0", repo)
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    rc = ci.main()
+check("same version, different block: flagged", "SAME version, DIFFERENT block" in buf.getvalue(), True)
+check("...and the exit code is still unchanged", rc, 0)
+(cfg / "CLAUDE.md").write_text(ci.install_rules._block("1.39.0", "# rules\n\nthe repo's text\n"), encoding="utf-8")
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    ci.main()
+check("matching block: not flagged", "DIFFERENT block" in buf.getvalue(), False)
+ci._repo_version = lambda start: (None, None)
+(cfg / "CLAUDE.md").write_text("<!-- reentry:begin v1.39.0 -->\nno end\n", encoding="utf-8")
+check("malformed block reported as such, not crashed",
+      ci._installed_block_digest(cfg).startswith("(malformed"), True)
 
 ci._config_dir = saved_config_dir
 ci._repo_version = saved_repo_version

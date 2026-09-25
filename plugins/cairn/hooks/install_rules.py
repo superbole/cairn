@@ -33,6 +33,8 @@ DESIGN RULES
     and a hook that eats a hand-written note is worse than a hook that ships nothing.
   - Idempotent. Same version already installed → do nothing, print nothing, touch nothing.
   - Back up before EVERY modification, one file per outgoing state, never overwritten (B25).
+  - Never roll a NEWER block back (B63). An older plugin copy that still runs refuses, writes
+    nothing, and says so -- the version marker, not a body diff, decides which block is newer.
   - Find the block STRUCTURALLY — whole lines, a version, one block — and refuse when it is
     ambiguous. A prefix search once let text above the block be swallowed by it (B25).
   - Say what it did, in ONE line. A mechanism that leaves no evidence it ran gets reported as
@@ -49,6 +51,12 @@ try:                                    # the PROFILE layer — see ensure_profi
     import ensure_profile_file
 except Exception:                       # pragma: no cover - absent copy must never break an install
     ensure_profile_file = None          # type: ignore[assignment]
+
+try:                                    # the ONE version parser (B63) -- shared with check_install
+    from version_drift import compare_versions
+except Exception:                       # pragma: no cover - absent copy must never break an install
+    def compare_versions(a, b):         # type: ignore[misc]
+        return None                     # cannot tell the direction == no evidence of a downgrade
 
 BEGIN = "<!-- reentry:begin"
 END = "<!-- reentry:end -->"
@@ -109,6 +117,16 @@ def _backup(target: Path, outgoing: str, content: str) -> Path:
     digest = hashlib.sha256(content.encode("utf-8")).hexdigest()[:8]
     label = f"v{outgoing}" if outgoing else "noblock"
     return target.with_name(f"{target.name}.bak-reentry-install-{label}-{digest}")
+
+
+def block_digest(block: str) -> str:
+    """A short digest of the managed block's own text — for `tools/check_install.py` (B26).
+
+    Of the BLOCK, never the whole file: two machines running the same rules must match even though
+    each has its own notes outside the markers. That is why this is not `wrap_receipt._digest()`,
+    which hashes a whole file by path. Newlines are normalised by `_read()` before this is called.
+    """
+    return hashlib.sha256(block.encode("utf-8")).hexdigest()[:12]
 
 
 def _back_up(target: Path, outgoing: str, content: str) -> None:
@@ -218,6 +236,16 @@ def _find_block(text: str) -> tuple[int, int, str] | None:
     raise MalformedBlock(f"the header on line {lineno} has no `{END}` line after it")
 
 
+def _refusal(target: Path, reason: str, consequence: str) -> str:
+    """Every "wrote nothing on purpose" line, in ONE voice: what was refused, why, what follows.
+
+    Shared by the MalformedBlock refusal (B25) and the downgrade refusal (B63) so the agent reads
+    the same shape for both, and so B26's change summary has one voice to match.
+    """
+    return (f"[to the agent] Did NOT update the cairn rules block in {target}: {reason}. The file "
+            f"was left untouched; {consequence}")
+
+
 def install(project_root: Path | None = None) -> tuple[str | None, bool]:
     """Seed the profile, then sync the managed block. Same `(report, in_context)` contract.
 
@@ -294,10 +322,10 @@ def _install_block() -> tuple[str | None, bool]:
         # Refuse rather than guess. Every other outcome here is silent or reports a success; this
         # one repeats each session until a human fixes the file, which is the point — nothing
         # else will, and a guess is how user text was lost (B25).
-        return (f"[to the agent] Did NOT update the cairn rules block in {target}: {exc}. The "
-                f"file was left untouched, so the rules in it may be stale. Tell the user; the "
-                f"block is one `{BEGIN} vX.Y.Z -->` line down to one `{END}` line, and they "
-                f"should fix it by hand."), False
+        return _refusal(target, str(exc),
+                        f"the rules in it may be stale. Tell the user; the block is one "
+                        f"`{BEGIN} vX.Y.Z -->` line down to one `{END}` line, and they should fix "
+                        f"it by hand."), False
 
     if found is None:
         # A real file with no managed block: prepend, so the system rules land before whatever
@@ -315,13 +343,92 @@ def _install_block() -> tuple[str | None, bool]:
     if installed == version and existing[start:end] == block:
         return None, True               # already current — the common case, silent by design
 
+    # B63: never roll a NEWER block back. Seen 2026-09-25 on a work laptop: a v1.60.0 installer and a
+    # v1.62.0 one both ran the same day and the orientation printed "Updated … v1.62.0 → v1.60.0",
+    # a rollback reported as an update. Harmless while every version wrote the same body; the first
+    # release that changes the body would have had an older process silently put the old rules
+    # back, every session. Only when BOTH versions parse: an unreadable version is no evidence of a
+    # downgrade, so it falls through to the write below. `"0"` is `_plugin_version()`'s own failure
+    # sentinel, not a version, so it is no evidence either. Nothing is backed up — nothing changes.
+    # in_context is True: the file still holds the block this session has already read.
+    if version != "0" and compare_versions(installed, version) == 1:
+        return _refusal(target, f"it is v{installed}, NEWER than this plugin's v{version}, so "
+                                f"writing would roll it back",
+                        "the newer block was kept. This session is running an OLDER copy of the "
+                        "plugin; tell the user to run `claude plugin update cairn@superbole`, then "
+                        "restart."), True
+
     try:
         _back_up(target, installed, existing)
         _write(target, existing[:start] + block + existing[end:])
     except Exception:
         return None, False
-    return (f"[to the agent] Updated the cairn rules block in {target}: v{installed or '?'} → "
-            f"v{version}. The version in YOUR context is the old one until the next session."), False
+    # B26: say WHAT moved, not only `vX → vY`. Computed only here, after the write succeeded —
+    # never on the silent path above, and never on a refusal. A summary that fails must not cost
+    # the report, so it degrades to the pre-B26 line rather than to silence.
+    moved = f"v{installed or '?'} → v{version}" if installed != version else \
+        f"v{version} → v{version} (same version, different content)"
+    try:
+        summary = _change_summary(existing[start:end], block)
+        diff = f'git diff --no-index -- "{_backup(target, installed, existing)}" "{target}"'
+        detail = f" {summary}. Full diff: `{diff}`."
+    except Exception:
+        detail = ""
+    return (f"[to the agent] Updated the cairn rules block in {target}: {moved}.{detail} The "
+            f"version in YOUR context is the old one until the next session."), False
+
+
+# How many `#` headings the change line names before it says "+N more". Three keeps the line
+# bounded when the block changes wholesale (a legacy block replaced by the full rules names every
+# section) while still naming the one or two sections an ordinary release touches.
+_SUMMARY_HEADINGS = 3
+_HEADING_WIDTH = 40
+_HEADING = re.compile(r"#{1,6}\s+(.*\S)")
+
+
+def _change_summary(outgoing: str, incoming: str) -> str:
+    """`rules text: +A −R ~C lines, in: X, Y, Z (+N more)` — a COUNT and a LOCATION, nothing more.
+
+    Not a classifier (B26 said not to invent one): the headings are only WHERE lines moved, so a
+    typo fix under "The re-entry system" and a new rule there read the same. That is why the line
+    also carries the exact diff command — the count is a pointer, the diff is the evidence.
+
+    The header line (line 1 of each block) is left out: it carries the version, which the change
+    line already states, and counting it would make every pure version bump report "~1 line".
+    """
+    import difflib                      # here, not at module top: the silent path never pays it
+    old = outgoing.splitlines()[1:]
+    new = incoming.splitlines()[1:]
+
+    def sections(lines: list[str]) -> list[str]:
+        current, out = "(top of block)", []
+        for line in lines:
+            match = _HEADING.fullmatch(line.strip())
+            if match:
+                current = match.group(1)
+            out.append(current)
+        return out
+
+    old_at, new_at = sections(old), sections(new)
+    added = removed = changed = 0
+    touched: list[str] = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, old, new, autojunk=False).get_opcodes():
+        if tag == "equal":
+            continue
+        both = min(i2 - i1, j2 - j1) if tag == "replace" else 0
+        changed += both
+        removed += (i2 - i1) - both
+        added += (j2 - j1) - both
+        for name in new_at[j1:j2] + old_at[i1:i2]:
+            if name not in touched:
+                touched.append(name)
+    if not (added or removed or changed):
+        return "Rules text unchanged — only the version marker moved"
+    names = [n if len(n) <= _HEADING_WIDTH else n[:_HEADING_WIDTH - 1] + "…"
+             for n in touched[:_SUMMARY_HEADINGS]]
+    more = f" (+{len(touched) - _SUMMARY_HEADINGS} more)" if len(touched) > _SUMMARY_HEADINGS else ""
+    return (f"Rules text: +{added} −{removed} ~{changed} lines, in: "
+            f"{', '.join(names)}{more}")
 
 
 if __name__ == "__main__":

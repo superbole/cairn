@@ -70,6 +70,15 @@ try:
     import issue_host
 except Exception:                       # hooks/ missing or broken -- report, never crash
     issue_host = None
+try:                                    # B26: the block finder + digest, never re-implemented
+    import install_rules
+except Exception:                       # hooks/ missing -- the digest line says so, never crashes
+    install_rules = None
+try:                                    # the ONE version parser (B63), shared with install_rules
+    from version_drift import compare_versions
+except Exception:                       # hooks/ missing -- no direction, the old wording stands
+    def compare_versions(a, b):         # type: ignore[misc]
+        return None
 
 try:                                    # Windows consoles default to cp1252 and would
     sys.stdout.reconfigure(encoding="utf-8")   # mangle the em-dashes below
@@ -143,6 +152,41 @@ def _repo_version(start: Path) -> tuple[str | None, Path | None]:
             except Exception:
                 return None, root
     return None, None
+
+
+def _installed_block_digest(config: Path) -> str:
+    """A digest of the installed managed BLOCK (B26) -- never its content, never the whole file.
+
+    Two machines on the same version string can still carry different blocks (a rules edit without
+    a bump rewrites the block and keeps the number), and the version line cannot tell them apart.
+    Found with `install_rules._find_block`, the same structural finder that writes it, so this can
+    never disagree with the installer about where the block is.
+    """
+    if install_rules is None:
+        return "(unavailable: could not import hooks/install_rules.py)"
+    try:
+        text = install_rules._read(config / "CLAUDE.md")
+    except Exception:
+        return "(no file)"
+    try:
+        found = install_rules._find_block(text)
+    except install_rules.MalformedBlock:
+        return "(malformed block: install_rules refuses to edit it)"
+    if found is None:
+        return "(no block)"
+    start, end, _version = found
+    return install_rules.block_digest(text[start:end])
+
+
+def _repo_block_digest(repo_root: Path | None, repo_version: str | None) -> str | None:
+    """The digest of the block THIS repo checkout would install -- same renderer, same digest."""
+    if install_rules is None or repo_root is None or not repo_version:
+        return None
+    try:
+        body = install_rules._read(repo_root / "plugins" / "cairn" / "rules" / "CLAUDE.md")
+        return install_rules.block_digest(install_rules._block(repo_version, body))
+    except Exception:
+        return None
 
 
 # --------------------------------------------------------------- issue host readiness (B49)
@@ -298,6 +342,15 @@ def main() -> int:
     print(f"rules     : {rules or '(' + state + ')'}   <- {config / 'CLAUDE.md'}")
     print(f"repo      : {repo or 'n/a — not in a checkout of the cairn source repo'}"
           + (f"   <- {repo_root}" if repo else ""))
+    # B26: comparable across machines; informational only, never part of the exit code below.
+    installed_digest = _installed_block_digest(config)
+    repo_digest = _repo_block_digest(repo_root, repo)
+    line = f"block     : {installed_digest} (installed)"
+    if repo_digest:
+        line += f"   {repo_digest} (this repo's v{repo})"
+        if rules == repo and not installed_digest.startswith("(") and installed_digest != repo_digest:
+            line += "   — SAME version, DIFFERENT block"
+    print(line)
     print()
 
     if installed is None:
@@ -312,6 +365,15 @@ def main() -> int:
     elif state == "no-marker":
         print("STALE — that file has no `reentry:begin` block, so the rules have NEVER installed")
         print("        on this machine. Not the same as up to date. Start a Claude Code session.")
+        rc = 1
+    elif rules != installed and compare_versions(rules, installed) == 1:
+        # B63: install_rules now KEEPS a newer block rather than rolling it back, so "restart and
+        # it resyncs" -- the remedy below -- is false in this direction. The plugin is what is old.
+        print(f"STALE — the loaded rules are v{rules}, NEWER than the installed plugin v{installed}.")
+        print("        install_rules keeps a newer block rather than roll it back (B63), so a")
+        print("        restart will not resync it. Update the plugin: `claude plugin marketplace")
+        print("        update superbole`, then `claude plugin update cairn@superbole`, restart,")
+        print("        re-run this.")
         rc = 1
     elif rules != installed:
         print(f"STALE — plugin v{installed} is installed but the loaded rules are v{rules}.")

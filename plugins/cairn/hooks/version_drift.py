@@ -53,6 +53,38 @@ _MARKER_RE = re.compile(r"reentry:begin\s+v([0-9][0-9.]*)")
 
 SEPARATOR = "\n\n"      # blank line between findings; the call site adds one before
 
+# THE ONE VERSION PARSER (B63). `install_rules` imports these to decide whether a write would roll
+# the rules block BACK, and `tools/check_install.py` uses them to say which way a mismatch points.
+# Strict on purpose: dot-separated integers only. Anything else (`1.2.0-rc1`, `?`, an empty
+# string) parses to None, and None means "cannot tell the direction" -- which every caller must
+# treat as NO EVIDENCE of a downgrade. A lenient parser that read `1.2.0-rc1` as `1.2.0` would be
+# one more place where a guess decides whether rules get written.
+_VERSION_RE = re.compile(r"[0-9]+(?:\.[0-9]+)*")
+
+
+def parse_version(value) -> tuple[int, ...] | None:
+    """`"1.62.0"` -> `(1, 62)`; None when it is not dot-separated integers.
+
+    Trailing zeros are dropped, so `1.62` and `1.62.0` compare equal.
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not _VERSION_RE.fullmatch(text):
+        return None
+    parts = [int(p) for p in text.split(".")]
+    while len(parts) > 1 and parts[-1] == 0:
+        parts.pop()
+    return tuple(parts)
+
+
+def compare_versions(a, b) -> int | None:
+    """-1 / 0 / 1 as `a` is older / equal / newer than `b`; None when EITHER side does not parse."""
+    pa, pb = parse_version(a), parse_version(b)
+    if pa is None or pb is None:
+        return None
+    return (pa > pb) - (pa < pb)
+
 
 def _config_dir() -> Path:
     override = os.environ.get("CLAUDE_CONFIG_DIR", "").strip()
