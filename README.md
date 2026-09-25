@@ -113,6 +113,17 @@ is in [the guide](docs/guide.md#shipping-a-change-maintainers).
 
 ## Prerequisites
 
+**Python 3, under any of its usual names.** The hooks start through `hooks/run.sh`, which
+finds it as `python3` or `python` (and also `py -3` on Windows). You don't need to add a
+`python` symlink on Ubuntu or Debian. If yours lives somewhere unusual, set `CAIRN_PYTHON` to its
+full path in the `env` block of `~/.claude/settings.json`. If none is found, the first session
+says so rather than failing silently.
+
+**On native Windows, Git for Windows.** Claude Code runs hooks through Git Bash when it's
+installed and through PowerShell when it isn't, and the launcher needs a POSIX shell. Anyone
+using this plugin almost certainly has it already, since everything here runs `git`. WSL,
+macOS and Linux need nothing extra.
+
 **Both `gh` (GitHub) and `glab` (GitLab) are OPTIONAL.** Nothing above needs either one — the
 hooks, `/cairn:next`, `/cairn:wrap`, and `BACKLOG.md` all work with neither CLI installed.
 Without one, you keep the whole local system and lose exactly this: **phone access, surviving a

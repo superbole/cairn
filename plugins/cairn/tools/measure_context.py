@@ -124,12 +124,37 @@ def project_slug(root: Path) -> str:
     return re.sub(r"[^A-Za-z0-9]", "-", str(root))
 
 
+def hook_shell() -> list[str] | None:
+    """The shell Claude Code runs a shell-form hook in, as an argv prefix -- or None for `shell=True`.
+
+    `sh -c` on macOS/Linux; Git Bash on Windows (`CLAUDE_CODE_GIT_BASH_PATH`, else beside the `git`
+    on PATH, else the standard install, else any `bash` on PATH that is not `System32\\bash.exe` --
+    that one is WSL, a different machine as far as paths go). `shell=True` alone means cmd.exe on
+    Windows, which is NOT what a session runs, and since v1.61.0 (D31) the plugin's own hooks are
+    `sh "…/run.sh" <hook>.py`, which cmd.exe cannot start. None only when no Git Bash exists -- where
+    Claude Code falls back to PowerShell and these hooks do not run in a real session either.
+    """
+    if sys.platform != "win32":
+        return ["sh", "-c"]
+    import shutil
+    git = shutil.which("git")
+    on_path = shutil.which("bash") or ""
+    for candidate in (os.environ.get("CLAUDE_CODE_GIT_BASH_PATH", "").strip(),
+                      str(Path(git).resolve().parents[1] / "bin" / "bash.exe") if git else "",
+                      r"C:\Program Files\Git\bin\bash.exe",
+                      "" if "system32" in on_path.lower() else on_path):
+        if candidate and Path(candidate).is_file():
+            return [candidate, "-c"]
+    return None
+
+
 def run_hook(cmd: str, cwd: Path) -> str:
     payload = json.dumps({"session_id": "measure", "cwd": str(cwd),
                           "hook_event_name": "SessionStart", "source": "startup"})
+    shell = hook_shell()
     try:
-        r = subprocess.run(cmd, cwd=cwd, shell=True, input=payload,
-                           capture_output=True, text=True, timeout=60,
+        r = subprocess.run([*shell, cmd] if shell else cmd, cwd=cwd, shell=shell is None,
+                           input=payload, capture_output=True, text=True, timeout=60,
                            encoding="utf-8", errors="replace")
     except Exception as e:  # noqa: BLE001
         return f"<<hook failed: {e}>>"

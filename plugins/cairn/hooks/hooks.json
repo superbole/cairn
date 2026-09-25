@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/session_orientation.py\""
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh\" session_orientation.py"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/staged_review_guard.py\"",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh\" staged_review_guard.py",
             "timeout": 20
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/item_start.py\"",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh\" item_start.py",
             "timeout": 10
           }
         ]
@@ -40,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/repo_recorder.py\"",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh\" repo_recorder.py",
             "timeout": 10
           }
         ]
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/dirty_tree_warning.py\"",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh\" dirty_tree_warning.py",
             "timeout": 20
           }
         ]
@@ -62,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/dirty_tree_warning.py\"",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh\" dirty_tree_warning.py",
             "timeout": 20
           }
         ]

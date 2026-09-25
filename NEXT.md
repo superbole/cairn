@@ -13,20 +13,18 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Queue
 
-1. **Fix the hook interpreter so Linux installs work** — Opus 5 · high · HITL/Plan
-   Brief: [briefs/cross-platform-hook-interpreter.md](briefs/cross-platform-hook-interpreter.md)
-   All five hooks invoke bare `python`, which does not exist on stock Ubuntu/Debian. Every hook
-   fails to start, so a Linux installer gets none of the five global files and the plugin cannot
-   warn about it — the hook that would report the problem is the hook that cannot run. Found on
-   `SBOLE-NB5` 2026-09-11. `python3` is not the fix; it moves the breakage to Windows. First
-   because it is the aim line failing: today a stranger on Ubuntu gets silence.
-
-2. **Stop `install_rules` deleting the user's own text in `~/.claude/CLAUDE.md`** — Opus 5 · high · AFK/Auto
+1. **Stop `install_rules` deleting the user's own text in `~/.claude/CLAUDE.md`** — Opus 5 · high · AFK/Auto
    Brief: [briefs/install-rules-marker-safety.md](briefs/install-rules-marker-safety.md)
    The marker match is a bare prefix search, and the backup is one rolling copy, so on any
    installer's machine the managed block can silently swallow text written above it, with no way
    back after two updates. Backlog B25. Placed above the Cursor item because installs are the aim.
    It commits locally and stops before the push.
+
+2. **Make the skills' `python "$CLAUDE_PLUGIN_ROOT/…"` calls actually resolve** — Opus 5 · high · AFK/Auto
+   Brief: [briefs/skill-python-calls.md](briefs/skill-python-calls.md)
+   17 call sites in `skills/` and `rules/` name bare `python` (fails on Linux) and a variable that
+   was measured unset in the agent's shell (wrong everywhere). v1.61.0 fixed the hooks only. Backlog
+   B59. Above Cursor because a Linux wrap is the aim line. It commits locally and stops before the push.
 
 3. **Cursor adapter v1 — reconcile the hand-written copy that already exists** — Opus 5 · high · HITL/Plan
    Brief: [briefs/cursor-adapter-reconcile.md](briefs/cursor-adapter-reconcile.md)

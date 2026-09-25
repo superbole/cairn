@@ -3,6 +3,30 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-25 — v1.61.0: the hooks find Python on Linux
+
+Queue item 1. Every hook in `hooks.json` ran bare `python`, which stock Ubuntu/Debian doesn't
+have. A Linux install showed the plugin as enabled, and no hook ever started. All six commands
+now go through a new POSIX shim, `hooks/run.sh`. It picks `$CAIRN_PYTHON`, then on Windows
+`python`/`py -3`/`python3` (the old behaviour first), and elsewhere `python3`/`python`. When it
+finds none, it says so: the first time the plugin can report that. D31 records why, and what was
+rejected.
+
+**Verified.** `test_hook_launcher.py` passes 23/23 against fake interpreters, covering interpreter
+choice, pass-through of args, stdin and exit code 2, the no-Python warning, and a guard that
+every `hooks.json` command routes through `run.sh`. On stock Ubuntu 24.04 (WSL on NB1, no
+`python`), the old command exits 127. The new one wrote all five global files into a throwaway
+HOME. On Windows the orientation output is byte-identical, and PostToolUse costs +68 ms (472 to
+540 ms). `measure_context.py` now runs hooks in Git Bash/`sh` rather than cmd.exe, which couldn't
+start the new command. The README states the Python and Git-for-Windows prerequisites.
+
+Full suite: 28/30 on the first run. `test_payload_clean` caught a machine name in the new files,
+and `test_git_encoding` caught a v1.60.0 defect, `staged_review_guard._run` decoding git output
+with the locale codec. Both were fixed here and re-run individually, and both pass.
+
+Not fixed: skills still say bare `python` (B59). Native Windows without Git Bash stops running
+hooks (B60, the accepted cost).
+
 ## 2026-09-23 — the private backlog triaged in; the private source repo frozen
 
 Queue item 2. All 60 items in the private repo's backlog were read in full, and each was closed there

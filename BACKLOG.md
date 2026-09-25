@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 59 -->
+<!-- next-id: 61 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1047,3 +1047,44 @@ enough. Also: (a) print the cache's age on the line (`as of 14:02` / `from last 
 the JSON already holds `at`; (b) for each named repo, re-count `HEAD..@{u}` against the LOCAL
 remote-tracking ref (one `git rev-list`, no fetch, no network) and drop it when it reads 0. That
 keeps the no-network contract and catches the "already pulled/pushed since" case.
+
+## B59. Skills and rules still tell the agent to run bare `python "$CLAUDE_PLUGIN_ROOT/…"`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · queued
+Brief: [briefs/skill-python-calls.md](briefs/skill-python-calls.md). Pulled to refill the Queue at the v1.61.0 wrap.
+v1.61.0 (D31) moved every HOOK onto `hooks/run.sh`, but the text the agent reads still names
+the interpreter directly. There are 17 call sites across `skills/` and `rules/CLAUDE.md`:
+`wrap_receipt.py` 4, `archive_offer.py` 3, `measure_context.py` 3, and one each for `backlog_file`,
+`issues_backlog`, `item_start`, `session_orientation`, `check_repos`, `label_backlog` and `sync_backlog`
+(`grep -rn 'python "' plugins/cairn/skills plugins/cairn/rules`). On stock Ubuntu each one fails
+with `python: not found`.
+
+It was left out of the hook fix on purpose. That failure is VISIBLE: it happens in the agent's
+own shell, and an agent recovers by trying `python3`. The hook failure was silent, and fixing it
+was the aim line. The skill failure still costs a wasted tool call and a moment of doubt at every
+wrap on Linux, and the `--record` step is REQUIRED.
+
+**Options:** (a) rewrite them as `sh "$CLAUDE_PLUGIN_ROOT/hooks/run.sh" wrap_receipt.py --check`.
+That is longer, and the rules are always loaded, so measure the token cost with
+`tools/measure_context.py` before choosing it. (b) Add one line to `rules/CLAUDE.md`: "`python`
+below means your Python 3: `python3` on Linux/macOS". Cheap, but it's prose, and prose is what
+agents reason past. (c) Both.
+
+**Measured 2026-09-25, and it widens the item:** `$CLAUDE_PLUGIN_ROOT` is **UNSET** in the
+agent's Bash tool (NB1, desktop app, `echo ${CLAUDE_PLUGIN_ROOT:-unset}` → `unset`). So every
+one of these 17 call sites expands to `python "/hooks/…"` on EVERY platform, not just Linux, and
+agents have been silently substituting a path they found some other way. The interpreter name is the
+smaller half of this.
+
+## B60. Native Windows without Git for Windows can't run any hook since v1.61.0
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-25`
+Accepted cost of D31. When Git for Windows is absent, Claude Code runs shell-form hooks through
+PowerShell (code.claude.com/docs/en/hooks), which can't start `sh "…/run.sh"`. Before v1.61.0
+the bare `python "…"` command ran there. The README now lists Git for Windows as a Windows
+prerequisite. The bet is that nobody using a git-centric plugin lacks it, and that bet is
+**unmeasured**.
+
+Reopen only if someone is actually seen in that configuration. **Options then:** a PowerShell
+twin (`run.ps1`) plus a way to pick it. `hooks.json` has no per-platform branch, and the `shell`
+field is per hook, not per OS, so that "way" is the whole problem. Or exec-form `args`, if a
+future Claude Code adds per-platform commands. Rejected already (D31): a sh/PowerShell polyglot
+command string, because of CommandNotFound noise on every PowerShell hook call.
