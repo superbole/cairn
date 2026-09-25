@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 64 -->
+<!-- next-id: 65 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1113,7 +1113,7 @@ future Claude Code adds per-platform commands. Rejected already (D31): a sh/Powe
 command string, because of CommandNotFound noise on every PowerShell hook call.
 
 ## B63. An older installed plugin silently DOWNGRADES a newer rules block
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · queued
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#63` · queued
 Brief: [briefs/rules-block-downgrade.md](briefs/rules-block-downgrade.md). Queued above B59 because B59 is the first release since v1.59.0 to change the rules body.
 **Seen 2026-09-25 on NB1.** A session started and the hook reported *"Updated the cairn rules block
 in `~/.claude/CLAUDE.md`: v1.62.0 → v1.60.0"*, which is a rollback reported as an update. The same
@@ -1147,3 +1147,38 @@ newer and the version marker can. Making the block per-process is impossible too
 **Related:** B26 (queued, announcing what changed in the block), which should say "downgrade
 refused" in the same voice. B61 (auto-update off by default) is why a machine sits on a stale install
 long enough for this to happen.
+
+## B64. Refuse an agent-initiated archive while the wrap verdict is `CAIRN OPEN`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25`
+**Asked for by the user on 2026-09-25**, after a session wrapped (`CAIRN SET` 22:38), then made two
+more commits (`f393976`, `3beac4b`) and ended unwrapped. The next session opened with "did not finish
+cleanly". Their words: *"a hook or something that doesn't allow a session to archive when the
+session isn't fully wrapped."*
+**What exists (searched 2026-09-25):** `hooks/hooks.json` has no archive matcher, and `BACKLOG.md`
+and `docs/decisions.md` have no archive-guard item. `archive_offer.py` only records whether the
+offer was asked, accepted or declined. It blocks nothing. The wrap's step 10 is the only gate, and
+it is an instruction, which is the thing a session that goes off-script skips.
+**Fix (decided, so this is AFK):** add a `PreToolUse` hook with the matcher
+`mcp__ccd_session_mgmt__archive_session`, and a new `hooks/archive_guard.py` run through
+`hooks/run.sh` like every other hook. It computes the same verdict as `wrap_receipt.py --check`, by
+importing it, not by parsing its output.
+- `OPEN` → **deny**. Give the missing steps and tell the agent to run `/cairn:wrap` first.
+- `SET` / `NOT DUE` → allow, silently.
+- `UNKNOWN` → **allow**, with one line saying the verdict could not be measured. The rules say
+  UNKNOWN is not evidence that anything was skipped, and blocking on it would teach people to
+  discount the block.
+- Any error, an unparseable input, or no project → **allow**. Fail open, the same contract as
+  `staged_review_guard.py` (its docstring: "a guard that blocks..." on uncertainty is the wrong
+  failure).
+- Only `session_id: "self"` is this session's verdict to judge. For another session's id the hook
+  cannot measure that session, so it allows.
+**Known limit, which must go in the README row:** a hook only sees TOOL calls. When the user
+archives from the sidebar, nothing fires, and `SessionEnd` can warn but not block. So this closes
+the agent path only. The UI path stays covered by the next session's "did not finish cleanly" box.
+**Also check:** "HEAD moved after a SET receipt" (the exact 2026-09-25 case) has to read `OPEN`
+from `--check`, not `SET`. The orientation already detects it (`wrap_receipt.py` near the
+"but HEAD has moved" message). If `--check`'s `verdict()` does not, the guard has to add that test,
+or it would have waved the incident through.
+**Tests:** a new `tools/test_archive_guard.py` with fixture repos only, for OPEN denies, SET
+allows, UNKNOWN allows with a note, an error allows, another session's id allows, and SET followed
+by a new commit denies.
