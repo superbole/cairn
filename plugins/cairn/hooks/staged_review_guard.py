@@ -53,7 +53,8 @@ READ_TTL_SECONDS = 900
 
 def _run(args, cwd):
     try:
-        p = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=15)
+        p = subprocess.run(args, cwd=cwd, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=15)
         return p.stdout if p.returncode == 0 else ""
     except Exception:
         return ""
