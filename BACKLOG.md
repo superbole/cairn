@@ -1015,7 +1015,7 @@ project from the session and ignores the cwd, and it has no `--root` flag. Setti
 changed in bsr-tools.
 
 ## B58. The sibling "behind origin" banner still names a repo whose directory is gone
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-24`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-24` · issue `#58`
 Seen 2026-09-24 in `workspace` on DeepThought. `agent-reentry` had been archived and deleted from
 `~/Projects` that day, yet the next SessionStart printed *"1 sibling repo is behind origin:
 agent-reentry (5 behind)"*. The agent relayed that and offered a pull, and the user had to correct
