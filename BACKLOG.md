@@ -326,20 +326,6 @@ number:** fix it, measure, then decide whether the ceiling is a row in `docs/dec
 in the suite. **Also decide:** is a brief pointer into a *different* repo allowed at all (one such
 pointer went dead when that clone was deleted), or must briefs be copied in?
 
-## B25. `install_rules` can delete the user's own text, and one rolling backup cannot recover it
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-06` · issue `#23` · closed `2026-09-25`
-Brief: [briefs/install-rules-marker-safety.md](briefs/install-rules-marker-safety.md)
-Was `agent-reentry` B104 (migrated 2026-09-23). `BEGIN = "<!-- reentry:begin"` carries **no closing
-`-->`**, and `_find_block` takes `text.find(BEGIN)` — the first occurrence anywhere. The rewrite is
-`existing[:start] + block + existing[end:]`, so user text **above** the block containing that literal
-is deleted down to the real `END`, silently — in the one file whose contract is *"anything outside
-the markers is yours"*. The refuse guard checks the shipped body, never the target file. And
-`_backup()` is a **single rolling copy**, so two updates (which auto-update produces unattended)
-destroy the recoverable state. **Fix:** anchor to a line start, require `-->` and a version token,
-refuse rather than prepend when a `BEGIN`-looking line yields no valid block, and name the backup
-with the outgoing version. `install_rules.py` has no direct test file; this item creates one.
-**Do this before B26.**
-
 ## B26. Say what changed in the rules block, not just `vX → vY`
 `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#24` · queued
 Brief: [briefs/rules-block-change-announcement.md](briefs/rules-block-change-announcement.md)
