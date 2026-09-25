@@ -3,6 +3,33 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-26 — v1.63.0: rules blocks never roll back, skill commands resolve, the archive is guarded
+
+Overnight lane batch, wave 1: four items in three lanes, each committed separately and **not pushed**.
+Dossiers are in `docs/review/lane-{a,b,c}-2026-09-26.md`, and the handover is
+`docs/review/overnight-handover-2026-09-26.md`.
+
+- **B63 (D33).** When the installed rules block is newer, `install_rules` refuses: it writes nothing,
+  keeps no backup, and prints one line naming both versions and the update command. The version parser
+  is shared through `version_drift.compare_versions`. `check_install.py` flags a newer block, where a
+  restart no longer resyncs. This only protects machines once they run v1.63.0; an older installer
+  still downgrades.
+- **B26 (D34).** The change line now reports `+A −R ~C lines`, up to three touched headings, and the
+  exact `git diff --no-index` against the backup. The silent path computes nothing. `check_install.py`
+  prints a digest of the installed block.
+- **B59 (D35).** 20 call sites in the skills and rules now use `sh "<root>/hooks/run.sh" …`, where
+  `<root>` is two directories above the skill's base directory. `run.sh` also runs `tools/…` files.
+  The always-loaded rules grew by about 189 bytes (bytes/4, since tiktoken is absent).
+- **B64 (D36).** A new `PreToolUse` `archive_guard.py` refuses an agent's self-archive while the
+  verdict is `CAIRN OPEN`, including commits made after a `SET`. It fails open on everything else. It
+  does not see a sidebar archive.
+
+**Verified.** Full suite 33/33 with no state-dir leak. On a scratch copy of the live `CLAUDE.md`, a
+same-version edit printed the summary, the re-run was silent, and a `v9.9.9` block was refused with
+the file byte-identical and no backup. Lane B ran the rewritten lines with `CLAUDE_PLUGIN_ROOT` unset
+in Git Bash and WSL Ubuntu, where there is no `python`. Filed: B66 (two remedies are wrong after B63),
+B67 (`next-id` has two readings), and B68 (the old command form in docs).
+
 ## 2026-09-25 — D29 and D30 answered; B63 filed and queued first
 
 No version change and no code change. This entry covers two commits from a session that didn't wrap.

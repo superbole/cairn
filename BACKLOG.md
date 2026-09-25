@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 65 -->
+<!-- next-id: 68 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -9,7 +9,8 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B10. With NO baseline at all, the receipt reports a confident `[SKIP]` instead of "cannot tell"
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-20` · issue `#8`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-20` · issue `#8` · queued
+Brief: [briefs/receipt-no-baseline.md](briefs/receipt-no-baseline.md). Pulled to refill the Queue by the 2026-09-26 overnight batch.
 Was `agent-reentry` B143 (migrated 2026-09-23). **Re-check against v1.57.0 first** — that release
 added `CAIRN UNKNOWN` and reordered `verdict()` so `skipped` is tested before `unverifiable`, which
 makes this defect *more* consequential, not less: a false `skipped` now always wins.
@@ -284,7 +285,8 @@ decision row and ASK — report-only, but needs precision discipline (B21) befor
 any mechanism against the correction above: here both files were self-consistent at every step.
 
 ## B23. `measure_context.py` hard-fails on any machine without `tiktoken`
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#21`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#21` · queued
+Brief: [briefs/measure-context-no-tiktoken.md](briefs/measure-context-no-tiktoken.md). Pulled to refill the Queue by the 2026-09-26 overnight batch.
 Was `agent-reentry` B95 (migrated 2026-09-23). `import tiktoken` is at module level, unguarded; on a
 machine without it (`pip show tiktoken` → not found, Python 3.14.0) the tool dies with
 `ModuleNotFoundError` before printing anything. **Confirmed on a second machine 2026-09-07.**
@@ -317,7 +319,7 @@ in the suite. **Also decide:** is a brief pointer into a *different* repo allowe
 pointer went dead when that clone was deleted), or must briefs be copied in?
 
 ## B26. Say what changed in the rules block, not just `vX → vY`
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#24` · queued
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#24` · closed `2026-09-26`
 Brief: [briefs/rules-block-change-announcement.md](briefs/rules-block-change-announcement.md)
 Was `agent-reentry` B101 (migrated 2026-09-23); decision row **D9**. `install_rules.py` rewrites
 always-loaded, machine-wide instruction text at every `SessionStart` where the version or rendered
@@ -1072,7 +1074,7 @@ also lands in that hub's `BACKLOG.md` or stays a session-start line only. `HITL/
 design is still open.
 
 ## B59. Skills and rules still tell the agent to run bare `python "$CLAUDE_PLUGIN_ROOT/…"`
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#59` · queued
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#59` · closed `2026-09-26`
 Brief: [briefs/skill-python-calls.md](briefs/skill-python-calls.md). Pulled to refill the Queue at the v1.61.0 wrap.
 v1.61.0 (D31) moved every HOOK onto `hooks/run.sh`, but the text the agent reads still names
 the interpreter directly. There are 17 call sites across `skills/` and `rules/CLAUDE.md`:
@@ -1113,7 +1115,7 @@ future Claude Code adds per-platform commands. Rejected already (D31): a sh/Powe
 command string, because of CommandNotFound noise on every PowerShell hook call.
 
 ## B63. An older installed plugin silently DOWNGRADES a newer rules block
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#63` · queued
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#63` · closed `2026-09-26`
 Brief: [briefs/rules-block-downgrade.md](briefs/rules-block-downgrade.md). Queued above B59 because B59 is the first release since v1.59.0 to change the rules body.
 **Seen 2026-09-25 on NB1.** A session started and the hook reported *"Updated the cairn rules block
 in `~/.claude/CLAUDE.md`: v1.62.0 → v1.60.0"*, which is a rollback reported as an update. The same
@@ -1149,7 +1151,7 @@ refused" in the same voice. B61 (auto-update off by default) is why a machine si
 long enough for this to happen.
 
 ## B64. Refuse an agent-initiated archive while the wrap verdict is `CAIRN OPEN`
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · closed `2026-09-26`
 **Asked for by the user on 2026-09-25**, after a session wrapped (`CAIRN SET` 22:38), then made two
 more commits (`f393976`, `3beac4b`) and ended unwrapped. The next session opened with "did not finish
 cleanly". Their words: *"a hook or something that doesn't allow a session to archive when the
@@ -1182,3 +1184,48 @@ or it would have waved the incident through.
 **Tests:** a new `tools/test_archive_guard.py` with fixture repos only, for OPEN denies, SET
 allows, UNKNOWN allows with a note, an error allows, another session's id allows, and SET followed
 by a new commit denies.
+
+## B66. After B63, two messages still give the wrong remedy for a rules block NEWER than the plugin
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26`
+Found by lane A of the 2026-09-26 overnight batch (dossier `docs/review/lane-a-2026-09-26.md`, "Chose
+not to do"). Since v1.63.0 `install_rules` KEEPS a newer block instead of rolling it back (D33), so
+"restart and it resyncs" is false in that direction. Two places still say it or half-say it:
+- **`hooks/version_drift.py` `_rules_drift`** still prints "this session is running NEW code against
+  OLD rules. Restart to let `install_rules` resync" when the rules block is newer than
+  `installed_plugins.json`. Both halves are backwards: the plugin is the old side, and a restart will
+  not resync. Fix: a `compare_versions(rules_version, installed_version) == 1` branch worded like
+  `check_install.py`'s new STALE branch. `tools/test_version_drift.py`'s "real hook: warns when they
+  diverge" case stages installed `0.0.1` against the live rules and asserts `"OLD rules"`, so that one
+  assertion changes with it.
+- **The B63 refusal line in `hooks/install_rules.py`** tells the user to run `claude plugin update
+  cairn@superbole`, but `check_install.py`'s matching message says `claude plugin marketplace update
+  superbole` first. A stale marketplace cache answers "already at the latest version", so the refusal's
+  remedy can fail. Make both say the same two commands (and `test_install_rules.py`'s "names the
+  remedy" check still passes, since it matches a substring).
+**Ruled out:** leaving it for B26's wording pass; B26 closed in the same release without touching
+`version_drift.py`, which was outside its lane.
+
+## B67. The `next-id` marker has two readings, and the parser and the people disagree
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26`
+Found in the 2026-09-26 overnight batch's bookkeeping. `backlog_file.next_id()` returns
+`max(parsed, marker, origin) + 1`, so the code reads `<!-- next-id: N -->` as **the highest id already
+spent**. The name, and every hand edit, read it as **the next free id**: the 2026-09-25 wrap filed B64
+and set the marker to 65 ("next-id moved from 62 to 64, because filing B62 had left it behind" in
+`CHANGELOG.md`), after which `next_id()` answered **66**, skipping 65. The direction is the safe one (it
+skips, never collides), which is why nothing has failed, but a hand edit made in the other reading
+could lower the floor by one. **Decide:** keep the code's semantics and say so where people edit it
+(the marker comment `render()` writes, `docs/file-formats.md`, the wrap skill's backlog step), or
+rename the marker (`<!-- last-id: N -->`, reading the old spelling on the way in). Either way the
+parser keeps accepting the old marker. B65 was never filed; nothing needs renumbering.
+
+## B68. The old `python "$CLAUDE_PLUGIN_ROOT/…"` command form survives outside the skills
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26`
+B59 (v1.63.0, D35) rewrote every call site in `skills/*/SKILL.md` and `rules/CLAUDE.md`, and
+`tools/test_skill_calls.py` pins those two places only. Lane B listed the copies it did not own:
+`plugins/cairn/tools/check_repos.py:56-57` (a docstring quoting the old wrap step-1a command),
+`docs/design-notes.md:91,112`, and `docs/cursor-adapter-requirements.md:286`. The README's
+`check_install.py` row also tells the user to run `python plugins/cairn/tools/check_install.py`,
+which fails on stock Linux. Rewrite them to the `sh "<root>/hooks/run.sh" …` form (the README one is
+for a human, so `python3`/`py` alternatives are fine there). Leave `skills/*/references/incidents.md`
+alone: it quotes history verbatim on purpose. Consider widening `test_skill_calls.py` to `docs/` with
+an allow-list for dated evidence.
