@@ -2,6 +2,13 @@
 # Launch one cairn hook under whatever this machine calls Python 3. (v1.61.0, D31)
 #
 #     sh "${CLAUDE_PLUGIN_ROOT}/hooks/run.sh" session_orientation.py [args...]
+#     sh "<plugin root>/hooks/run.sh" tools/measure_context.py [args...]      (B59)
+#
+# A bare name is a file in hooks/. A name with a slash must start hooks/ or tools/ and contain
+# no `..` -- that second form is for the AGENT, which the skills send through here too: the
+# agent's own shell has no CLAUDE_PLUGIN_ROOT (measured 2026-09-25) and may have no `python`,
+# so a skill line naming either one fails. The skills tell it to find this file from the
+# skill's base directory instead, and everything after that is resolved here, once.
 #
 # WHY A SHELL SCRIPT. `hooks.json` allows one command string per hook, and no interpreter name
 # exists on all three platforms: stock Ubuntu/Debian has only `python3`, and on Windows `python3`
@@ -29,12 +36,27 @@ if [ -z "$hook" ]; then
 fi
 shift
 
-# Exported by Claude Code for plugin hooks; the fallback is for running this file by hand.
+# CLAUDE_PLUGIN_ROOT is used only when it names THIS file's own plugin -- true of every hook,
+# at the cost of one string compare. Anywhere else (the agent's shell, where it is unset, or a
+# checkout run by path while it points at the installed copy) the root is where this file is.
 root=${CLAUDE_PLUGIN_ROOT:-}
-if [ -z "$root" ]; then
-  root=$(cd "$(dirname "$0")/.." && pwd)
+if [ -z "$root" ] || [ "$0" != "$root/hooks/run.sh" ]; then
+  # Parameter expansion, not `dirname`: builtins only, so it works on a PATH with nothing on it.
+  dir=${0%/*}
+  [ "$dir" = "$0" ] && dir=${0%\\*}        # a Windows path with only backslashes
+  [ "$dir" = "$0" ] && dir=.               # `sh run.sh` from inside hooks/
+  root=$(cd "$dir/.." && pwd)
 fi
-target="$root/hooks/$hook"
+case "$hook" in
+  *..*) bad=1 ;;
+  hooks/*|tools/*) bad= ; target="$root/$hook" ;;
+  */*) bad=1 ;;
+  *) bad= ; target="$root/hooks/$hook" ;;
+esac
+if [ -n "$bad" ]; then
+  echo "cairn: run.sh only runs a hooks/ or tools/ file of its own plugin, not: $hook" >&2
+  exit 0
+fi
 
 found() { command -v "$1" >/dev/null 2>&1; }
 
@@ -54,7 +76,7 @@ else
 fi
 
 # Nothing to exec. Exit 0 regardless: a broken install must never block a tool call.
-msg="cairn: no Python 3 on PATH (tried: $tried), so none of the cairn hooks can run on this machine. Install Python 3, or set CAIRN_PYTHON to its full path in the \"env\" block of ~/.claude/settings.json."
+msg="cairn: no Python 3 on PATH (tried: $tried), so no cairn hook or tool can run on this machine. Install Python 3, or set CAIRN_PYTHON to its full path in the \"env\" block of ~/.claude/settings.json."
 if [ "$hook" = "session_orientation.py" ]; then
   # SessionStart stdout lands in the agent's context -- the only route to the user.
   echo "[to the agent] RELAY FIRST -- $msg"

@@ -52,6 +52,11 @@ if not SH:
     sys.exit(0)
 
 FAKE_ROOT = Path(tempfile.mkdtemp(prefix="hook-launcher-root-"))
+# A copy of run.sh inside FAKE_ROOT, launched by the same path CLAUDE_PLUGIN_ROOT names -- exactly
+# the shape of a hooks.json command. (run.sh trusts CLAUDE_PLUGIN_ROOT only when it names the
+# plugin run.sh itself lives in; B59.)
+(FAKE_ROOT / "hooks").mkdir()
+(FAKE_ROOT / "hooks" / "run.sh").write_bytes(RUN_SH.read_bytes())
 
 
 def fake(bindir: Path, name: str):
@@ -65,17 +70,22 @@ def fake(bindir: Path, name: str):
     os.chmod(bindir / name, 0o755)
 
 
-def launch(names, hook="probe.py", args=(), windows=False, stdin="", extra_env=None):
+def launch(names, hook="probe.py", args=(), windows=False, stdin="", extra_env=None,
+           plugin_root=str(FAKE_ROOT)):
+    """plugin_root=None is the AGENT's shell, where Claude Code exports no CLAUDE_PLUGIN_ROOT."""
     bindir = Path(tempfile.mkdtemp(prefix="hook-launcher-bin-"))
     for n in names:
         fake(bindir, n)
-    env = {k: v for k, v in os.environ.items() if k not in ("OS", "CAIRN_PYTHON", "FAKE_RC")}
+    env = {k: v for k, v in os.environ.items()
+           if k not in ("OS", "CAIRN_PYTHON", "FAKE_RC", "CLAUDE_PLUGIN_ROOT")}
     env["PATH"] = str(bindir)
-    env["CLAUDE_PLUGIN_ROOT"] = str(FAKE_ROOT)
+    if plugin_root is not None:
+        env["CLAUDE_PLUGIN_ROOT"] = plugin_root
     if windows:
         env["OS"] = "Windows_NT"
     env.update(extra_env or {})
-    r = subprocess.run([SH, str(RUN_SH), *([hook] if hook else []), *args], env=env, input=stdin,
+    script = f"{FAKE_ROOT}/hooks/run.sh"     # the exact string a hooks.json command expands to
+    r = subprocess.run([SH, script, *([hook] if hook else []), *args], env=env, input=stdin,
                        capture_output=True, text=True, timeout=60, encoding="utf-8",
                        errors="replace", **NW)
     return r, bindir
@@ -129,7 +139,40 @@ r, _ = launch(["python3"], hook=None)
 check("no hook name: exit 0 with a usage line", (r.returncode, "needs a hook" in r.stderr),
       (0, True))
 
-print("\n4. the files themselves")
+print("\n4. the agent's form (B59): no CLAUDE_PLUGIN_ROOT, and tools/ files too")
+
+
+def first_arg(r):
+    m = re.search(r"^ARGS=(\S*)", r.stdout, re.M)
+    return m.group(1) if m else ""
+
+
+tag = FAKE_ROOT.name        # `pwd` spells the path differently on Windows; the unique name survives
+r, _ = launch(["python3"], plugin_root=None)
+got = first_arg(r)
+check("CLAUDE_PLUGIN_ROOT unset -> the hook in run.sh's OWN plugin",
+      (tag in got, got.endswith("/hooks/probe.py")), (True, True))
+elsewhere = Path(tempfile.mkdtemp(prefix="hook-launcher-other-"))
+r, _ = launch(["python3"], plugin_root=str(elsewhere))
+got = first_arg(r)
+check("CLAUDE_PLUGIN_ROOT naming ANOTHER plugin loses to run.sh's own",
+      (tag in got, elsewhere.name in got), (True, False))
+r, _ = launch(["python3"], hook="tools/probe.py", plugin_root=None)
+got = first_arg(r)
+check("tools/<name>.py runs <root>/tools/<name>.py",
+      (tag in got, got.endswith("/tools/probe.py")), (True, True))
+r, _ = launch(["python3"], hook="hooks/probe.py", plugin_root=None)
+check("hooks/<name>.py is the same file as the bare name", first_arg(r).endswith("/hooks/probe.py"),
+      True)
+for bad in ("../probe.py", "tools/../../probe.py", "/etc/probe.py", "docs/probe.py"):
+    r, _ = launch(["python3"], hook=bad, plugin_root=None)
+    check(f"refused, exit 0, nothing launched: {bad}",
+          (r.returncode, interp(r), "only runs a hooks/ or tools/" in r.stderr), (0, None, True))
+r, _ = launch([], hook="tools/probe.py", plugin_root=None)
+check("no interpreter, agent's form: the warning still reaches stderr",
+      "no Python 3 on PATH" in r.stderr, True)
+
+print("\n5. the files themselves")
 check("run.sh has no CR bytes (a CRLF shell script does not run)", b"\r" in RUN_SH.read_bytes(),
       False)
 cfg = json.loads((PLUGIN / "hooks" / "hooks.json").read_text(encoding="utf-8"))

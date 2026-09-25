@@ -36,6 +36,10 @@ working wrap never needs it.
 
 ## Procedure
 
+**`<root>` in every command below is the plugin root: two directories above this skill's base
+directory** (the `Base directory for this skill:` line). `$CLAUDE_PLUGIN_ROOT` is NOT set in your
+shell, and bare `python` is missing on stock Linux — so always go through `hooks/run.sh`. (B59)
+
 1. **Survey the tree.** `git status`. Separate THIS session's files from anything another session
    may have touched; never stage another session's work. Not a git repo → skip steps 4, 5 and 5b
    and say so at the close. The queue still gets written.
@@ -45,7 +49,7 @@ working wrap never needs it.
    this repo's `git status` says nothing about any of them.
 
    ```bash
-   python "$CLAUDE_PLUGIN_ROOT/tools/check_repos.py"
+   sh "<root>/hooks/run.sh" tools/check_repos.py
    ```
 
    - **Run it with NO arguments first.** Since v1.25.0 a `PostToolUse` recorder logs every git
@@ -151,7 +155,7 @@ working wrap never needs it.
    decision is exactly the thing B86 says cannot be trusted from inside the session. Run
 
    ```
-   python plugins/cairn/hooks/push_check.py --since <HEAD before this wrap committed>
+   sh "<root>/hooks/run.sh" push_check.py --since <HEAD before this wrap committed>
    ```
 
    **Capture that baseline sha BEFORE step 4 commits** (`git rev-parse HEAD`) and pass it here.
@@ -371,7 +375,7 @@ working wrap never needs it.
    silently misreported it.
 
    ```bash
-   python "$CLAUDE_PLUGIN_ROOT/hooks/session_orientation.py" --check
+   sh "<root>/hooks/run.sh" session_orientation.py --check
    ```
 
    **Never let it fail a wrap.** A nonzero exit names what to fix — fix it and re-run, don't
@@ -442,7 +446,7 @@ working wrap never needs it.
      unattended run it **waits for their go-ahead alongside the push** (step 5), not before it:
 
      ```bash
-     python "$CLAUDE_PLUGIN_ROOT/tools/sync_backlog.py"
+     sh "<root>/hooks/run.sh" tools/sync_backlog.py
      ```
 
      It files issues for items that have none, closes the issues of items marked `closed`, keeps
@@ -461,7 +465,7 @@ working wrap never needs it.
    - **Make the labels exist first** if this repo has never synced — idempotent, cheap:
 
      ```bash
-     python "$CLAUDE_PLUGIN_ROOT/tools/label_backlog.py" --ensure
+     sh "<root>/hooks/run.sh" tools/label_backlog.py --ensure
      ```
 
      Filing an issue with `--label afk` in a repo without the label does not fall back to an
@@ -471,13 +475,13 @@ working wrap never needs it.
      delete what you pull**; mark it `queued`.
    - **No `BACKLOG.md` in this project yet?** Create it — the first displaced item is reason
      enough. A project that already has issues seeds the file from them: write an empty one
-     (`python "$CLAUDE_PLUGIN_ROOT/hooks/backlog_file.py"` documents the shape) and run
+     (`sh "<root>/hooks/run.sh" backlog_file.py` documents the shape) and run
      `sync_backlog.py --pull`.
    - **Refresh the session-start issues cache** if the issue list changed, so the next session's
      inbound warning is current without a network call. **One command, either host:**
 
      ```bash
-     python "$CLAUDE_PLUGIN_ROOT/hooks/issues_backlog.py" --refresh --report
+     sh "<root>/hooks/run.sh" issues_backlog.py --refresh --report
      ```
 
      This replaced a hand-written `gh issue list … | --ingest` pair in v1.34.0. That pair named
@@ -542,7 +546,7 @@ working wrap never needs it.
    **This is the command. There is one.**
 
    ```bash
-   python "$CLAUDE_PLUGIN_ROOT/hooks/wrap_receipt.py" --record
+   sh "<root>/hooks/run.sh" wrap_receipt.py --record
    ```
 
    **Did you push in step 5? Then you are done — do NOT read on to the flag.** Two forms used to be
@@ -557,7 +561,7 @@ working wrap never needs it.
    push</b></summary>
 
    ```bash
-   python "$CLAUDE_PLUGIN_ROOT/hooks/wrap_receipt.py" --record --held
+   sh "<root>/hooks/run.sh" wrap_receipt.py --record --held
    ```
 
    </details>
@@ -622,7 +626,7 @@ working wrap never needs it.
      the fixed baseline plus whatever it reads off disk, which is why the wrap writes to disk. A
      cold start on an item is a few thousand tokens; the harness (system prompt, tool schemas,
      skill list) is identical either way and cancels out of the decision entirely. **Measure it,
-     never quote it:** `python "$CLAUDE_PLUGIN_ROOT/tools/measure_context.py" <project-root>`. The
+     never quote it:** `sh "<root>/hooks/run.sh" tools/measure_context.py <project-root>`. The
      reason to stay is never the token count, and the reason to leave is relevance, not volume.
 
      | Situation | Say |
@@ -649,7 +653,7 @@ working wrap never needs it.
     the answer:
 
     ```bash
-    python "$CLAUDE_PLUGIN_ROOT/hooks/archive_offer.py" --stamp-asked
+    sh "<root>/hooks/run.sh" archive_offer.py --stamp-asked
     ```
 
     Without this, `--check` cannot tell "asked and accepted" from "never asked at all" — it reports
@@ -680,7 +684,7 @@ working wrap never needs it.
       of losing it to conversation memory:
 
       ```bash
-      python "$CLAUDE_PLUGIN_ROOT/hooks/archive_offer.py" --stamp
+      sh "<root>/hooks/run.sh" archive_offer.py --stamp
       ```
 
       If they say yes instead, run `--clear` before calling `archive_session` — there is nothing
@@ -704,10 +708,10 @@ working wrap never needs it.
   one who cannot check.
 
   **The verdict is owed ANY time you report on the state of the session — not only at the close**,
-  and since v1.44.0 it is **not yours to word**. Run `hooks/wrap_receipt.py --check` and quote what
-  it prints. **Reporting the mechanics instead is one failure mode** — *"everything committed and
-  pushed"*, *"all three repos clean"*, *"0 0 against origin"* are inputs to a verdict, not a
-  verdict. **Composing your own English verdict is the other, and it is the one that actually
+  and since v1.44.0 it is **not yours to word**. Run
+  `sh "<root>/hooks/run.sh" wrap_receipt.py --check` and quote what it prints. **Reporting the
+  mechanics instead is one failure mode** — *"everything committed and pushed"*, *"all three
+  repos clean"*, *"0 0 against origin"* are inputs to a verdict, not a verdict. **Composing your own English verdict is the other, and it is the one that actually
   happened**: *"no wrap needed"* was produced twice, confidently, from real evidence, by a session
   that had never run this skill (B87). Both are now the same rule — quote `CAIRN SET` / `CAIRN NOT
   DUE` / `CAIRN OPEN`, then give the evidence underneath if it is worth showing.
@@ -722,7 +726,7 @@ working wrap never needs it.
   answering. Check before stating either verdict:
 
   ```bash
-  python "$CLAUDE_PLUGIN_ROOT/hooks/archive_offer.py" --check
+  sh "<root>/hooks/run.sh" archive_offer.py --check
   ```
 
   `PENDING` means say the verdict AND re-ask whether to archive, in the same reply — not as two
@@ -737,5 +741,5 @@ working wrap never needs it.
 - **No bare token constants in this file.** A number in an always-loaded file rots silently and is
   then quoted as fact; three had, one of them quoting this system's own out-of-date size. A number
   stays only if it is dated evidence of a specific incident and says so. Everything else is
-  `python "$CLAUDE_PLUGIN_ROOT/tools/measure_context.py" <root>`.
+  `sh "<root>/hooks/run.sh" tools/measure_context.py <project-root>`.
 - **Report honestly.** If tests failed or a step was skipped, the wrap says so.

@@ -51,9 +51,13 @@ Any time you report on the state of the session, the verdict is one line, **prod
 quoted verbatim**:
 
 ```bash
-python "$CLAUDE_PLUGIN_ROOT/hooks/wrap_receipt.py" --check     # any time, reports only
-python "$CLAUDE_PLUGIN_ROOT/hooks/wrap_receipt.py" --record    # the wrap's own final step
+sh "<root>/hooks/run.sh" wrap_receipt.py --check     # any time, reports only
+sh "<root>/hooks/run.sh" wrap_receipt.py --record    # the wrap's own final step
 ```
+
+`<root>` is the cairn plugin root (`$CLAUDE_PLUGIN_ROOT` is unset in your shell): two directories
+above a cairn skill's base directory, or cairn's `installPath` in
+`~/.claude/plugins/installed_plugins.json`.
 
 Add `--held` **only** on the `AFK` path where the push was deliberately stopped; it turns on an
 alert whose shape an ordinary successful push also has.

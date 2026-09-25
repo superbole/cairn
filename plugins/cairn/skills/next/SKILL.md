@@ -11,6 +11,10 @@ hold state between sessions, and runs several projects; this is how they re-ente
 **No `NEXT.md` here?** Say so plainly ("nothing queued here"), offer to start one, stop. Never
 invent a queue. The exit half is **`/cairn:wrap`** — suggest it when a phase completes.
 
+**`<root>` in every command below is the plugin root: two directories above this skill's base
+directory** (the `Base directory for this skill:` line). `$CLAUDE_PLUGIN_ROOT` is NOT set in your
+shell, and bare `python` is missing on stock Linux — so always go through `hooks/run.sh`. (B59)
+
 ## Do not load this skill just to relay the queue
 
 The `SessionStart` hook has **already printed the orientation into your context**, along with the
@@ -22,7 +26,7 @@ Load it for what the hook does NOT do: **step 0** (junk session titles), **step 
 from its brief), reconciling a stale queue, triaging `INBOX.md`.
 
 **No bare token constants in this file** — they rot silently and get repeated as fact. Measure:
-`python "$CLAUDE_PLUGIN_ROOT/tools/measure_context.py" <project-root>`.
+`sh "<root>/hooks/run.sh" tools/measure_context.py <project-root>`.
 
 ## Why these read as blunt orders
 
@@ -201,7 +205,7 @@ Do not renumber.
    (*"let's look at the fan-out one"*). Then, and only then:
 
    ```bash
-   python "$CLAUDE_PLUGIN_ROOT/hooks/item_start.py" --item 2
+   sh "<root>/hooks/run.sh" item_start.py --item 2
    ```
 
    Nothing clears it by hand — a wrap, or the item leaving `## Queue` by any route, does that.
