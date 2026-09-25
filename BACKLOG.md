@@ -1061,6 +1061,26 @@ any settings.json write from a plugin), and adding them to `settings_drift.REQUI
 the aim line directly: a stranger who never updates is a stranger on a stale install. Per-machine
 application on this user's own machines is `workspace` W6/W7/W10.
 
+## B62. A machine inbox: show the GitHub issues labelled for THIS machine at session start
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-25`
+**Asked for 2026-09-25**, the durable half of `workspace` D8. One user can have several hubs that no
+single machine opens. This user has two repos called `workspace`: a private GitHub one for the personal
+machine, and one on the employer's GitLab for the work laptops. So a machine-gated watch filed in the
+wrong hub never surfaces where it's needed.
+Routing by hand (D8 option 1) fixes each case. This fixes the class.
+**Shape:** issues on one GitHub repo, the user's inbox (their private personal hub), labelled
+`machine:<id>` with the id from `MACHINES.md`. The orientation lists the open ones for this machine in
+every session, whatever project is open, from a cache the detached refresh keeps (no network on the
+hot path, same as the inbound-issue cache). Opt-in via an env var beside `REENTRY_PROFILE_SOURCE`, so
+a stranger's install is silent. Any machine with `gh` can file into it. On 2026-09-25 a work laptop's `gh` was
+already the user's personal account with `repo` scope, so the work laptops can write today.
+**Ruled out:** `glab` on the personal machine filing into the employer host (puts an employer token on a
+personal machine); a file in `cairn-private` (no phone access, and B112 gave that repo one job on
+purpose); a corporate planner such as Microsoft Planner (employer tenant, and not readable by agents there). **Open for the plan:**
+how an inbox item is closed (by the machine that acts on it, and with what evidence), and whether it
+also lands in that hub's `BACKLOG.md` or stays a session-start line only. `HITL/Plan` because the
+design is still open.
+
 ## B59. Skills and rules still tell the agent to run bare `python "$CLAUDE_PLUGIN_ROOT/…"`
 `Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#59` · queued
 Brief: [briefs/skill-python-calls.md](briefs/skill-python-calls.md). Pulled to refill the Queue at the v1.61.0 wrap.
