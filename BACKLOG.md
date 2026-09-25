@@ -1049,7 +1049,7 @@ remote-tracking ref (one `git rev-list`, no fetch, no network) and drop it when 
 keeps the no-network contract and catches the "already pulled/pushed since" case.
 
 ## B59. Skills and rules still tell the agent to run bare `python "$CLAUDE_PLUGIN_ROOT/…"`
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · queued
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#59` · queued
 Brief: [briefs/skill-python-calls.md](briefs/skill-python-calls.md). Pulled to refill the Queue at the v1.61.0 wrap.
 v1.61.0 (D31) moved every HOOK onto `hooks/run.sh`, but the text the agent reads still names
 the interpreter directly. There are 17 call sites across `skills/` and `rules/CLAUDE.md`:
@@ -1076,7 +1076,7 @@ agents have been silently substituting a path they found some other way. The int
 smaller half of this.
 
 ## B60. Native Windows without Git for Windows can't run any hook since v1.61.0
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-25`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-25` · issue `#60`
 Accepted cost of D31. When Git for Windows is absent, Claude Code runs shell-form hooks through
 PowerShell (code.claude.com/docs/en/hooks), which can't start `sh "…/run.sh"`. Before v1.61.0
 the bare `python "…"` command ran there. The README now lists Git for Windows as a Windows
