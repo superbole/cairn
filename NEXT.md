@@ -30,11 +30,6 @@ record is the one thing in a repo that cannot be re-derived from the repo.
    plugin, is installed and has drifted ~14 versions. The question is whether it is regenerated from
    this repo or stays hand-maintained. Backlog B57.
 
-## Decisions
-
-**D29. Can a backlog id carry a letter suffix (`## B2b.`)?** — answer: `here` · added `2026-09-05` · → `BACKLOG.md` B16
-**D30. One D-number sequence per repo, shared by open and answered decisions?** — answer: `here` · added `2026-09-08` · → `docs/decisions.md` D28, `BACKLOG.md` B16
-
 ## Watching
 
 **W2. The empty-Queue backlog offer (v1.18.0) fires in a genuinely NEW session** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-08-28` · check after `the next new session in a project whose Queue is empty`

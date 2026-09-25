@@ -159,23 +159,13 @@ matching `^\*\*W(?!\d)`, by line number. Without (2), fixing (1) changes nothing
 that invents a label. Consider whether B16/B17/B18 are one "did this file parse the way you think?"
 report rather than three warnings.
 
-**Detail for `NEXT.md` D29 and D30** (both open, both `answer: here`; migrated from the private
-repo's D3 and D5, 2026-09-23):
-- **D29 — letter-suffixed ids.** The parser accepts a bare `## 12.` as item 12, but `## 2b.` is
-  refused, because `n` is an integer that `next_id()`, the issue mapping and `render()` all key
-  off. Either letter-suffixed items are not a thing (the simplest answer, and the one file that used
-  them has been normalised), or `n` becomes a string and everything keyed off it changes. **Do not
-  let an agent smuggle this into a sync release.** Live cost, 2026-09-08: splitting an item couldn't
-  use `a`/`b` and spent a fresh integer id instead. That cost is small, which argues for the simple
-  answer.
-- **D30 — one sequence per repo.** The real collision was INSIDE one repo, and a prefix wouldn't
-  touch it. The private repo's `NEXT.md` open decisions and its `docs/decisions.md` rows used
-  separate counters and collided on D4: two decisions, one number. **Recommendation: one sequence
-  per repo.** An open decision takes the next number from the rationale record's counter and keeps
-  it when answered, so a collision is impossible by construction. D29 and D30 themselves are
-  numbered this way (after `docs/decisions.md` D28). **No repo prefix:** cross-repo ambiguity is
-  already handled by qualifying (`cairn D30`) whenever more than one project is in play. **Billing
-  codes are not ids** — see B55, whose content stays private.
+**D29 and D30 answered 2026-09-25** (`docs/decisions.md`): backlog ids stay integers (a split takes
+the next id and names its parent), and a repo has one D-number sequence shared by open and answered
+decisions, with no prefix. That makes fix (1) concrete: state D30's rule in `rules/CLAUDE.md`'s
+`## Decisions` shape (*"an open decision takes the next number after the highest in the rationale
+record, and keeps it when answered"*) — a rules-text change, so it needs a version bump. Fix (2)'s
+near-miss warning should also catch a letter-suffixed backlog heading (`## B2b.`), which D29 now
+says is always a mistake. **Billing codes are not ids** — see B55, whose content stays private.
 
 ## B17. A watch trigger has exactly TWO evaluable forms; everything else is prose on a timer
 `Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-08` · issue `#15`
