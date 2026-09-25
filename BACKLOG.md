@@ -452,6 +452,11 @@ driver), B39 (a watch coming due elsewhere while you stay put — the hole "stay
 **Open when pulled:** the input source — the old brief assumed a portfolio catalog file; the shipped
 sweep rejected that for siblings and deferred it to B36. Surfacing measured at ~483 vs ~5,437 tokens
 for the two designs considered; keep the cheap one.
+**Asked for again 2026-09-25:** with 90 minutes left on a Friday and the weekly token budget half
+spent, the user wanted to ask cairn *"what should I spend this on?"* across every project, rather
+than an agent reasoning it out ad hoc. The ad-hoc answer needed: each project's Queue, due watches,
+a risk signal (an item marked as a production/outage hazard outranks a feature), and the time and
+token budget available. The last two are new inputs beyond the per-project top-2 decided above.
 
 ## B32. A finding about ANOTHER project has nowhere to go — make `INBOX.md` the cross-project mailbox
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#30`
@@ -1034,3 +1039,11 @@ covers `repo_sweep`.
 inline: the hook must not do network I/O.
 **Why it matters:** a warning about a repo that is not there costs a round trip and trust in the
 banner. It is also the one line the agent is told to lead with.
+**Second occurrence, 2026-09-25, on a work laptop — and the scope is wider than a gone directory.**
+The same banner named the deleted repo AND two siblings that exist, as 1 and 7 behind; a live
+`git fetch` + `rev-list` showed both 0/0 (one had been pushed from that machine an hour earlier).
+The user called it "the second time today this information is stale." So `exists()` alone is not
+enough. Also: (a) print the cache's age on the line (`as of 14:02` / `from last session`), since
+the JSON already holds `at`; (b) for each named repo, re-count `HEAD..@{u}` against the LOCAL
+remote-tracking ref (one `git rev-list`, no fetch, no network) and drop it when it reads 0. That
+keeps the no-network contract and catches the "already pulled/pushed since" case.
