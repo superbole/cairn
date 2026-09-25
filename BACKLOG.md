@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 62 -->
+<!-- next-id: 64 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1121,3 +1121,38 @@ twin (`run.ps1`) plus a way to pick it. `hooks.json` has no per-platform branch,
 field is per hook, not per OS, so that "way" is the whole problem. Or exec-form `args`, if a
 future Claude Code adds per-platform commands. Rejected already (D31): a sh/PowerShell polyglot
 command string, because of CommandNotFound noise on every PowerShell hook call.
+
+## B63. An older installed plugin silently DOWNGRADES a newer rules block
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25`
+**Seen 2026-09-25 on NB1.** A session started and the hook reported *"Updated the cairn rules block
+in `~/.claude/CLAUDE.md`: v1.62.0 → v1.60.0"*, which is a rollback reported as an update. The same
+orientation also printed the `version_drift` warning (installed v1.60.0, repo v1.62.0). After
+`claude plugin update cairn@superbole` and a restart, the next start reported v1.60.0 → v1.62.0.
+**What the backups show** (`~/.claude/`, mtimes on NB1):
+- `CLAUDE.md.bak-reentry-install-v1.60.0-6182d1dd` at 08:59. The per-outgoing-state name is
+  v1.62.0's scheme (88d6c5c), so a **v1.62.0 installer** ran at 08:59 and upgraded v1.60.0 → v1.62.0.
+- `CLAUDE.md.bak-reentry-install` at 21:24. That is the older single-file name, so a **v1.60.0
+  installer** ran at this session's start and wrote the downgrade.
+- `CLAUDE.md` at 22:50 is the re-upgrade after the plugin update.
+So two installers of different versions ran on one machine on the same day. **Which process ran
+v1.62.0 at 08:59 is unconfirmed.** It might be a CLI session that had already loaded the new cache
+while the desktop app still had v1.60.0, or it might be a scheduled task (`agent-reentry-lane-batch-0500`,
+`ReentryPluginSync`). The cache dirs were both re-stamped at 22:48 by the update, so their mtimes say
+nothing about 08:59.
+**The defect is in `_install_block` (`plugins/cairn/hooks/install_rules.py`).** It rewrites on any
+mismatch: `if installed == version and existing[start:end] == block: return` and otherwise writes.
+It never checks the direction. Two installed versions that both run will each rewrite the block to
+their own version, every session, on every machine where that can happen.
+**Harmless THIS time, only by luck:** `plugins/cairn/rules/CLAUDE.md` hasn't changed since v1.59.0
+(0e7e9f4), so the v1.60.0 and v1.62.0 bodies are identical. A release that changes the rules text
+would have had its rules silently reverted.
+**Fix:** compare versions, and when the installed block is NEWER than this plugin, write nothing and
+print one line naming both versions and telling the user to update the plugin. Keep the block. Put
+the comparison in a helper that is shared with `version_drift.py` rather than parsing versions twice.
+Add a test to `tools/test_install_rules.py` for a newer block against an older plugin: no write, one
+line. **Ruled out:** "newest content wins" by diffing bodies, because a body cannot say which one is
+newer and the version marker can. Making the block per-process is impossible too, since
+`~/.claude/CLAUDE.md` is one file.
+**Related:** B26 (queued #2, announcing what changed in the block), which should say "downgrade
+refused" in the same voice. B61 (auto-update off by default) is why a machine sits on a stale install
+long enough for this to happen.
