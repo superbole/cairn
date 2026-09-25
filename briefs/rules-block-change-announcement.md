@@ -10,6 +10,13 @@ before editing.**
 **Do B25 first.** It fixes how the block's boundaries are found, and this item's diff summary is
 computed from those boundaries.
 
+**B25 landed in v1.62.0** (D32). What that changes for this item: `_find_block()` now either
+returns `(start, end, version)`, returns `None`, or raises `MalformedBlock`. The refusal path
+already prints its own line, so don't add a summary there. `_backup()` now takes
+`(target, outgoing, content)` and names each file by version plus digest. The header is one line,
+`<!-- reentry:begin vX -->`, and the legacy three-line header is still accepted on read.
+`test_install_rules.py` exists now, so add this item's cases there.
+
 ## What is wrong
 
 `hooks/install_rules.py` runs from `session_orientation.py` at every SessionStart, writes

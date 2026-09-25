@@ -327,7 +327,7 @@ in the suite. **Also decide:** is a brief pointer into a *different* repo allowe
 pointer went dead when that clone was deleted), or must briefs be copied in?
 
 ## B25. `install_rules` can delete the user's own text, and one rolling backup cannot recover it
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-06` · issue `#23` · queued
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-06` · issue `#23` · closed `2026-09-25`
 Brief: [briefs/install-rules-marker-safety.md](briefs/install-rules-marker-safety.md)
 Was `agent-reentry` B104 (migrated 2026-09-23). `BEGIN = "<!-- reentry:begin"` carries **no closing
 `-->`**, and `_find_block` takes `text.find(BEGIN)` — the first occurrence anywhere. The rewrite is
@@ -341,7 +341,7 @@ with the outgoing version. `install_rules.py` has no direct test file; this item
 **Do this before B26.**
 
 ## B26. Say what changed in the rules block, not just `vX → vY`
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#24`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#24` · queued
 Brief: [briefs/rules-block-change-announcement.md](briefs/rules-block-change-announcement.md)
 Was `agent-reentry` B101 (migrated 2026-09-23); decision row **D9**. `install_rules.py` rewrites
 always-loaded, machine-wide instruction text at every `SessionStart` where the version or rendered
@@ -383,6 +383,8 @@ does not; then leave old alone forever. `reentry:begin` is the sharp one — the
 `reentry_state.py` (internal module, no on-disk footprint), `CHANGELOG.md` and archived records (the
 record of what happened under the old name). Until this lands, `install_rules.py` says *"the cairn
 rules block"* while writing `reentry:begin`.
+**Since v1.62.0 (B25, D32) the header is a whole-line match** (`_BEGIN_LINE` in `install_rules.py`) —
+the new marker's parser must stay one; never reintroduce a prefix search.
 
 ## B29. The payload still says `agent-reentry` in prose, in a repo called `cairn`
 `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09` · issue `#27`

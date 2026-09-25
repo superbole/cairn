@@ -13,18 +13,16 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Queue
 
-1. **Stop `install_rules` deleting the user's own text in `~/.claude/CLAUDE.md`** — Opus 5 · high · AFK/Auto
-   Brief: [briefs/install-rules-marker-safety.md](briefs/install-rules-marker-safety.md)
-   The marker match is a bare prefix search, and the backup is one rolling copy, so on any
-   installer's machine the managed block can silently swallow text written above it, with no way
-   back after two updates. Backlog B25. Placed above the Cursor item because installs are the aim.
-   It commits locally and stops before the push.
-
-2. **Make the skills' `python "$CLAUDE_PLUGIN_ROOT/…"` calls actually resolve** — Opus 5 · high · AFK/Auto
+1. **Make the skills' `python "$CLAUDE_PLUGIN_ROOT/…"` calls actually resolve** — Opus 5 · high · AFK/Auto
    Brief: [briefs/skill-python-calls.md](briefs/skill-python-calls.md)
    17 call sites in `skills/` and `rules/` name bare `python` (fails on Linux) and a variable that
    was measured unset in the agent's shell (wrong everywhere). v1.61.0 fixed the hooks only. Backlog
    B59. Above Cursor because a Linux wrap is the aim line. It commits locally and stops before the push.
+
+2. **Say what changed in the rules block, not just `vX → vY`** — Sonnet 5 · medium · AFK/Auto
+   Brief: [briefs/rules-block-change-announcement.md](briefs/rules-block-change-announcement.md)
+   An update rewrites always-loaded instructions on every machine and reports only the version
+   numbers. Backlog B26. Its B25 dependency landed in v1.62.0. It commits locally and stops before the push.
 
 3. **Cursor adapter v1 — reconcile the hand-written copy that already exists** — Opus 5 · high · HITL/Plan
    Brief: [briefs/cursor-adapter-reconcile.md](briefs/cursor-adapter-reconcile.md)

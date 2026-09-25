@@ -32,11 +32,15 @@ DESIGN RULES
   - Only ever touch text BETWEEN the markers. Anything the user writes outside them is theirs,
     and a hook that eats a hand-written note is worse than a hook that ships nothing.
   - Idempotent. Same version already installed → do nothing, print nothing, touch nothing.
-  - Back up before the first modification, and keep the backup that already exists.
+  - Back up before EVERY modification, one file per outgoing state, never overwritten (B25).
+  - Find the block STRUCTURALLY — whole lines, a version, one block — and refuse when it is
+    ambiguous. A prefix search once let text above the block be swallowed by it (B25).
   - Say what it did, in ONE line. A mechanism that leaves no evidence it ran gets reported as
     broken and cannot be defended without re-reading the code (2026-08-15).
 """
+import hashlib
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -48,6 +52,26 @@ except Exception:                       # pragma: no cover - absent copy must ne
 
 BEGIN = "<!-- reentry:begin"
 END = "<!-- reentry:end -->"
+
+# The managed block's first line, matched WHOLE (`fullmatch`, one line) — never a prefix search.
+# B25: `text.find(BEGIN)` matched the first `<!-- reentry:begin` ANYWHERE, so a user's note above
+# the block that quoted the marker became the block's start, and everything from there down to the
+# real END — their text included — was replaced. Three conditions, all required: the line starts
+# with the marker, carries a version, and the comment closes on that same line. Words between the
+# version and the `-->` are allowed (`… v1.31.0 — managed by the reentry plugin. -->`).
+#
+# The second alternative is the LEGACY header (v1.61.0 and earlier), whose comment ran on for two
+# more lines. It is accepted by its exact tail so an installed block still updates; `_block()` no
+# longer writes it. Both plugin names, because the rename (D18, v1.51.0) changed the wording.
+# B28 will rename the marker itself: keep whatever replaces this a whole-line match.
+_BEGIN_LINE = re.compile(
+    r"<!-- reentry:begin v(?P<version>[0-9][0-9A-Za-z.+-]*)"
+    r"(?:(?: .*?)? -->| — managed by the (?:cairn|reentry) plugin\.)"
+)
+
+
+class MalformedBlock(ValueError):
+    """The file has something that looks like a managed block but is not one we can edit safely."""
 
 PROFILE_IMPORT = "@~/.claude/reentry-profile.md"
 
@@ -68,12 +92,30 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8", newline="\n")
 
 
-def _backup(target: Path) -> Path:
-    """`CLAUDE.md.bak-reentry-install` beside the file — one rolling copy of the last good state.
+def _backup(target: Path, outgoing: str, content: str) -> Path:
+    """`CLAUDE.md.bak-reentry-install-v<outgoing>-<digest>` beside the file — the state being replaced.
 
-    Distinct from the hand-made `CLAUDE.md.bak-reentry` that predates this, which is left alone.
+    One file per distinct outgoing state (B25). The old single rolling copy was overwritten on
+    every modifying run, so two updates in a row — which marketplace auto-update produces with
+    nobody acting — destroyed the pre-first-update state, exactly the copy a silent loss needs.
+    The digest separates two different files carrying the same version (a rules edit without a
+    bump); identical content gets the same name, so a re-run churns nothing. `noblock` names the
+    state before the block was first prepended.
+
+    NEVER PRUNED — decided, see `docs/decisions.md` (B25). The fixed-name
+    `CLAUDE.md.bak-reentry-install` written up to v1.61.0 is left where it is and never written
+    again, and the hand-made `CLAUDE.md.bak-reentry` that predates both is left alone too.
     """
-    return target.with_name(target.name + ".bak-reentry-install")
+    digest = hashlib.sha256(content.encode("utf-8")).hexdigest()[:8]
+    label = f"v{outgoing}" if outgoing else "noblock"
+    return target.with_name(f"{target.name}.bak-reentry-install-{label}-{digest}")
+
+
+def _back_up(target: Path, outgoing: str, content: str) -> None:
+    """Copy `target` to its backup name unless that exact state is already saved."""
+    dest = _backup(target, outgoing, content)
+    if not dest.exists():
+        shutil.copy2(target, dest)
 
 
 def _config_dir() -> Path:
@@ -121,32 +163,59 @@ def _block(version: str, body: str) -> str:
             f"{PROFILE_IMPORT}"
         )
     return (
-        f"{BEGIN} v{version} — managed by the cairn plugin.\n"
-        f"     EDIT `rules/CLAUDE.md` IN THE PLUGIN SOURCE, NOT HERE — this block is regenerated.\n"
-        f"     Anything you write OUTSIDE these markers is yours and is never touched. -->\n"
+        f"{BEGIN} v{version} -->\n"
+        f"<!-- Managed by the cairn plugin. EDIT `rules/CLAUDE.md` IN THE PLUGIN SOURCE, NOT HERE —\n"
+        f"     this block is regenerated. Anything you write OUTSIDE these markers is yours and is\n"
+        f"     never touched. -->\n"
         f"{text}\n"
         f"{END}\n"
     )
 
 
 def _find_block(text: str) -> tuple[int, int, str] | None:
-    """Return (start, end_exclusive, installed_version) for an existing managed block."""
-    start = text.find(BEGIN)
-    if start == -1:
+    """Return (start, end_exclusive, installed_version) for the managed block, or None if none.
+
+    None means there is NO managed block and nothing that looks like one, so prepending is safe.
+    Raises `MalformedBlock` when prepending or replacing would be a guess:
+      - a line starts with the marker but is not a valid header, and no valid header exists
+        (prepending would put a second block above a broken one);
+      - more than one valid header (which one is ours cannot be told);
+      - a valid header with no `END` line after it.
+
+    Mentions of the marker anywhere else — mid-line, indented, in the user's notes above or below —
+    are the user's text and are never part of the block. Trailing whitespace on the marker lines is
+    tolerated; an editor that strips or adds it must not break the match.
+    """
+    begins: list[tuple[int, str, int]] = []         # (offset, version, line number)
+    lookalikes: list[int] = []
+    ends: list[tuple[int, int]] = []                # (offset, offset past the line)
+    offset = 0
+    for lineno, line in enumerate(text.splitlines(keepends=True), 1):
+        bare = line.rstrip()
+        match = _BEGIN_LINE.fullmatch(bare)
+        if match:
+            begins.append((offset, match["version"], lineno))
+        elif bare.startswith(BEGIN):
+            lookalikes.append(lineno)
+        elif bare == END:
+            ends.append((offset, offset + len(line)))
+        offset += len(line)
+
+    if not begins:
+        if lookalikes:
+            raise MalformedBlock(
+                f"line {lookalikes[0]} starts with `{BEGIN}` but is not a valid header (it needs a "
+                f"version and a closing `-->` on the same line)")
         return None
-    end = text.find(END, start)
-    if end == -1:
-        return None
-    end += len(END)
-    if text[end:end + 1] == "\n":
-        end += 1
-    header = text[start:text.find("-->", start) + 3]
-    version = ""
-    for token in header.split():
-        if token.startswith("v") and token[1:2].isdigit():
-            version = token[1:]
-            break
-    return start, end, version
+    if len(begins) > 1:
+        lines = ", ".join(str(b[2]) for b in begins)
+        raise MalformedBlock(f"it has {len(begins)} managed-block headers (lines {lines}), so which "
+                             f"one is the real block cannot be told")
+    start, version, lineno = begins[0]
+    for end_start, end in ends:
+        if end_start > start:
+            return start, end, version
+    raise MalformedBlock(f"the header on line {lineno} has no `{END}` line after it")
 
 
 def install(project_root: Path | None = None) -> tuple[str | None, bool]:
@@ -219,13 +288,22 @@ def _install_block() -> tuple[str | None, bool]:
                 f"machine had none. They are NOT in your context yet: ask the user to restart "
                 f"this session, or read the file now."), False
 
-    found = _find_block(existing)
+    try:
+        found = _find_block(existing)
+    except MalformedBlock as exc:
+        # Refuse rather than guess. Every other outcome here is silent or reports a success; this
+        # one repeats each session until a human fixes the file, which is the point — nothing
+        # else will, and a guess is how user text was lost (B25).
+        return (f"[to the agent] Did NOT update the cairn rules block in {target}: {exc}. The "
+                f"file was left untouched, so the rules in it may be stale. Tell the user; the "
+                f"block is one `{BEGIN} vX.Y.Z -->` line down to one `{END}` line, and they "
+                f"should fix it by hand."), False
 
     if found is None:
         # A real file with no managed block: prepend, so the system rules land before whatever
         # was already there, and keep every byte of the user's own text below.
         try:
-            shutil.copy2(target, _backup(target))
+            _back_up(target, "", existing)
             _write(target, block + "\n" + existing)
         except Exception:
             return None, False
@@ -238,7 +316,7 @@ def _install_block() -> tuple[str | None, bool]:
         return None, True               # already current — the common case, silent by design
 
     try:
-        shutil.copy2(target, _backup(target))
+        _back_up(target, installed, existing)
         _write(target, existing[:start] + block + existing[end:])
     except Exception:
         return None, False

@@ -3,6 +3,28 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-25 — v1.62.0: `install_rules` can no longer eat the user's own text
+
+Queue item 1, B25. Before this fix, the managed block in `~/.claude/CLAUDE.md` started at the
+first `<!-- reentry:begin` found anywhere in the file. A note above the block that quoted the
+marker therefore became the block's start, and the next update silently replaced everything from
+there to the real END. The only backup was one rolling copy, overwritten on every update.
+
+Now the header must be a whole line with a version that closes on the same line, and the END
+marker must be a whole line too. The installer refuses, and says so every session, on a
+lookalike with no real block, two real headers, or a header with no END. The header is now one
+line, `<!-- reentry:begin vX -->`. The legacy three-line header is still recognised, so installed
+machines update. Backups are `CLAUDE.md.bak-reentry-install-v<outgoing>-<digest>`, one per
+distinct state and never pruned. The old fixed-name backup is left alone. D32 records the
+rejected options.
+
+**Verified.** New `test_install_rules.py` (the module had no test file): 47 checks, all pass,
+and it fails against v1.61.0 on the B25 case. Full suite: 31/31, no state-dir leak. By hand, on a
+scratch copy of the live `CLAUDE.md` with a lookalike prepended: user text kept, the text below
+the block byte-identical, the backup equal to the original, and the second run silent. The first
+full-suite run caught the header pattern being stricter than the brief (it refused a one-line
+header with words before `-->`); that was fixed.
+
 ## 2026-09-25 — v1.61.0: the hooks find Python on Linux
 
 Queue item 1. Every hook in `hooks.json` ran bare `python`, which stock Ubuntu/Debian doesn't

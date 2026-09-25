@@ -47,7 +47,8 @@ import os
 import re
 from pathlib import Path
 
-# `<!-- reentry:begin v1.31.0 — managed by … -->`, written by install_rules._block().
+# `<!-- reentry:begin v1.62.0 -->` (v1.61.0 and earlier: `… v1.31.0 — managed by …`), written by
+# install_rules._block(). A search, not a parse: this only reads the version, it never edits.
 _MARKER_RE = re.compile(r"reentry:begin\s+v([0-9][0-9.]*)")
 
 SEPARATOR = "\n\n"      # blank line between findings; the call site adds one before

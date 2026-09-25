@@ -269,7 +269,14 @@ So the plugin ships `rules/CLAUDE.md` as the tracked source and installs it into
 - **Only the marked block is ever touched.** Anything you write outside the markers is yours and
   survives every update. A pre-existing file gets the block prepended and its contents kept below.
 - **Idempotent.** Same version already installed → nothing written, nothing printed.
-- **Backed up** to `CLAUDE.md.bak-reentry-install` before any modification.
+- **Found structurally, or not at all** (v1.62.0, D32). The header is one whole line,
+  `<!-- reentry:begin v<version> -->`, and the end marker is a whole line too, so a note that
+  quotes the marker is never mistaken for the block. A header-like line with no real block, two
+  real headers, or a header with no end marker → nothing is written, and each session says so
+  until you fix the file.
+- **Backed up** before every modification, to `CLAUDE.md.bak-reentry-install-v<outgoing>-<digest>`:
+  one file per distinct state it replaced, never pruned. (Up to v1.61.0 it was one rolling
+  `CLAUDE.md.bak-reentry-install`, which is left in place.)
 - **Never fails a session.** Every failure path returns quietly.
 - The rules are not in the *current* session's context — `CLAUDE.md` is read before the hook runs
   — so the session that installs them says so and tells you to restart. Only that session pays for
