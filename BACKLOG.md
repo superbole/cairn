@@ -1036,6 +1036,31 @@ the JSON already holds `at`; (b) for each named repo, re-count `HEAD..@{u}` agai
 remote-tracking ref (one `git rev-list`, no fetch, no network) and drop it when it reads 0. That
 keeps the no-network contract and catches the "already pulled/pushed since" case.
 
+## B61. The README never says how to turn on auto-update, and it is off by default for this marketplace
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-25`
+**Found 2026-09-25** when NB1 was still on v1.60.0 hours after v1.62.0 was pushed. The official docs
+(fetched that day: `code.claude.com/docs/en/plugins/install.md` and `…/plugins/loading.md`) say:
+- **Plugin auto-update is OFF by default for every non-Anthropic marketplace**, `superbole` included.
+  A marketplace owner cannot turn it on for its users. Each user enables it with `/plugin` →
+  **Marketplaces** → the marketplace → **Enable auto-update**, or `"autoUpdate": true` on the
+  marketplace's `extraKnownMarketplaces` entry in `settings.json`.
+- **`DISABLE_AUTOUPDATER=1` / `DISABLE_UPDATES=1` / `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` block
+  it even when it is on**, and `FORCE_AUTOUPDATE_PLUGINS=1` overrides them. Measured on NB1: desktop-app
+  sessions carry `DISABLE_AUTOUPDATER=1` with nothing in the user's env or settings setting it, so the
+  app is the likely source. That is inferred, not confirmed. So a desktop-app user who flips the
+  toggle may still get no updates.
+- The check runs up to about 10 minutes after a session's first message. An update loads at the next
+  session or on `/reload-plugins`. **Only a `plugin.json` version bump propagates**, and every
+  release here already bumps it.
+
+**Fix:** a short "Staying up to date" paragraph in `README.md`'s install section with the toggle,
+the `FORCE_AUTOUPDATE_PLUGINS` caveat for the desktop app, and what `version_drift.py`'s stale warning
+means. **Ruled out:** having the plugin write these keys (the `settings_drift.py` docstring rejects
+any settings.json write from a plugin), and adding them to `settings_drift.REQUIRED`
+(`FORCE_AUTOUPDATE_PLUGINS` affects every plugin a stranger has, which is theirs to decide). Serves
+the aim line directly: a stranger who never updates is a stranger on a stale install. Per-machine
+application on this user's own machines is `workspace` W6/W7/W10.
+
 ## B59. Skills and rules still tell the agent to run bare `python "$CLAUDE_PLUGIN_ROOT/…"`
 `Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#59` · queued
 Brief: [briefs/skill-python-calls.md](briefs/skill-python-calls.md). Pulled to refill the Queue at the v1.61.0 wrap.
