@@ -1037,7 +1037,7 @@ remote-tracking ref (one `git rev-list`, no fetch, no network) and drop it when 
 keeps the no-network contract and catches the "already pulled/pushed since" case.
 
 ## B61. The README never says how to turn on auto-update, and it is off by default for this marketplace
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-25`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-25` · issue `#61`
 **Found 2026-09-25** when NB1 was still on v1.60.0 hours after v1.62.0 was pushed. The official docs
 (fetched that day: `code.claude.com/docs/en/plugins/install.md` and `…/plugins/loading.md`) say:
 - **Plugin auto-update is OFF by default for every non-Anthropic marketplace**, `superbole` included.
