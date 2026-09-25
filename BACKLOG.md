@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 61 -->
+<!-- next-id: 62 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1062,7 +1062,7 @@ the aim line directly: a stranger who never updates is a stranger on a stale ins
 application on this user's own machines is `workspace` W6/W7/W10.
 
 ## B62. A machine inbox: show the GitHub issues labelled for THIS machine at session start
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-25`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-25` · issue `#62`
 **Asked for 2026-09-25**, the durable half of `workspace` D8. One user can have several hubs that no
 single machine opens. This user has two repos called `workspace`: a private GitHub one for the personal
 machine, and one on the employer's GitLab for the work laptops. So a machine-gated watch filed in the
