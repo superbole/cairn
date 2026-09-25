@@ -13,18 +13,23 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Queue
 
-1. **Make the skills' `python "$CLAUDE_PLUGIN_ROOT/…"` calls actually resolve** — Opus 5 · high · AFK/Auto
+1. **Refuse to downgrade a newer rules block** — Opus 5 · high · AFK/Auto
+   Brief: [briefs/rules-block-downgrade.md](briefs/rules-block-downgrade.md)
+   An older installed plugin rewrites a newer block to its own version, silently. Harmless only while
+   the rules body is unchanged, and item 2 changes it. Backlog B63. It commits locally and stops before the push.
+
+2. **Make the skills' `python "$CLAUDE_PLUGIN_ROOT/…"` calls actually resolve** — Opus 5 · high · AFK/Auto
    Brief: [briefs/skill-python-calls.md](briefs/skill-python-calls.md)
    17 call sites in `skills/` and `rules/` name bare `python` (fails on Linux) and a variable that
    was measured unset in the agent's shell (wrong everywhere). v1.61.0 fixed the hooks only. Backlog
    B59. Above Cursor because a Linux wrap is the aim line. It commits locally and stops before the push.
 
-2. **Say what changed in the rules block, not just `vX → vY`** — Sonnet 5 · medium · AFK/Auto
+3. **Say what changed in the rules block, not just `vX → vY`** — Sonnet 5 · medium · AFK/Auto
    Brief: [briefs/rules-block-change-announcement.md](briefs/rules-block-change-announcement.md)
    An update rewrites always-loaded instructions on every machine and reports only the version
    numbers. Backlog B26. Its B25 dependency landed in v1.62.0. It commits locally and stops before the push.
 
-3. **Cursor adapter v1 — reconcile the hand-written copy that already exists** — Opus 5 · high · HITL/Plan
+4. **Cursor adapter v1 — reconcile the hand-written copy that already exists** — Opus 5 · high · HITL/Plan
    Brief: [briefs/cursor-adapter-reconcile.md](briefs/cursor-adapter-reconcile.md)
    A 102-line pair of Cursor `next`/`wrap` skills, hand-written 2026-09-04 against a pre-rename
    plugin, is installed and has drifted ~14 versions. The question is whether it is regenerated from

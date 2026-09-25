@@ -3,6 +3,20 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-25 — D29 and D30 answered; B63 filed and queued first
+
+No version change and no code change. This entry covers two commits from a session that didn't wrap.
+
+- **D29: backlog ids are integers only.** An item that is split takes the next `next-id` and names
+  its parent in its body. **D30: one D-number sequence per repo**, shared by open and answered
+  decisions. Both rows are in `docs/decisions.md`. Both entries left `NEXT.md`'s Decisions list, and
+  B16's open questions now carry the answers.
+- **B63 filed.** On NB1 a v1.60.0 installer rewrote a v1.62.0 rules block, and the hook reported it
+  as an update. `_install_block` never checks which direction a change goes. `next-id` also moved
+  from 62 to 64, because filing B62 had left it behind.
+- **This wrap queued B63 as item 1**, with a brief at `briefs/rules-block-downgrade.md`. The
+  downgrade is harmless only while the rules body is unchanged, and B59 (now item 2) changes it.
+
 ## 2026-09-25 — v1.62.0: `install_rules` can no longer eat the user's own text
 
 Queue item 1, B25. Before this fix, the managed block in `~/.claude/CLAUDE.md` started at the

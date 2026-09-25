@@ -1113,7 +1113,8 @@ future Claude Code adds per-platform commands. Rejected already (D31): a sh/Powe
 command string, because of CommandNotFound noise on every PowerShell hook call.
 
 ## B63. An older installed plugin silently DOWNGRADES a newer rules block
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · queued
+Brief: [briefs/rules-block-downgrade.md](briefs/rules-block-downgrade.md). Queued above B59 because B59 is the first release since v1.59.0 to change the rules body.
 **Seen 2026-09-25 on NB1.** A session started and the hook reported *"Updated the cairn rules block
 in `~/.claude/CLAUDE.md`: v1.62.0 → v1.60.0"*, which is a rollback reported as an update. The same
 orientation also printed the `version_drift` warning (installed v1.60.0, repo v1.62.0). After
@@ -1143,6 +1144,6 @@ Add a test to `tools/test_install_rules.py` for a newer block against an older p
 line. **Ruled out:** "newest content wins" by diffing bodies, because a body cannot say which one is
 newer and the version marker can. Making the block per-process is impossible too, since
 `~/.claude/CLAUDE.md` is one file.
-**Related:** B26 (queued #2, announcing what changed in the block), which should say "downgrade
+**Related:** B26 (queued, announcing what changed in the block), which should say "downgrade
 refused" in the same voice. B61 (auto-update off by default) is why a machine sits on a stale install
 long enough for this to happen.
