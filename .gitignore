@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 .claude/.last_wrap
 ~/
+.claude/worktrees/
+.claude/settings.local.json

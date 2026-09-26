@@ -141,24 +141,68 @@ with nobody there to start the next session, so it needs a scheduler rather than
 
 **The task prompt must be fully self-contained** — it cannot see the conversation that created it.
 That is fine here: everything it needs is on disk, which is the point of the whole system. A good
-prompt is roughly *"read `NEXT.md`, take the AFK items, follow `docs/running-a-batch.md`, commit
-each lane, do NOT push, wrap"*.
+prompt is roughly *"read `NEXT.md`, take the AFK items, follow `docs/running-a-batch.md`'s
+unattended section: one `afk/` branch and PR per item, off `origin/main`; never push `main`, never
+run the backlog sync, touch no shared file"*.
 
 ### Constraints that decide whether this is worth doing
 
-- **The permission mode is NOT set by the task prompt, and a task in `Manual` never gets going.**
-  Measured 2026-09-06: the 05:00 firing sat for over four hours on a prompt asking permission to run
-  a `sed` that reads one backlog entry, and only completed at 09:55 once a human clicked. A prompt
-  cannot switch its own mode — this is the same asymmetry as the model tier, except that here the
-  human is asleep and there is nobody to click. **So before scheduling an overnight run, say
-  plainly which mode he must leave the app in** (`Auto`, or `Accept Edits`), the same way a queue
-  item names its mode. `AFK/Manual` is a contradiction exactly like `AFK/Plan`: `Manual` gates
-  every call, so an unattended run in it does not run.
+- **A scheduled task starts in `Manual`, and nothing an agent can do changes that — so the fix is
+  the repo's committed `.claude/settings.json`, not a mode (B69).** Measured 2026-09-06: the 05:00
+  firing sat for over four hours on a prompt asking permission to run a `sed` that reads one
+  backlog entry, and only completed at 09:55 once a human clicked. The old advice here was *"say
+  plainly which mode he must leave the app in"*; on 2026-09-25 both overnight tasks came up in
+  `Manual` anyway, because the scheduled-task tools have no mode field, `SKILL.md` frontmatter has
+  none, and raising a session's mode needs a human to approve it. Relying on a person to flip a
+  setting is what failed, so nothing here relies on it any more.
+
+  **`permissions.allow` rules apply in every mode**, `Manual` included, and `permissions.deny`
+  rules are checked before any allow rule, in every mode. So the repo's `.claude/settings.json`
+  allows exactly what a batch needs — the file tools, `Agent`, the git read and commit verbs,
+  `sh plugins/cairn/hooks/run.sh …`, `python`/`python3 plugins/cairn/tools/*`, `git push origin
+  afk/<branch>` and `gh pr create|list|view` — and denies every push that can reach `main`,
+  `gh pr merge`, `gh repo`/`gh api` writes, `git reset --hard origin…`, and `tools/sync_backlog.py`
+  in every spelling. Local scheduled tasks and cloud routines both read that one committed file.
+  `plugins/cairn/tools/test_settings_rules.py` pins the list. **Before scheduling, check the file
+  is on `origin/main`**; that check replaces "tell him which mode". What that leaves:
+
+  - **Anything outside the allow list still prompts, and in `Manual` a prompt is a stall.** Write
+    the task prompt so the run uses the allowed shapes: call run.sh and the tools by their
+    repo-relative paths (`sh plugins/cairn/hooks/run.sh …`, not an absolute plugin-cache path),
+    push only as `git push origin afk/<branch>` (no flags, no second refspec), and use the Bash
+    tool, not PowerShell (PowerShell has the denies but no allows).
+  - **Project allow rules apply only in a folder whose workspace trust was accepted.** An
+    interactive session opened in this repo once on that machine has done it. A `claude -p` or SDK
+    run never shows the trust dialog, so its allow rules stay off unless the repo is trusted by
+    hand. Whether a cloud routine applies them has not been checked yet — treat its first firing as
+    the experiment.
+  - **Deny rules match the command TEXT Claude writes, not the program.** They stop the forms an
+    agent normally produces; `git -c … push`, a `python -c` that shells out, or a script the run
+    wrote itself are not covered by any pattern. The B69 dossier lists what is left and proposes
+    guards for it (branch protection, a push-guard hook). The remote's own branch protection is the only guard that does not
+    depend on the command's spelling.
+  - **Writes to `.claude/` (other than `.claude/worktrees/`) and `.git` are protected paths**: no
+    allow rule pre-approves them. An unattended run cannot loosen its own settings, which is the
+    point; it also means no lane may own a file there.
+
+  `AFK/Manual` is no longer a contradiction for a batch in this repo. It still is in a repo with no
+  such file.
+- **An unattended run needs a route to the API for its whole length.** On 2026-09-26 a 05:00
+  firing died on its first model call (`ECONNREFUSED`): that machine reaches the API only through
+  a VPN, and the VPN had dropped overnight. The batch did nothing, and nobody knew until morning.
+  **Preflight, before scheduling:** the VPN or proxy the machine needs is set to hold (reconnect on
+  drop), sleep and hibernate are off for the window, and the app stays open. **A failed firing is
+  visible only in the task's or routine's Runs list** — no notification, no commit, no dossier. So
+  the first thing to read in the morning is the Runs list, not `git log`: an empty log after a
+  failed firing looks exactly like a quiet night.
 - **The app must stay open.** A task due while it is closed runs *at next launch*, not overnight —
   so a closed laptop turns the whole night into one very confused morning run. Check sleep and
   hibernate settings too.
-- **Never push, never sync** — but that is the standing rule for every batch (see Push policy),
-  not an overnight special case. Overnight only removes the possibility of him overriding it.
+- **Never push `main`, never sync.** `main` is the standing rule for every batch (see Push
+  policy), and overnight only removes the possibility of him overriding it. The one exception is
+  scoped to unattended scheduled firings and to `afk/` branches only: each item is pushed as its
+  own `afk/` branch with its own PR (see the next section). The backlog sync is never run
+  unattended, `afk/` or not.
 - **AFK items only, and enforce it in the prompt.** An `HITL` item overnight is a lane that stalls
   until morning having burned its tokens on the way to a question nobody answered.
 - **Size each firing to about 3 lanes, and space firings by the 5-hour window**, not by wall clock.
@@ -175,9 +219,62 @@ each lane, do NOT push, wrap"*.
 
 ### What the morning looks like
 
-Several waves of commits, unpushed, each with its dossier in `docs/review/`, and a `NEXT.md` that
-was rewritten by the last firing. The review Artifact matters *more* than in an attended batch, not
-less — it is the only thing standing between a night's work and a blind push.
+First the Runs list, to see which firings actually ran. Then one open PR per item, each on its own
+`afk/` branch with the lane dossier as its body, and `main` exactly where it was. `NEXT.md`,
+`BACKLOG.md` and `CHANGELOG.md` are untouched, because unattended PRs touch no shared file; the
+bookkeeping is the attended session's job, or its own bookkeeping PR. The review Artifact matters
+*more* than in an attended batch, not less — it is the only thing standing between a night's work
+and a blind merge.
+
+## Unattended scheduled runs: one `afk/` branch and PR per item
+
+**Scope, precisely.** This section applies only to a firing of a local scheduled task or a cloud
+routine that nobody is attending. It replaces "commit locally, stop before the push" for those
+firings, and only for branches named `afk/…`. Everything else stays under "Push policy — never
+push": every attended batch, every push that reaches `main` from anywhere, and the backlog sync in
+every session. A person saying "push it" in an attended batch is still a decision about work they
+have seen, and still covers only that work.
+
+**The shape:**
+
+- **One backlog item, one branch, one PR.** The branch is `afk/<YYYY-MM-DD>-<nn>-<Bnn>-<slug>`,
+  where `nn` is the item's order within that day's firing (`01`, `02`, …) and the slug is a few
+  lowercase words. Example: `afk/2026-09-27-01-B69-settings-allow-deny`.
+- **Each branch starts from the current `origin/main`** (`git fetch origin`, then `git checkout
+  -b afk/… origin/main`), never from the previous item's branch, so the PRs merge in any order.
+  Stack one branch on another only where the second item truly depends on the first, and say so
+  in both PR bodies.
+- **The PR body is the lane dossier**, with its four fixed sections: what changed and why; the
+  verification actually run, with real output pasted; anything decided on his behalf; and what it
+  chose not to do. Open it with `gh pr create --base main --head afk/… --body-file <dossier>`.
+- **Push as `git push origin afk/<branch>` — that exact shape, nothing else.** No flags, no second
+  refspec, no `HEAD`, no colon. It is the only push the allow list approves. Every other shape is
+  either denied outright or would prompt, and a prompt stalls an unattended run.
+- **A PR from an unattended run touches no shared file**: not `NEXT.md`, `BACKLOG.md`,
+  `CHANGELOG.md`, `README.md`, `docs/decisions.md` or `plugin.json`. That is what keeps the PRs
+  from conflicting with each other. If an item cannot land without a shared-file change, the PR
+  says what that change is, and the attended session makes it. Closing items, the version bump,
+  the changelog and `NEXT.md` happen later in an attended session, or as a bookkeeping PR of their
+  own.
+- **Never merge.** `gh pr merge` is denied. Merging is the review, and review is his.
+
+**Before starting an item, check no other firing already took it.** Two firings in one night, or a
+local task and a cloud routine, can both see the same item as open. So before the first edit:
+
+```bash
+git fetch origin
+git ls-remote origin 'refs/heads/afk/*'           # any afk/…-<Bnn>-… branch means taken
+gh pr list --state open --search "<Bnn>"          # an open PR naming it means taken
+```
+
+If either names the item, skip it and say so in the firing's summary. Neither check is a lock (two
+firings in the same minute can both pass), which is one more reason to space firings by the
+5-hour window.
+
+**What is still denied unattended, `afk/` or not:** any push that can reach `main`, `gh pr merge`,
+`gh repo` and `gh api` writes, `git reset --hard origin…`, and `tools/sync_backlog.py` in any form.
+These live in `.claude/settings.json`'s deny list, so they hold in every mode, `Auto` included.
+They also hold in ATTENDED sessions in this repo: the file cannot tell the two apart.
 
 ## `docs/review/` is an INBOX, not a library
 
@@ -201,6 +298,10 @@ a Queue item cites; it stays. The test is whether the file describes *one run* �
 archives.
 
 ## Push policy — never push, never sync, in ANY batch
+
+**This governs every attended batch, and every push that reaches `main`.** The single exception is
+the section above: an unattended scheduled firing pushes `afk/` branches and opens PRs, and still
+never pushes `main` and never syncs.
 
 Lanes commit nothing. The orchestrator commits **per lane, with explicit pathspecs**, and then
 **stops**. `origin/main` untouched means the whole batch undoes with one
