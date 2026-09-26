@@ -32,10 +32,6 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Watching
 
-**W5. Review the overnight lane batch, then push and sync** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-25` · check after `2026-09-26`
-Two scheduled runs (23:33 and 05:00) commit locally and never push. Read `docs/review/overnight-handover-2026-09-26.md` and each
-lane dossier against its diff, then push and run `tools/sync_backlog.py`. Nothing overnight is reviewed.
-
 **W2. The empty-Queue backlog offer (v1.18.0) fires in a genuinely NEW session** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-08-28` · check after `the next new session in a project whose Queue is empty`
 
 **W3. The orphan warning (v1.20.0) fires on a real abandoned item** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-08-28` · check after `a session that starts an item and ends without a wrap, on v1.20.0 or later`

@@ -3,6 +3,21 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-26 — W5: overnight wave 1 reviewed and pushed; wave 2 never ran
+
+No version bump. This is the review of v1.63.0 below.
+- **Wave 1 reviewed against its diffs.** Lanes A (B63+B26), B (B59), C (B64) and the bookkeeping
+  commit all hold. Re-verified on NB1: `run_tests.py` 33/33 pass. `check_install.py` shows the
+  block digest line. `run.sh` refuses `../` and non-`hooks/`/`tools/` paths. `archive_guard.py`
+  agrees with `wrap_receipt --check` (`NOT DUE`, so it allows). `session_orientation --check` is OK.
+  Pushed, and the backlog synced.
+- **Wave 2 (05:00) failed on its first model call** with `ECONNREFUSED`. NB1's API traffic goes
+  through a proxy reachable only on VPN, and the VPN had dropped. It did no work. The machine-specific
+  half is the `workspace` hub's W11.
+- **Filed B69**, the backlog item wave 2 was meant to file. Scheduled tasks start in Manual; fix it
+  with allow and deny rules in `.claude/settings.json`. It now also asks for a network preflight
+  in `running-a-batch.md`.
+
 ## 2026-09-26 — v1.63.0: rules blocks never roll back, skill commands resolve, the archive is guarded
 
 Overnight lane batch, wave 1: four items in three lanes, each committed separately and **not pushed**.

@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 68 -->
+<!-- next-id: 69 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1229,3 +1229,24 @@ which fails on stock Linux. Rewrite them to the `sh "<root>/hooks/run.sh" …` f
 for a human, so `python3`/`py` alternatives are fine there). Leave `skills/*/references/incidents.md`
 alone: it quotes history verbatim on purpose. Consider widening `test_skill_calls.py` to `docs/` with
 an allow-list for dated evidence.
+
+## B69. Scheduled batch tasks start in Manual; make an unattended run safe without a mode
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25`
+Found 2026-09-25 when both overnight tasks came up in default/Manual mode. `create_scheduled_task` and
+`update_scheduled_task` have no permission-mode field, `SKILL.md` frontmatter has none, the mode lives
+in app state and is set from the Scheduled sidebar, and `set_session_permission_mode` needs a human
+approval card to go up to auto, so it cannot help an unattended run. `docs/running-a-batch.md` already
+records the 2026-09-06 Manual stall (the 05:00 firing sat four hours on a prompt) but only says "tell
+him which mode". **Fix:** before scheduling, write or verify a project `.claude/settings.json` with
+allow rules for exactly what a batch needs (Read/Edit/Write/Agent, `Bash(git add/diff/commit/status/log:*)`,
+`Bash(sh plugins/cairn/hooks/run.sh:*)` and `Bash(python plugins/cairn/...)`), plus `deny: Bash(git push:*)`
+and a deny on `tools/sync_backlog.py`. Allow rules apply in every mode; the deny makes the no-push rule
+mechanical instead of prompt text. Update `running-a-batch.md`. This repo has no `.claude/settings.json`
+today (checked 2026-09-26). **Ruled out:** relying on the user to flip the mode, which is what failed.
+**Also add a network preflight to the same doc.** The 05:00 wave-2 firing on 2026-09-26 died on its
+first model call (`ECONNREFUSED`), because that machine sends API traffic through a proxy reachable only
+on VPN, and the VPN had dropped overnight. The batch did nothing and nobody knew until morning. The
+machine-specific half is that hub's watch; the durable half is a line in `running-a-batch.md`: an
+overnight batch needs the machine to keep its route to the API all night (VPN held, no sleep), and a
+failed firing is visible only in the routine's Runs list. Filed by the W5 review; wave 2 was meant to
+file it and never ran.
