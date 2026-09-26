@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 72 -->
+<!-- next-id: 75 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -9,7 +9,7 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B10. With NO baseline at all, the receipt reports a confident `[SKIP]` instead of "cannot tell"
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-20` · issue `#8` · queued
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-20` · issue `#8` · closed
 Brief: [briefs/receipt-no-baseline.md](briefs/receipt-no-baseline.md). Pulled to refill the Queue by the 2026-09-26 overnight batch.
 Was `agent-reentry` B143 (migrated 2026-09-23). **Re-check against v1.57.0 first** — that release
 added `CAIRN UNKNOWN` and reordered `verdict()` so `skipped` is tested before `unverifiable`, which
@@ -285,7 +285,7 @@ decision row and ASK — report-only, but needs precision discipline (B21) befor
 any mechanism against the correction above: here both files were self-consistent at every step.
 
 ## B23. `measure_context.py` hard-fails on any machine without `tiktoken`
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#21` · queued
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#21` · closed
 Brief: [briefs/measure-context-no-tiktoken.md](briefs/measure-context-no-tiktoken.md). Pulled to refill the Queue by the 2026-09-26 overnight batch.
 Was `agent-reentry` B95 (migrated 2026-09-23). `import tiktoken` is at module level, unguarded; on a
 machine without it (`pip show tiktoken` → not found, Python 3.14.0) the tool dies with
@@ -301,6 +301,10 @@ exact counts.** Blocks B24's real number.
 
 ## B24. Nothing tracks the always-loaded context budget, and the files have grown since the last trim
 `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-07` · issue `#22`
+**Unblocked 2026-09-26 (B23 closed).** `measure_context.py` runs without `tiktoken`, and it
+already did at `init: cairn v1.56.0`. It prints a labelled bytes/4 estimate and exits 0. So the
+"real number" below can now be measured on any machine. Re-measure it; don't reuse the
+2026-09-07 table, which the files have outgrown.
 Was `agent-reentry` B117 (migrated 2026-09-23). Trim work shipped (v1.12.0 trimmed the rules, v1.12.1
 an audit tool), then the files kept growing — the expected outcome of a budget nobody owns: every
 rule added since was justified individually and none weighed against a ceiling. Measured 2026-09-07:
@@ -1215,3 +1219,70 @@ an issue body by two levels, or indent it. Decide whether `B?` can become `B` (c
 spent floor that isn't already in the file, refuse, don't renumber. Add a test with a body carrying
 `## 1.` headings. **Ruled out:** fixing only #69's text, because the next inbound issue with
 numbered headings does the same.
+
+## B73. Offer "do N covers N, M" when a queue item can run other queued AFK items as its own lanes
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26`
+**Requested 2026-09-26**, on seeing the orientation say that queue item 1 (B70) runs items 2 and 3
+as background worktree subagents, so one "do 1" covers all three: *"I like this, we should provide
+this as an option when it's possible."* Today that only happened because B70's hand-written brief
+said so. Nothing in the mechanism detects or offers it.
+**Why it matters:** the user does not want parallel sessions, because they have overlapped before.
+One attended session that also drives the queued AFK items as lanes uses the tokens that would
+otherwise go unspent, without a second session to remember or collide with. It is the
+`docs/running-a-batch.md` shape, but attended and started from a single queue pick.
+**When it is possible** (all of these must hold, and most are already rules in `running-a-batch.md`):
+the extra items are `AFK` (a lane cannot ask the user anything); their owned files are disjoint from
+each other and from the lead item; at most four lanes run at once; each lane runs at its own item's
+model (`Agent` `model:`) with `isolation: "worktree"`; lanes touch no shared file (`NEXT.md`,
+`BACKLOG.md`, `CHANGELOG.md`, `README.md`, `docs/decisions.md`, `plugin.json`), and the lead session
+does all the bookkeeping. A `HITL` lead item is fine, and arguably the best case, because the user is
+present to review each lane when it reports.
+**Design to decide:** (a) the wrap writes it: when refilling the Queue, it checks the AFK items'
+briefs for owned files, and if they are disjoint it adds a `with: 2, 3` marker to the lead item. The
+orientation prints "do 1 also runs 2 and 3 as lanes". (b) `/cairn:next` works it out at pick time
+from the briefs. (a) is recommended: it is decided once, with the whole file in view, and it is
+visible before anyone picks. (b) re-derives it on every pick and hides it until then. Either way a
+brief has to declare its owned files, which briefs do not do consistently today. Declaring them is
+probably the first step.
+**Where:** `skills/wrap/SKILL.md` (queue refill, step 7), `skills/next/SKILL.md` (step 6), the
+orientation hook's queue rendering, the brief template, and `docs/running-a-batch.md`.
+**Ruled out:** a second parallel session per item, because the user has rejected that.
+
+## B74. The orientation should say when the weekly allowance resets, and how much AFK work is runnable
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26`
+**Decided 2026-09-26 in B70's planning session: file it, don't build it yet.** The weekly allowance
+is use-it-or-lose-it, but the only place the reset time lives is the user's profile (prose, in their
+private store). So nothing reminds anyone on the day it matters. By the time someone notices unused
+budget, the reset has usually passed. The orientation already prints `N runnable AFK`, and it is the
+one thing read every session.
+**Design:** an optional `resets:` declaration mapping account → weekday + local time (e.g.
+`work: Sun 16:00`, `private: Thu 15:00`), plus which account each machine uses. `MACHINES.md` already
+maps hostname → machine id, so the account can sit beside it or in the profile. The orientation adds
+one line when the reset is less than about 48h away: `work allowance resets in 29h · 24 AFK items
+runnable`. **Do not print a percentage used:** `tools/measure_usage.py --window` measures only the
+5-hour window, and inventing a weekly figure is the bare-constant failure. If a real weekly source
+appears later, add it then. **Silent when undeclared**, the same as every other opt-in, so a stranger's
+install is unchanged.
+**Where:** `hooks/session_orientation.py` (the line), the reader (MACHINES.md or the profile, which
+has to be decided), `docs/file-formats.md`, and the README's opt-in list. **Ruled out:** hard-coding
+this user's reset times anywhere in the plugin, since they are personal and the plugin is public.
+
+## B75. `run_tests.py`'s leak detector blames a test for a state dir another session created
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26`
+**Seen 2026-09-26** during B70's planning session. It ran three worktree lanes and a doc-fix agent at
+once. The doc agent's `run_tests.py --timeout=300` reported `33/33 test files passed … ALL PASS` and then
+`LEAKED 1 new directory into ~/.claude/reentry-state from 1 file(s): ['test_archive_guard.py']`, exiting 1.
+The same suite, on the same code, passed with "no leak" twice earlier that session. The new directory was
+`agent-a6db28e7f11a73453-fa7b1dd562`, stamped 12:37. That is the state dir of a **worktree lane
+started at about 12:25 in a separate agent session**: its own SessionStart hook wrote it in the middle of the
+doc agent's run. The detector diffs the real state dir before and after the run, and blames whichever test
+file was running. So any concurrent Claude session (a lane, or a second window) produces a false leak and a
+failed run.
+**Also noticed:** every worktree lane leaves a `reentry-state/agent-<id>-<hash>` dir behind after its
+worktree is gone. There are three from this session alone. Nothing cleans them up.
+**Fix:** attribute a new dir only if its name matches a fixture the tests create, or if it keys to a
+path under the run's temp dirs, and ignore dirs whose key resolves to a real, existing project or worktree.
+Alternatively, run each test file with its own `CLAUDE_CONFIG_DIR` and drop the global diff. Also decide
+whether the orientation hook should skip stamping for `.claude/worktrees/*` cwds, or whether a sweep should
+prune dirs whose project path no longer exists. **Ruled out:** relaxing the detector to warn instead of
+fail, because the B74 docstring in `run_tests.py` explains why a real leak must fail the run.

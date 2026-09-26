@@ -1242,11 +1242,12 @@ a real in-session wrap, so it sent the reader after the wrong remedy.
 **The fix is two halves, and the order between them matters.**
 
 *Honesty.* `verdict()` now returns **`CAIRN UNKNOWN`** when no REQUIRED step was measured skipped
-and some could not be measured at all. `skipped` is tested FIRST, so a wrap that is both incomplete
-and blind still reads `OPEN` — `UNKNOWN` is reachable only when the apparatus is missing, never
-when the work is. **Do not reverse that ordering, and do not fold `unverifiable` back into `OPEN`
-"to be safe".** `UNKNOWN` still records a receipt with a real id: refusing to record was the other
-option and it leaves the agent nothing to quote, which is the gap prose walks into.
+and some could not be measured at all. `skipped` is tested FIRST **once a baseline exists**, so a
+wrap that is both incomplete and blind still reads `OPEN` — `UNKNOWN` is reachable only when the
+apparatus is missing, never when the work is. **Do not reverse that ordering, and do not fold
+`unverifiable` back into `OPEN` "to be safe".** `UNKNOWN` still records a receipt with a real id:
+refusing to record was the other option and it leaves the agent nothing to quote, which is the gap
+prose walks into.
 
 *Prevention.* `stamp_child_baselines()` runs at `SessionStart` when the session's own root has no
 `NEXT.md`, and stamps a baseline for each immediate child that is a git repo carrying its own
@@ -1259,3 +1260,12 @@ ordinary session in a real project, which still stamps exactly one.
 relayed as one — say plainly that the wrap may have run in full and the tool cannot tell. It is
 also not a `SET` you may infer from what you remember doing; that is the composed verdict the whole
 mechanism exists to prevent.
+
+## Step 8c — a stale marker alone still read `OPEN` with no baseline (2026-09-26, B10)
+
+The ordering above (`skipped` outranks `unverifiable`) assumed a baseline existed to test the
+steps against. With none at all, a stale `.last_wrap`, an un-drained `INBOX.md`, or a dangling
+brief link still read `OPEN` on their own — the exact cry-wolf `archive_guard.py` was already
+refusing to act on (D36). `verdict()` now tests `_usable(base) is None` first and returns
+`UNKNOWN` before it looks at any step; the baseline-independent gaps still show in the reasons,
+just marked as current state rather than as this session's doing.

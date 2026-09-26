@@ -3,6 +3,29 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-26 — v1.64.0: no baseline reads `CAIRN UNKNOWN`; `measure_context` confirmed tiktoken-free
+
+Queue items 2 and 3 ran as background worktree lanes inside B70's planning session, so no second
+session was needed. Each was reviewed against its diff and cherry-picked onto `main`. Dossiers:
+`docs/review/2026-09-26-1139-lane-b10.md` and `…-lane-b23.md`. `run_tests.py` 33/33 pass.
+- **B10 closed: with no usable baseline, `verdict()` returns `UNKNOWN` before anything else** (D38).
+  The filed `--resume` shape already read `UNKNOWN` at v1.63.0, but two holes remained. A stale
+  `.last_wrap` on its own still read `OPEN`, under a note saying "hence UNKNOWN rather than OPEN". A
+  baseline file with no snapshot counted as a baseline, which read `SET` on one fixture. The new
+  `_usable()` gate needs a `files` map and a stamp time. Gaps that can be measured without a baseline
+  stay in the reasons, labelled as current state. `--check` now agrees with `archive_guard` (D36), and
+  `test_archive_guard.py` §4 moved from `OPEN` to `UNKNOWN`; the guard's decisions are unchanged. The
+  docs that overstated the old guarantee were corrected in the same release.
+- **B23 closed as bookkeeping:** the tiktoken guard, the labelled bytes/4 fallback and their test were
+  already there at `init: cairn v1.56.0`, so the backlog entry had fallen behind the code. One test was
+  tightened: the install hint prints exactly once. README Prerequisites now calls `tiktoken`
+  optional. B24's body notes it is unblocked.
+- **Filed B73**, from the user's request: offer "do N also runs M" when queued AFK items don't
+  overlap on files. **Filed B74**: the orientation should print the weekly reset and the runnable AFK
+  count (a B70 decision: file it, don't build it yet).
+- **Filed B75:** the test runner's leak detector blames a test for a state dir that a concurrent session
+  created. It failed one run during this session's lanes.
+
 ## 2026-09-26 — W5: overnight wave 1 reviewed and pushed; wave 2 never ran
 
 No version bump. This is the review of v1.63.0 below.

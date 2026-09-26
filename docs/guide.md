@@ -321,7 +321,8 @@ is the actual test for whether something belongs there.
 
    **`UNKNOWN` is the one that is easy to misread.** `OPEN` means a step was measured not to have
    run. `UNKNOWN` means nothing could be measured — you started the session in a directory that is
-   not the project you then worked in, so there was no session-start snapshot to compare against.
+   not the project you then worked in, or a `--resume`/crash-restart whose SessionStart never
+   stamped, so there was no session-start snapshot to compare against.
    The wrap may have been perfect; the tool is saying it cannot tell. Keeping that separate from
    `OPEN` is the whole point: a warning that fires when nothing is wrong trains you to ignore the
    one that fires when something is. Starting the session inside the project is what avoids it,

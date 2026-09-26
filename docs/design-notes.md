@@ -55,8 +55,9 @@ Four things it took to make that hold:
   (`OPEN`) until B2, and the cost was a wrap that had done everything reporting the same token as
   a wrap that had skipped the changelog. A warning that fires when nothing is wrong is how a
   reader learns to discount the one that fires when something is — so `OPEN` is now measured
-  absence only, and `UNKNOWN` is blindness. `skipped` is tested first, so a wrap that is both
-  still reads `OPEN`.
+  absence only, and `UNKNOWN` is blindness. `skipped` is tested first **once a baseline exists**,
+  so a wrap that is both still reads `OPEN`. With no usable baseline the verdict is `UNKNOWN`
+  outright (B10): "owed" cannot be measured.
 - **A per-run id, not just a coined word.** The word has to be documented in the skill file the
   agent reads *before* wrapping, so a fixed string is copyable by exactly the party being guarded
   against. The id is a hash of the receipt and fails `--verify` if invented. That raises a false
