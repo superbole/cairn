@@ -13,10 +13,11 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Queue
 
-1. **Plan the AFK token spend through the France trip (1–20 Oct) — due before Thu 1 Oct** — Opus 5 · high · HITL/Plan
+1. **Plan the AFK token spend through the France trip (1–20 Oct) — due before Thu 1 Oct** — Opus 5 · high · HITL/Auto
    Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md)
    Three weekly resets fall while he is away. It decides cloud vs local runs, the review model and
-   the notification channel, and dry-runs them before he leaves. Stops at each checkpoint. Backlog B70.
+   the notification channel, and dry-runs them before he leaves. The same session runs items 2 and 3 as
+   worktree subagents, so there is no second session. Stops at each checkpoint. Backlog B70.
 
 2. **With no baseline, the receipt must say "cannot tell", not a confident `[SKIP]`** — Opus 5 · high · AFK/Auto
    Brief: [briefs/receipt-no-baseline.md](briefs/receipt-no-baseline.md)
