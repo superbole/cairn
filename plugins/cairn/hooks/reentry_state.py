@@ -99,6 +99,11 @@ def _session_id() -> str:
 
     Returns "" rather than None so every caller can do `if session:` without a second check.
     """
+    # Not inside a Cursor process: one launched from a Claude Code session inherits that
+    # session's id (measured 2026-09-26), and stamping under it would re-point the CLAUDE
+    # session's root at the Cursor project. See harness.in_cursor_process.
+    if os.environ.get("CURSOR_VERSION") or os.environ.get("CURSOR_PROJECT_DIR"):
+        return ""
     raw = (os.environ.get("CLAUDE_CODE_SESSION_ID")
            or os.environ.get("CLAUDE_SESSION_ID") or "")
     return "".join(c if c.isalnum() or c in "-_" else "-" for c in raw.strip())[:128]

@@ -41,6 +41,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import harness                                                    # noqa: E402
 
 ALLOW = 0
 BLOCK = 2
@@ -49,6 +50,9 @@ BLOCK = 2
 # still counts when the commit lands a few tool calls later; short enough that a diff
 # read half an hour and several edits ago does not.
 READ_TTL_SECONDS = 900
+
+# Set by main() once the payload is read; decides how a refusal is spoken (see _refuse).
+_CURSOR = False
 
 
 def _run(args, cwd):
@@ -126,9 +130,13 @@ def _save(path, data):
 
 def main() -> int:
     try:
-        payload = json.load(sys.stdin)
+        # Cursor wires this to `beforeShellExecution`, whose payload has a bare `command` and
+        # no `tool_name`; `harness.normalise` reshapes it into the Bash call read below (B57).
+        payload = harness.read_event()
     except Exception:
         return ALLOW
+    global _CURSOR
+    _CURSOR = harness.is_cursor(payload)
 
     if payload.get("tool_name") != "Bash":
         return ALLOW
@@ -202,7 +210,7 @@ def main() -> int:
 def _refuse(why, staged, command) -> int:
     listing = "\n".join(f"  - {p}" for p in staged[:20]) or "  (could not list staged paths)"
     more = f"\n  … and {len(staged) - 20} more" if len(staged) > 20 else ""
-    sys.stderr.write(
+    text = (
         "BLOCKED by cairn staged_review_guard.\n\n"
         f"{why}\n\n"
         "Staged now:\n" + listing + more + "\n\n"
@@ -212,6 +220,13 @@ def _refuse(why, staged, command) -> int:
         "changes that are not yours, commit them separately under their own message, or\n"
         "unstage them — do not fold them into yours.\n"
     )
+    if _CURSOR:
+        # Cursor blocks on a `deny` answer and shows `agent_message` to the agent. Exit 0 on
+        # purpose: `cursor/hooks.json` chains `python … || python3 …`, and a non-zero exit would
+        # run the guard a second time with empty stdin, which allows.
+        print(json.dumps({"permission": "deny", "user_message": why, "agent_message": text}))
+        return ALLOW
+    sys.stderr.write(text)
     return BLOCK
 
 

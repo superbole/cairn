@@ -116,6 +116,21 @@ try:                                    # the SETTINGS layer — B23; see settin
 except Exception:
     settings_drift = None               # type: ignore[assignment]
 
+try:                                    # the HARNESS layer — B57; Claude Code or Cursor
+    import harness
+except Exception:
+    harness = None                      # type: ignore[assignment]
+
+try:                                    # Cursor's drift check, used in place of version_drift
+    import cursor_drift                 # under `--harness cursor`; see cursor_drift.py
+except Exception:
+    cursor_drift = None                 # type: ignore[assignment]
+
+try:                                    # the PROFILE layer — seeded directly under Cursor,
+    import ensure_profile_file          # where install_rules (which seeds it) does not run
+except Exception:
+    ensure_profile_file = None          # type: ignore[assignment]
+
 try:                                    # the SCHEDULED-TASK layer — B89/B114; see
     import scheduled_task_watch         # scheduled_task_watch.py's docstring
 except Exception:
@@ -127,6 +142,15 @@ except Exception:
     pass
 
 _SESSION_ID = ""         # filled by _is_reentry_moment(); see its docstring
+_CURSOR_VERSION = ""     # same, from a Cursor `sessionStart` payload; read by cursor_drift
+
+# `--harness cursor` (B57): run from Cursor's `cursor/hooks.json` or its `cairn-orient` skill.
+# Cursor loads the rules from the generated `cursor/rules/cairn.mdc`, so this run neither writes
+# `~/.claude/CLAUDE.md` nor checks Claude Code's install; it checks Cursor's instead.
+try:
+    CURSOR = bool(harness) and harness.harness_flag() == harness.CURSOR
+except Exception:
+    CURSOR = False
 
 MAX_NEXT_LINES = 24      # roughly one screen; NEXT.md itself is capped tighter
 MAX_INBOX_ITEMS = 12
@@ -839,9 +863,19 @@ def _is_reentry_moment() -> bool:
     the open-item check needs the id to tell a `resume` re-firing inside a session apart
     from a genuinely new one. Absent id degrades to "", which the check treats as unknown.
     """
-    global _SESSION_ID
+    global _SESSION_ID, _CURSOR_VERSION
+    # `--no-stdin`: the `cairn-orient` skill runs this from Cursor's agent shell, where stdin
+    # is not a closed pipe and a read could wait forever. A TTY is the same case by hand.
     try:
-        payload = sys.stdin.read()
+        if "--no-stdin" in sys.argv or sys.stdin is None or sys.stdin.isatty():
+            return True
+    except Exception:
+        return True
+    try:
+        # Bytes, decoded `utf-8-sig`: Cursor on Windows forwards the payload with a byte-order
+        # mark in front (see harness.load_stdin), and a failed parse here reads as a real start
+        # but loses the session id and Cursor version.
+        payload = sys.stdin.buffer.read().decode("utf-8-sig")
     except Exception:
         return True
     if not payload.strip():
@@ -849,7 +883,8 @@ def _is_reentry_moment() -> bool:
     try:
         event = json.loads(payload)
         source = event.get("source")
-        _SESSION_ID = str(event.get("session_id") or "")
+        _SESSION_ID = str(event.get("session_id") or event.get("conversation_id") or "")
+        _CURSOR_VERSION = str(event.get("cursor_version") or "")
     except Exception:
         return True
     return source in (None, "startup", "resume")
@@ -869,9 +904,17 @@ def main() -> None:
     # It is machine-global, not project-specific, so it must happen even in a project with no
     # NEXT.md and even where the repo carries its own copy of this script. Silent when already
     # current, which is almost always. See install_rules.py for why this route exists at all.
+    #
+    # Not under Cursor (B57): Cursor's rules are the generated `cursor/rules/cairn.mdc`, always
+    # applied by the plugin, so they are in context by construction and there is no block to
+    # write. The profile still gets seeded -- install_rules is what normally does that.
     try:
-        _installed, _rules_in_context = (
-            install_rules.install(root) if install_rules else (None, False))
+        if CURSOR:
+            _installed = (ensure_profile_file.ensure(root) if ensure_profile_file else None)
+            _rules_in_context = True
+        else:
+            _installed, _rules_in_context = (
+                install_rules.install(root) if install_rules else (None, False))
     except Exception:
         _installed, _rules_in_context = None, False   # never fail a session over a file sync
 
@@ -932,7 +975,10 @@ def main() -> None:
         pass                     # a baseline is never worth failing an orientation over
 
     try:
-        _drift = version_drift.check(root) if version_drift else None
+        if CURSOR:
+            _drift = cursor_drift.check(root, _CURSOR_VERSION) if cursor_drift else None
+        else:
+            _drift = version_drift.check(root) if version_drift else None
     except Exception:
         _drift = None            # a breadcrumb is never worth failing an orientation over
 
@@ -983,7 +1029,8 @@ def main() -> None:
     # works in is opted in, and the line fires there every session until the setting is fixed.
     # Recorded in docs/review/orientation.md as a decision to overrule if they want it louder.
     try:
-        _settings = settings_drift.check() if (settings_drift and nxt) else None
+        # Not under Cursor: it checks Claude Code's settings.json for Claude Code's transcripts.
+        _settings = settings_drift.check() if (settings_drift and nxt and not CURSOR) else None
     except Exception:
         _settings = None         # never fail an orientation over a config read
 
@@ -1458,6 +1505,22 @@ if __name__ == "__main__":
         for _ln in _lines:
             print(_ln)
         sys.exit(0 if _ok else 1)
+    if "--json" in sys.argv:
+        # Cursor's `sessionStart` reads JSON and adds `additional_context` to the chat's
+        # context (cursor.com/docs/hooks). Whether it actually reaches the model has been
+        # reported broken, which is why the always-on rule ALSO runs `cairn-orient` when the
+        # orientation is not in context -- see cursor/gaps.md. Anything unreadable prints `{}`.
+        import io
+        from contextlib import redirect_stdout
+        _buffer = io.StringIO()
+        try:
+            with redirect_stdout(_buffer):
+                main()
+        except Exception:
+            pass
+        _text = _buffer.getvalue()
+        sys.stdout.write(json.dumps({"additional_context": _text} if _text.strip() else {}))
+        sys.exit(0)
     try:
         main()
     except Exception:

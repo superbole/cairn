@@ -34,6 +34,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from reentry_state import project_root                            # noqa: E402
 import item_open                                                  # noqa: E402
+import harness                                                    # noqa: E402
 
 # "do 1", "do item 2", "let's start #3", "please do 4." — and nothing else.
 _START_RE = re.compile(
@@ -46,7 +47,9 @@ _START_RE = re.compile(
 
 def main() -> int:
     try:
-        event = json.loads(sys.stdin.read() or "{}")
+        # `harness.normalise` so Cursor's `beforeSubmitPrompt` (no `session_id`, only
+        # `conversation_id`) stamps the same marker. A Claude payload passes through as is.
+        event = harness.read_event()
     except Exception:
         return 0
     m = _START_RE.match(str(event.get("prompt") or ""))

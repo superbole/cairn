@@ -149,12 +149,17 @@ Do not renumber.
    diagnosis task on the cheap tier or hit a permission prompt on an item they walked away from.
 
    **The DIRECTION of a mismatch decides what you do.** Running ABOVE the item — Opus on a
-   `Sonnet 5` item, `high` on a `medium` one — is a cost, not a defect: say it in one line and
-   carry on. Running BELOW it — Sonnet on an `Opus 5` item, `medium` on a `high` one — is a
-   **HARD STOP. Do not start.** Name what to switch to and wait for them.
+   `Sonnet 5` item, `high` on a `medium` one — is a cost, not a defect: **name the cheaper tier in
+   one line and wait for them to switch**, unless the whole item is one reply or one small edit —
+   then say so and carry on. Running BELOW it — Sonnet on an `Opus 5` item, `medium` on a `high`
+   one — is a **HARD STOP. Do not start.** Name what to switch to and wait for them. A model that
+   is not on this scale at all (Cursor's `Auto`, a non-Anthropic model) is neither: say which
+   model is running and ask. Do not rank it yourself.
 
    They forget to set the tier; that is the entire reason the item names it. Over-tier spends more
-   money and the work is no worse. Under-tier produces work that is worse and **looks identical**,
+   money and the work is no worse — which is why it waits only when the item is big enough for the
+   difference to matter (their call, 2026-09-27: *"If it's small work I'd probably say fine, but we
+   must be careful to save tokens where we can"*). Under-tier produces work that is worse and **looks identical**,
    and the only person who would catch it is the one who just forgot to look. The stop costs one
    message and throws away nothing, because they CAN switch mid-session — it is not the "stuck with
    the tier they started on" mechanism the rules forbid, it is what that fact makes affordable.

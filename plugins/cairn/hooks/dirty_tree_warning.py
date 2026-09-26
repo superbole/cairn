@@ -49,6 +49,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import harness                                                    # noqa: E402
 from reentry_state import (                                    # noqa: E402
     dirty_paths, last_commit_is_wrap_shaped, project_root, state_dir,
     unwrapped_commits, uses_wrap_ritual, wrap_command,
@@ -59,10 +60,7 @@ STOP_STATE_TTL_DAYS = 7      # prune per-session fingerprints older than this
 
 
 def _read_event() -> dict:
-    try:
-        return json.loads(sys.stdin.read() or "{}")
-    except Exception:
-        return {}
+    return harness.read_event()
 
 
 def _prune(directory: Path) -> None:
@@ -182,6 +180,13 @@ def main() -> int:
     root = project_root()
     if event.get("hook_event_name") == "SessionEnd":
         _handle_session_end(root, event)
+        return 0
+    if harness.is_cursor(event):
+        # Cursor's `stop` reads `followup_message` and SUBMITS it as the next prompt, so a
+        # warning printed here would restart the agent (B57). It cannot speak safely, so it
+        # leaves the breadcrumb instead -- every turn, so the next session reads the state the
+        # last turn left even if Cursor's `sessionEnd` never fires for this chat.
+        _handle_session_end(root, {**event, "reason": event.get("reason") or "stop"})
         return 0
     message = _handle_stop(root, event)
     if message:

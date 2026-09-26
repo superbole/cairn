@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/run.sh\" session_orientation.py --harness cursor --json",
+        "timeout": 30
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/run.sh\" item_start.py --harness cursor",
+        "timeout": 10
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/run.sh\" repo_recorder.py --harness cursor",
+        "timeout": 10
+      }
+    ],
+    "afterShellExecution": [
+      {
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/run.sh\" repo_recorder.py --harness cursor",
+        "timeout": 10
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "matcher": "git",
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/run.sh\" staged_review_guard.py --harness cursor",
+        "timeout": 20
+      }
+    ],
+    "stop": [
+      {
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/run.sh\" dirty_tree_warning.py --harness cursor",
+        "timeout": 20
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": "sh \"${CURSOR_PLUGIN_ROOT}/hooks/run.sh\" dirty_tree_warning.py --harness cursor",
+        "timeout": 20
+      }
+    ]
+  }
+}

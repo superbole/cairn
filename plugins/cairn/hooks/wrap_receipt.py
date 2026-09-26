@@ -252,7 +252,12 @@ def session_id() -> str:
     Same read as `reentry_state._session_id()`, duplicated rather than imported because
     that one is private and this module is also invoked as a bare CLI from a shell with
     no session at all — an empty result is a normal outcome here, not an error.
+
+    "" inside a Cursor process too, for the same reason as there: Cursor inherits a launching
+    Claude session's id, and a receipt keyed on it would judge the wrong session.
     """
+    if os.environ.get("CURSOR_VERSION") or os.environ.get("CURSOR_PROJECT_DIR"):
+        return ""
     raw = (os.environ.get("CLAUDE_CODE_SESSION_ID")
            or os.environ.get("CLAUDE_SESSION_ID") or "")
     return "".join(c if c.isalnum() or c in "-_" else "-" for c in raw.strip())[:128]

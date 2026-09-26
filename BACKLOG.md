@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 78 -->
+<!-- next-id: 84 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -739,7 +739,8 @@ there (a 14.x endpoint). Token scope was measured as `api`, so scope is not the 
 fix belongs in `GitLabHost`, not callers. **Related:** B7 (the same write path failing on WSL + `gh.exe`).
 
 ## B57. Cursor adapter v1 — RECONCILE the hand-written copy that already exists
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-08` · issue `#55` · queued
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-08` · issue `#55` · closed `2026-09-27`
+**Closed by v1.65.0**: the plugin is now also a Cursor plugin (D40–D44). See `CHANGELOG.md`.
 Brief: [briefs/cursor-adapter-reconcile.md](briefs/cursor-adapter-reconcile.md) ·
 Requirements: [docs/cursor-adapter-requirements.md](docs/cursor-adapter-requirements.md)
 Was `agent-reentry` B123 and its Queue item 1 (migrated 2026-09-23). A hand-authored adapter is already
@@ -1273,3 +1274,57 @@ The wrap close ends with the "what's next" line, e.g. *"Next: item 1 — <title>
 Tension to resolve: step 9 says **do not paste a ready-to-copy prompt into chat** (the 2026-08-09 correction), because everything a prompt would hold is already on disk. This is not that. It is a one-line handle (item number, title, model, effort, attendance/mode), and it is evidently what the user types to re-enter. A likely resolution: fence the one "Next:" line and keep the prose around it.
 
 Touches: `skills/wrap/SKILL.md` step 9, plus the matching incident note in `skills/wrap/references/incidents.md`.
+
+## B79. Review the unattended `afk/` PRs in Cursor's diff view, and say so where the review is queued
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27`
+**From B57's plan (2026-09-27), D43.** `AFK` items run in Claude Code and each pushes one `afk/…` branch
+and PR (D39). Reviewing those is `HITL` work that Cursor does better than a terminal: the whole diff
+in the editor, file by file, with inline edits. W6 is exactly this job. **To decide:** whether W6's
+brief and the wrap's `afk/` push-stop wording name Cursor as the preferred harness for the review,
+and whether `cairn-next` should offer to open the PR's branch. **Not this:** routing `AFK` items to
+Cursor, which D43 rejected.
+
+## B80. A cross-model second opinion before a `HITL` merge, on the cheapest non-Anthropic model
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27`
+**From B57's plan (2026-09-27).** Cursor ships `review` and `review-security` built-in skills and
+non-Anthropic models (Grok, Cursor's own Composer, GPT). A review of a Claude-written change by a
+different model family catches a different class of mistake. It should use the cheapest such model
+on the Pro licence. **Not `Auto`:** it can route to a Claude model, and then the review is not a
+second opinion. **Probes first, both unverified:** which models are cheapest on the licence, and
+whether `Auto` reports which model it used. **To decide:** where in the wrap, or in the `afk/` PR
+review (B79), the step sits, and whether it is offered or required.
+
+## B81. Team install for colleagues who use Cursor only
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · queued
+Brief: [briefs/cursor-team-install.md](briefs/cursor-team-install.md). Pulled to refill the Queue at B57's wrap, 2026-09-27.
+**From B57's plan (2026-09-27).** This is the Cursor half of the aim that "a stranger installs from
+this repo and orients in their own project with no manual setup". Cursor has team marketplaces and
+account-level installs (cursor.com/docs/plugins). An account-level install lands on every machine
+that shares the account, which is right for cairn and wrong for anything machine-specific (the
+requirements report, §3). **Unverified:** whether a team marketplace can host a GitHub repository
+that is not in the team's organisation, and whether auto-refresh needs the Cursor GitHub App on
+`superbole/cairn`. Blocked on nothing; start from `README.md`'s "Using it from Cursor".
+
+## B82. The repo recorder misses a shell write that names its target by a RELATIVE path
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-27`
+**Seen live 2026-09-26**, in the second Cursor test chat. The agent ran `Add-Content
+..\cursor-v1-other\y.txt …`. The recorder hook fired, exit 0, and recorded nothing:
+`repo_recorder.bash_candidate_paths()` only picks up absolute-path-shaped tokens, and every
+candidate is re-checked against real git state, so a relative one is never tried. **Both harnesses
+have it;** Cursor only made it visible, because its agent writes relative paths by default. **The
+fix to weigh:** resolve relative-looking tokens (`..\x`, `../x`, `x/y`) against the command's working
+directory (`cwd`, or the project root when that is empty, which Cursor sends), then apply the same
+git re-check. Keep the over-inclusive-then-verify shape the module docstring defends. **Ruled out:**
+recording the project's own tree, which is not a foreign write.
+
+## B83. Make the wrap receipt measurable in Cursor (today it reads `CAIRN UNKNOWN`)
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27`
+**From B57 (v1.65.0), `plugins/cairn/cursor/gaps.md`.** The receipt's baseline is keyed by session id
+(B72: never machine-global). Cursor gives hooks a `session_id`, but the agent's shell, where
+`wrap_receipt.py --record` runs, has no session variable (checked 2026-09-26). So every Cursor wrap
+reads `UNKNOWN`. That is honest, and D38 makes it harmless, but it is blind. Cursor processes also
+ignore any inherited Claude session id since v1.65.0, because a Cursor window launched from a Claude
+session carries that id. **Candidates:** a `beforeSubmitPrompt` hook stamps `{project → session_id}`
+and the receipt adopts it only when exactly one live Cursor session holds that project; or a probe
+finds a session variable in a later Cursor. **The constraint to respect:** B72's reverted
+machine-global stamp. Two concurrent chats in one project must not share a baseline.

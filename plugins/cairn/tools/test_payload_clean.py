@@ -58,6 +58,7 @@ PUBLIC_SET = [
     "README.md",
     "LICENSE",
     ".claude-plugin/marketplace.json",
+    ".cursor-plugin/marketplace.json",
     "docs/guide.md",
     "docs/design-notes.md",
     "docs/file-formats.md",

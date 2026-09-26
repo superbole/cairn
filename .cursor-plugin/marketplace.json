@@ -1,0 +1,16 @@
+{
+  "name": "superbole",
+  "owner": {
+    "name": "superbole"
+  },
+  "metadata": {
+    "description": "Session re-entry tooling for working across several projects without holding state between sessions."
+  },
+  "plugins": [
+    {
+      "name": "cairn",
+      "source": "./plugins/cairn",
+      "description": "Session re-entry for people who cannot hold state between sessions: a NEXT.md queue and dated watches relayed at the start of a chat, plus cairn-next to re-enter and cairn-wrap to exit cleanly. The same plugin as cairn for Claude Code."
+    }
+  ]
+}

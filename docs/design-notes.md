@@ -357,19 +357,19 @@ Two things the plugin doesn't do, on purpose, but that slot in cleanly on top of
 `NEXT.md`/`INBOX.md`/`CHANGELOG.md` files — found solving these for a work portfolio (managed
 laptops, a self-hosted git, Cursor in the mix) on 2026-08-20, distinct from this repo's own use.
 
-**A tool whose session-start hook isn't wired yet (e.g. Cursor today).** The file format has no
-hook dependency baked in — `NEXT.md`/`INBOX.md`/`CHANGELOG.md` are just markdown. Point that
-tool's own mechanism (a skill, an always-on rule) at the same files instead of inventing a second
-format; it kills the two-tool-two-truths problem outright, and unlike this plugin's hook and
-skills, that mechanism is yours to edit freely.
+**Cursor, since v1.65.0, is not a companion pattern but a second harness for the same plugin**
+(`docs/decisions.md` D40 to D44). The plugin directory carries a Cursor manifest beside the Claude
+one. The rules text is generated into an always-on Cursor rule, and the skills are pointers at the
+Claude procedure, read through one substitution table. Measured in the first live test:
+`sessionStart` fired in one test chat and not in another, so the rule also runs `cairn-orient`
+rather than trusting the hook alone. The payload arrives behind a byte-order mark, because Cursor
+runs hooks through Windows PowerShell 5.1. What is still missing is kept, with a probe per gap,
+in `plugins/cairn/cursor/gaps.md`.
 
-**This paragraph used to say Cursor has no `SessionStart`-equivalent. That was wrong** — corrected
-2026-09-04 from Cursor's own verification on a second laptop, written up separately. Cursor
-documents `sessionStart`, `beforeSubmitPrompt`, `postToolUse`, `stop` and `sessionEnd`, plus events
-Claude Code has no name for. What is genuinely unproven is whether `sessionStart`'s
-`additional_context` ever reaches the model, so the reliable channels there are side-effect hooks
-plus an always-on rule that runs `session_orientation.py` — not hook injection. Asserting an
-absence without searching is the B20 failure; write **unverified**, not "none."
+**Any other tool whose session-start hook isn't wired.** The file format has no hook dependency
+baked in: `NEXT.md`/`INBOX.md`/`CHANGELOG.md` are just markdown. Point that tool's own mechanism
+(a skill, an always-on rule) at the same files instead of inventing a second format. Asserting that
+a tool lacks a capability without searching is the B20 failure; write **unverified**, not "none".
 
 **Tracking many projects at once.** The plugin is deliberately single-repo — the hook only ever
 orients you in the one project `CLAUDE_PROJECT_DIR` (or `cwd`) points at. A separate,

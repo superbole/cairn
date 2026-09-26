@@ -53,6 +53,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from reentry_state import project_root                            # noqa: E402
 import touched_repos                                              # noqa: E402
+import harness                                                    # noqa: E402
 
 # `file_path` covers Edit/Write; `notebook_path` covers NotebookEdit. `path` is accepted
 # because it costs nothing and a future write-shaped tool may use it -- the matcher in
@@ -113,7 +114,10 @@ def bash_candidate_paths(command: str) -> list[str]:
 
 def main() -> int:
     try:
-        event = json.loads(sys.stdin.read() or "{}")
+        # Cursor's `afterFileEdit` / `afterShellExecution` carry a bare `file_path` / `command`;
+        # `harness.normalise` reshapes them into the `tool_input` read below (B57). Shell writes
+        # are recorded under Cursor too, not only file edits.
+        event = harness.read_event()
         if not isinstance(event, dict):
             return 0
         tool_input = event.get("tool_input")

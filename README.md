@@ -112,6 +112,31 @@ python -c "import json,pathlib;d=json.loads((pathlib.Path.home()/'.claude/plugin
 Contributing a change? The maintainer half of this — pushing the source and bumping the version —
 is in [the guide](docs/guide.md#shipping-a-change-maintainers).
 
+## Using it from Cursor
+
+The same repository is also a Cursor plugin (v1.65.0+). It uses the same version and the same
+files in your project. In Cursor's plugin settings, import the repository
+`https://github.com/superbole/cairn`, then install **cairn** from it. After a new version ships,
+use **Refresh** there; the orientation tells you when Cursor and Claude Code are on different
+versions.
+
+What you get in Cursor:
+- the queue relayed at the start of a chat (from the `sessionStart` hook, or the `cairn-orient`
+  skill if the hook's text does not arrive)
+- `cairn-next` and `cairn-wrap`, which follow the same procedure as `/cairn:next` and `/cairn:wrap`
+- the item-open marker, the other-repo recorder, the exit breadcrumb and the staged-diff guard
+  as hooks
+
+What it cannot do yet is listed in
+[`plugins/cairn/cursor/gaps.md`](plugins/cairn/cursor/gaps.md): archiving a chat, a measurable
+wrap receipt, and a few more. Each has a short test to re-run when Cursor updates, and the
+orientation says when it has.
+
+**Why not rely on Cursor's "third-party import" of the Claude plugin?** It is on by default and
+it does pick cairn up, but its hooks receive a payload they cannot read before v1.65.0, it
+brings the Claude-only skills, and it stays on whatever version it first copied. **`AFK` items
+still run in Claude Code**: the unattended safeguards exist only there.
+
 ## Prerequisites
 
 **Python 3, under any of its usual names.** The hooks start through `hooks/run.sh`, which

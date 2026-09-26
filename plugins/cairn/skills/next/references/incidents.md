@@ -575,3 +575,17 @@ employer host became `git2.example-corp.net`, one long-running project became `a
 number, date and quoted correction on this page is unchanged. D1's rule for hostnames, generalised:
 **the measurement is the evidence, the name is not.** A record stripped of its measurements would
 stop being a reason an agent does not reason past a rule, which is the only reason it ships.
+
+## Step 6 — "above the tier, carry on" spent the dearer model on whole items (2026-09-27)
+
+The rule said: running ABOVE an item's tier is a cost, not a defect — one line, carry on. In the
+first Cursor test chat an agent on Grok 4.7 met a `Sonnet 5 · medium` item, called itself
+"above that tier" and went ahead. Two things were wrong. Nothing ranks a non-Anthropic model on
+this scale, so "above" was a guess. And "carry on" is right only for small work — the user, on
+reading it: *"If it's small work I'd probably say fine, but we must be careful to save tokens
+where we can, especially if they are going to be significant."*
+
+The asymmetry stays: BELOW is still a hard stop, because under-tier work looks identical to good
+work. ABOVE now names the cheaper tier and waits, except for an item that is one reply or one
+small edit. The stop is cheap for the same reason the BELOW stop is: the user can switch
+mid-session. A model off the scale is named and asked about, never ranked.

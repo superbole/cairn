@@ -13,19 +13,17 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Queue
 
-1. **Cursor adapter v1 — reconcile the hand-written copy that already exists** — Opus 5 · high · HITL/Plan
-   Brief: [briefs/cursor-adapter-reconcile.md](briefs/cursor-adapter-reconcile.md)
-   A 102-line pair of Cursor `next`/`wrap` skills, hand-written 2026-09-04 against a pre-rename
-   plugin, is installed and has drifted ~14 versions. The question is whether it is regenerated from
-   this repo or stays hand-maintained. Backlog B57.
-
-2. **Model labels name the tier, not a version: `Opus 5.5` reads as "no model" today** — Opus 5 · high · AFK/Auto
+1. **Model labels name the tier, not a version: `Opus 5.5` reads as "no model" today** — Opus 5 · high · AFK/Auto
    Brief: [briefs/model-labels-by-family.md](briefs/model-labels-by-family.md)
    Every model release would otherwise need a plugin release. Backlog B76. It commits locally and stops before the push.
 
-3. **The README says how to turn on auto-update (off by default for this marketplace)** — Sonnet 5 · medium · AFK/Auto
+2. **The README says how to turn on auto-update (off by default for this marketplace)** — Sonnet 5 · medium · AFK/Auto
    Brief: [briefs/readme-auto-update.md](briefs/readme-auto-update.md)
    A stranger's install otherwise stays on its first version forever. Backlog B61. It commits locally and stops before the push.
+
+3. **Team install for colleagues who use Cursor only** — Opus 5 · high · HITL/Plan
+   Brief: [briefs/cursor-team-install.md](briefs/cursor-team-install.md)
+   The Cursor half of the aim: today a Cursor-only colleague cannot install without asking the maintainer. Stops at the plan. Backlog B81.
 
 ## Decisions
 

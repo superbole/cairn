@@ -3,6 +3,32 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-27 — v1.65.0: cairn is also a Cursor plugin (B57); an above-tier item now waits
+
+The plugin directory is now also a Cursor plugin, so the three hand-written Cursor skill pairs,
+which matched none of each other, are retired (D40–D42). It was tested live in Cursor 3.19.13 on a
+work laptop, in a throwaway project, over two chats. Tests: `run_tests.py` passed 32 files. The leak test caught one of the new fixtures (fixed), and three files timed out on a loaded machine. All four were rerun alone and pass.
+- **One source, generated artefacts.** `.cursor-plugin/plugin.json` points Cursor at `cursor/…`
+  only. `tools/build_cursor.py` generates `cursor/rules/cairn.mdc` (always applied) from
+  `rules/CLAUDE.md` plus `cursor/preamble.md`, the one Cursor-specific text and its substitution
+  table. The skills `cairn-orient`, `cairn-next` and `cairn-wrap` point at the Claude
+  `SKILL.md`s. The repo root has `.cursor-plugin/marketplace.json`.
+- **Hooks under Cursor** (`cursor/hooks.json`): item-open marker, other-repo recorder, exit
+  breadcrumb, staged-diff guard (as a `deny` answer), and the orientation as `additional_context`.
+  `hooks/harness.py` reshapes Cursor payloads into Claude's. Under Cursor, `stop` never speaks,
+  because Cursor would submit it as a new prompt.
+- **What the live test measured (D44), and fixed.**
+  - Cursor runs hooks through Windows PowerShell 5.1, so the first command form (`python … || python3 …`) died on a parse error; they now use `sh run.sh`.
+  - The payload arrives behind a UTF-8 byte-order mark, which every hook's `json.loads` rejected; stdin is now read `utf-8-sig`. This is also why Cursor's import of the Claude plugin had been running on `{}`.
+  - `cwd` is empty and workspace roots arrive as `/C:/…`, so the guard allowed an unread commit; it now uses `CURSOR_PROJECT_DIR`.
+  - A Cursor window launched from a Claude session inherits its session id; Cursor processes now ignore it.
+  - `sessionStart` fired in one chat and not in the other, so the rule also invokes `cairn-orient`.
+- **Verified live:** the queue and the due watch relayed first; `do 2` stamped the item marker; closing the chat left the breadcrumb with nothing auto-continuing. The guard fix was verified by replaying Cursor's logged payloads.
+- **Not yet:** the recorder misses relative shell paths (B82, both harnesses); `rename_chat` was not available to the agent (it fell back to a copy block); the receipt reads `CAIRN UNKNOWN` in Cursor (B83). All of these are in `cursor/gaps.md`.
+- **Drift (D41).** `hooks/cursor_drift.py` gives one warn-only line each for: a Cursor/Claude version mismatch, leftover hand-written skills, a Claude-format cairn in Cursor's cache (it names the folder), and a stale generated rule. A change in Cursor's version or built-in skills prints a pointer at `cursor/gaps.md`'s probes. `tools/test_cursor_build.py` keeps the two manifests in lockstep.
+- **Rules.** `AFK` runs in Claude Code and `HITL` in either, with no harness field (D43). Running ABOVE an item's tier now names the cheaper tier and waits, unless the item is one reply or one small edit; a model off the scale is asked about, never ranked (D45). Both changes are in `rules/CLAUDE.md` and `skills/next` step 6.
+- **On the test laptop:** the leftover 1.53.4 import cache, its marketplace clone and the pre-cairn `~/.cursor/skills/{next,wrap}` were moved to a dated backup folder. The hub copies and NB5 went to the hub's `INBOX.md`. B79–B83 filed from the plan.
+
 ## 2026-09-26 — B70 closed: the plan for unattended runs in the coming weeks is approved
 
 No version bump. The plan is in the private config store, because it holds
