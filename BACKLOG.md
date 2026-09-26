@@ -738,26 +738,6 @@ there (a 14.x endpoint). Token scope was measured as `api`, so scope is not the 
 `--yes` unsupported (would hang, not fail), `issue note` on a closed issue, `#` in label colours. Any
 fix belongs in `GitLabHost`, not callers. **Related:** B7 (the same write path failing on WSL + `gh.exe`).
 
-## B57. Cursor adapter v1 — RECONCILE the hand-written copy that already exists
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-08` · issue `#55` · closed `2026-09-27`
-**Closed by v1.65.0**: the plugin is now also a Cursor plugin (D40–D44). See `CHANGELOG.md`.
-Brief: [briefs/cursor-adapter-reconcile.md](briefs/cursor-adapter-reconcile.md) ·
-Requirements: [docs/cursor-adapter-requirements.md](docs/cursor-adapter-requirements.md)
-Was `agent-reentry` B123 and its Queue item 1 (migrated 2026-09-23). A hand-authored adapter is already
-installed on one work laptop: `~/.cursor/skills/next/SKILL.md` (40 lines) and
-`~/.cursor/skills/wrap/SKILL.md` (62 lines), written 2026-09-04, against 224 and 736 lines in the
-plugin then. Its header says *"the `reentry` Claude Code plugin"* — pre-D18, ~14 versions of rules
-behind. No `hooks.json`, no receipt tool, no backlog sync: a Cursor session can orient but cannot
-produce a verdict, sync, or obey any rule added since. **The question is no longer what an adapter
-should do — it is whether that pair is regenerated from this repo's source or stays hand-maintained
-and drifts again.** Two competing copies is the condition this item exists to prevent. Zero adapter
-code exists in `plugins/`. v1 shape, already decided by the requirements report: side-effect hooks in
-`.cursor/hooks.json` (schema v1, flat arrays) plus an always-on Cursor rule that runs
-`session_orientation.py`; not hook injection (`sessionStart.additional_context` reaching the model is
-unverified and reportedly broken). `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PROJECT_DIR` are empty in a
-Cursor shell. **Found alongside and NOT this:** `~/.cursor/skills-cursor/` (Cursor's built-ins), and
-`AGENTS.md` files across project trees (a separate portfolio convention).
-
 ## B9. `sync_backlog.py` and `validate_next.py` answer for the SESSION's repo, not the one they're run in
 `Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-23` · issue `#56`
 Seen twice in one session on SBOLE-NB5, 2026-09-23. The session was opened on the private source
@@ -1276,7 +1256,7 @@ Tension to resolve: step 9 says **do not paste a ready-to-copy prompt into chat*
 Touches: `skills/wrap/SKILL.md` step 9, plus the matching incident note in `skills/wrap/references/incidents.md`.
 
 ## B79. Review the unattended `afk/` PRs in Cursor's diff view, and say so where the review is queued
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#79`
 **From B57's plan (2026-09-27), D43.** `AFK` items run in Claude Code and each pushes one `afk/…` branch
 and PR (D39). Reviewing those is `HITL` work that Cursor does better than a terminal: the whole diff
 in the editor, file by file, with inline edits. W6 is exactly this job. **To decide:** whether W6's
@@ -1285,7 +1265,7 @@ and whether `cairn-next` should offer to open the PR's branch. **Not this:** rou
 Cursor, which D43 rejected.
 
 ## B80. A cross-model second opinion before a `HITL` merge, on the cheapest non-Anthropic model
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#80`
 **From B57's plan (2026-09-27).** Cursor ships `review` and `review-security` built-in skills and
 non-Anthropic models (Grok, Cursor's own Composer, GPT). A review of a Claude-written change by a
 different model family catches a different class of mistake. It should use the cheapest such model
@@ -1295,7 +1275,7 @@ whether `Auto` reports which model it used. **To decide:** where in the wrap, or
 review (B79), the step sits, and whether it is offered or required.
 
 ## B81. Team install for colleagues who use Cursor only
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · queued
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#81` · queued
 Brief: [briefs/cursor-team-install.md](briefs/cursor-team-install.md). Pulled to refill the Queue at B57's wrap, 2026-09-27.
 **From B57's plan (2026-09-27).** This is the Cursor half of the aim that "a stranger installs from
 this repo and orients in their own project with no manual setup". Cursor has team marketplaces and
@@ -1306,7 +1286,7 @@ that is not in the team's organisation, and whether auto-refresh needs the Curso
 `superbole/cairn`. Blocked on nothing; start from `README.md`'s "Using it from Cursor".
 
 ## B82. The repo recorder misses a shell write that names its target by a RELATIVE path
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-27`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-27` · issue `#82`
 **Seen live 2026-09-26**, in the second Cursor test chat. The agent ran `Add-Content
 ..\cursor-v1-other\y.txt …`. The recorder hook fired, exit 0, and recorded nothing:
 `repo_recorder.bash_candidate_paths()` only picks up absolute-path-shaped tokens, and every
@@ -1318,7 +1298,7 @@ git re-check. Keep the over-inclusive-then-verify shape the module docstring def
 recording the project's own tree, which is not a foreign write.
 
 ## B83. Make the wrap receipt measurable in Cursor (today it reads `CAIRN UNKNOWN`)
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#83`
 **From B57 (v1.65.0), `plugins/cairn/cursor/gaps.md`.** The receipt's baseline is keyed by session id
 (B72: never machine-global). Cursor gives hooks a `session_id`, but the agent's shell, where
 `wrap_receipt.py --record` runs, has no session variable (checked 2026-09-26). So every Cursor wrap
