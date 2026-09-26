@@ -55,6 +55,12 @@ Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier agains
 (CHANGELOG, version bump, `BACKLOG.md` closes, the Queue) and run `tools/sync_backlog.py`. Any lane-0
 bookkeeping PRs already merged cover part of this, so read `git log` first.
 
+**W7. Did the NB1 03:00 lane batch (`cairn-lane-batch-2026-09-27-0300`) run, and what did it leave?** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-09-27`
+**run on NB1.** Read the task's Runs list FIRST (a VPN drop killed the 2026-09-26 05:00 firing silently). Then
+the `Overnight handover 2026-09-27` PR on `superbole/cairn`, then each `afk/2026-09-27-*` PR against its diff.
+Confirm `origin/main` did not move. Worktrees are left under `.claude/worktrees/afk-*`; remove them after review.
+It ran before W5's F1, so it is also the first real test of the afk/ PR model — fold what it shows into W5.
+
 ---
 
 `cairn` — session re-entry for people who cannot hold state between sessions.
