@@ -1021,7 +1021,8 @@ remote-tracking ref (one `git rev-list`, no fetch, no network) and drop it when 
 keeps the no-network contract and catches the "already pulled/pushed since" case.
 
 ## B61. The README never says how to turn on auto-update, and it is off by default for this marketplace
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-25` · issue `#61`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-25` · issue `#61` · queued
+Brief: [briefs/readme-auto-update.md](briefs/readme-auto-update.md). Pulled to refill the Queue at B70's wrap, 2026-09-26.
 **Found 2026-09-25** when NB1 was still on v1.60.0 hours after v1.62.0 was pushed. The official docs
 (fetched that day: `code.claude.com/docs/en/plugins/install.md` and `…/plugins/loading.md`) say:
 - **Plugin auto-update is OFF by default for every non-Anthropic marketplace**, `superbole` included.
@@ -1146,7 +1147,7 @@ failed firing is visible only in the routine's Runs list. Filed by the W5 review
 file it and never ran.
 
 ## B70. Plan the October AFK token spend
-`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · issue `#68` · queued
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · issue `#68` · closed
 Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md), a stub. The full brief is in the private config store. Queued as item 1 because it is due 2026-10-01.
 Plan how unattended work uses the weekly allowance over the coming weeks: cloud routines versus
 local scheduled tasks (B69 is a prerequisite for local runs), a branch-and-PR review model, and a
@@ -1288,7 +1289,8 @@ prune dirs whose project path no longer exists. **Ruled out:** relaxing the dete
 fail, because the B74 docstring in `run_tests.py` explains why a real leak must fail the run.
 
 ## B76. Model labels are pinned to version strings, so a new release (Opus 5.5) reads as "no model"
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · queued
+Brief: [briefs/model-labels-by-family.md](briefs/model-labels-by-family.md). Pulled to refill the Queue at B70's wrap, 2026-09-26.
 **Asked 2026-09-26:** *"how does Cairn handle this?"*, on Opus 5.5 being released. **It doesn't.**
 Cairn has no model discovery at all. An agent writes the model label into each item when it files or
 refills it, choosing by the tiering rule (the stronger model for deciding, the cheaper one for

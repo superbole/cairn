@@ -3,6 +3,22 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-26 — B70 closed: the plan for unattended runs in the coming weeks is approved
+
+No version bump. The plan is in the private config store (`plans/2026-10-trip.md`), because it holds
+personal schedule detail. The public repo carries only the neutral parts: D39's `afk/` branch-and-PR model
+and the `.claude/settings.json` rules (v1.64.0).
+- **The work account can't use cloud routines.** Its GitHub access for cloud sessions is switched off by the
+  organisation (the schedule tool reported "GitHub isn't connected", and the claude.ai/code GitHub sign-in
+  doesn't appear for that account). So every work-account firing runs as a local scheduled task on the
+  always-on office machine, and a local run that tries to push `main` stalls on D39's `ask` rules. That
+  removes the open question of whether cloud routines honour `ask`.
+- **The work repos had AFK work after all:** the first count saw 0 because it counted only items already
+  marked `AFK`. `bsr-tools`' 40 open items were judged in this session (6 AFK), and the user pushed the result.
+- **Watches:** W5 (the first firing, 2026-09-30) and W6 (review the `afk/` PRs, 2026-10-20) here; the
+  office-machine setup day in the work hub; the private-account setup in the personal hub.
+- **Queue refilled** with B76 (model labels name the tier) and B61 (README auto-update), both AFK.
+
 ## 2026-09-26 — v1.64.0: no baseline reads `CAIRN UNKNOWN`; `measure_context` confirmed tiktoken-free
 
 Queue items 2 and 3 ran as background worktree lanes inside B70's planning session, so no second
