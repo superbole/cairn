@@ -156,31 +156,53 @@ run the backlog sync, touch no shared file"*.
   none, and raising a session's mode needs a human to approve it. Relying on a person to flip a
   setting is what failed, so nothing here relies on it any more.
 
-  **`permissions.allow` rules apply in every mode**, `Manual` included, and `permissions.deny`
-  rules are checked before any allow rule, in every mode. So the repo's `.claude/settings.json`
-  allows exactly what a batch needs — the file tools, `Agent`, the git read and commit verbs,
-  `sh plugins/cairn/hooks/run.sh …`, `python`/`python3 plugins/cairn/tools/*`, `git push origin
-  afk/<branch>` and `gh pr create|list|view` — and denies every push that can reach `main`,
-  `gh pr merge`, `gh repo`/`gh api` writes, `git reset --hard origin…`, and `tools/sync_backlog.py`
-  in every spelling. Local scheduled tasks and cloud routines both read that one committed file.
-  `plugins/cairn/tools/test_settings_rules.py` pins the list. **Before scheduling, check the file
+  **`permissions.allow` rules apply in every mode**, `Manual` included; `deny` rules are checked
+  first, then `ask`, then `allow`, and an allow never overrides either of the other two. So the
+  repo's `.claude/settings.json` has three lists:
+
+  - **allow** exactly what a batch needs: the file tools, `Agent`, the git read and commit verbs,
+    `sh plugins/cairn/hooks/run.sh …`, `python`/`python3 plugins/cairn/tools/*`, `git push origin
+    afk/<branch>` and `gh pr create|list|view`;
+  - **ask** before every push that can reach `main` and before `tools/sync_backlog.py` in every
+    spelling. **An unattended local run stalls on that prompt, so it cannot push `main` or run the
+    sync. An attended session gets one approval card**, which is why these are `ask` and not
+    `deny`: a deny would also refuse `/cairn:wrap`'s own push and sync in this repo, since the file
+    cannot tell a scheduled firing from a person being there;
+  - **deny** `gh pr merge`, `gh repo` and `gh api` writes, and `git reset --hard origin…`, which
+    nothing in an unattended run or a wrap needs.
+
+  Local scheduled tasks and cloud routines both read that one committed file.
+  `plugins/cairn/tools/test_settings_rules.py` pins the lists. **Before scheduling, check the file
   is on `origin/main`**; that check replaces "tell him which mode". What that leaves:
 
+  - **Whether a cloud routine honours `ask` (or `deny`) is UNVERIFIED.** The permissions docs do
+    not say, and the routines page says a routine runs *"without stopping for approval"*, which
+    could mean an `ask` is simply approved. **The cloud dry run tests it:** the routine attempts
+    `git push --dry-run origin main`. If that is not blocked, the push and sync rules go back from
+    `ask` to `deny` before the first real firing, and attended wraps in this repo push from the
+    person's own terminal instead. Routines also push as the user's own GitHub identity, and
+    accept a push to a branch without a `claude/` prefix only if it is unprotected on GitHub, has
+    no one else's open PR, and carries no one else's commits.
+  - **The ask rules are load-bearing, not a second layer.** A `*` in a rule spans spaces and
+    colons, so the `afk/` allow also matches `git push origin afk/x:main` and the `tools/*` allow
+    also matches `python plugins/cairn/tools/sync_backlog.py`. Only the ask rule, checked before
+    allow, stops those. Deleting an ask rule turns a stall into a push.
   - **Anything outside the allow list still prompts, and in `Manual` a prompt is a stall.** Write
     the task prompt so the run uses the allowed shapes: call run.sh and the tools by their
     repo-relative paths (`sh plugins/cairn/hooks/run.sh …`, not an absolute plugin-cache path),
     push only as `git push origin afk/<branch>` (no flags, no second refspec), and use the Bash
-    tool, not PowerShell (PowerShell has the denies but no allows).
+    tool, not PowerShell (PowerShell has the ask and deny rules but no allows).
   - **Project allow rules apply only in a folder whose workspace trust was accepted.** An
     interactive session opened in this repo once on that machine has done it. A `claude -p` or SDK
     run never shows the trust dialog, so its allow rules stay off unless the repo is trusted by
     hand. Whether a cloud routine applies them has not been checked yet — treat its first firing as
     the experiment.
-  - **Deny rules match the command TEXT Claude writes, not the program.** They stop the forms an
-    agent normally produces; `git -c … push`, a `python -c` that shells out, or a script the run
-    wrote itself are not covered by any pattern. The B69 dossier lists what is left and proposes
-    guards for it (branch protection, a push-guard hook). The remote's own branch protection is the only guard that does not
-    depend on the command's spelling.
+  - **Ask and deny rules match the command TEXT Claude writes, not the program.** They catch the
+    forms an agent normally produces; `git -c … push`, a `python -c` that shells out, or a script
+    the run wrote itself are not covered by any pattern. The B69 dossier lists what is left and
+    proposes guards for it. Branch protection on the remote does not depend on the command's
+    spelling, but every unattended run, local or cloud, pushes as the user's own GitHub identity,
+    so a rule on `main` binds the user exactly as much as the run.
   - **Writes to `.claude/` (other than `.claude/worktrees/`) and `.git` are protected paths**: no
     allow rule pre-approves them. An unattended run cannot loosen its own settings, which is the
     point; it also means no lane may own a file there.
@@ -248,8 +270,9 @@ have seen, and still covers only that work.
   verification actually run, with real output pasted; anything decided on his behalf; and what it
   chose not to do. Open it with `gh pr create --base main --head afk/… --body-file <dossier>`.
 - **Push as `git push origin afk/<branch>` — that exact shape, nothing else.** No flags, no second
-  refspec, no `HEAD`, no colon. It is the only push the allow list approves. Every other shape is
-  either denied outright or would prompt, and a prompt stalls an unattended run.
+  refspec, no `HEAD`, no colon. It is the only push the allow list approves. Every other shape
+  hits an `ask` rule or matches no allow rule; either way it prompts, and a prompt stalls an
+  unattended run.
 - **A PR from an unattended run touches no shared file**: not `NEXT.md`, `BACKLOG.md`,
   `CHANGELOG.md`, `README.md`, `docs/decisions.md` or `plugin.json`. That is what keeps the PRs
   from conflicting with each other. If an item cannot land without a shared-file change, the PR
@@ -271,10 +294,12 @@ If either names the item, skip it and say so in the firing's summary. Neither ch
 firings in the same minute can both pass), which is one more reason to space firings by the
 5-hour window.
 
-**What is still denied unattended, `afk/` or not:** any push that can reach `main`, `gh pr merge`,
-`gh repo` and `gh api` writes, `git reset --hard origin…`, and `tools/sync_backlog.py` in any form.
-These live in `.claude/settings.json`'s deny list, so they hold in every mode, `Auto` included.
-They also hold in ATTENDED sessions in this repo: the file cannot tell the two apart.
+**What an unattended run still cannot do, `afk/` or not:** push anything that can reach `main`, or
+run `tools/sync_backlog.py` in any form. Both are `ask` rules: a local firing stalls on the prompt
+(in `Auto` too, since an explicit ask still prompts there), and an attended session gets one
+approval card. For cloud routines this is unverified until the dry run (see "Constraints" above).
+`gh pr merge`, `gh repo` and `gh api` writes, and `git reset --hard origin…` are `deny` rules: they
+fail in every mode and in attended sessions too, since the file cannot tell the two apart.
 
 ## `docs/review/` is an INBOX, not a library
 

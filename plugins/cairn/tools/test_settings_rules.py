@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""The repo's `.claude/settings.json` denies every push that can reach `main`, and `sync_backlog`.
+"""The repo's `.claude/settings.json` puts every push that can reach `main`, and `sync_backlog`,
+behind an ASK rule, and no allow rule reaches them.
 
     python plugins/cairn/tools/test_settings_rules.py
 
 WHY THIS EXISTS (B69). A scheduled task starts in Manual and no tool can change that, so an
-unattended batch runs on the repo's committed allow list. The same file carries the deny list that
+unattended batch runs on the repo's committed allow list. The same file carries the ask list that
 makes "`main` is never pushed unattended" and "never run the backlog sync unattended" mechanical
-instead of prompt text. An allow/deny list is easy to break by one edit that looks like a tidy-up:
-widen `git push origin afk/*` to `git push *`, drop the `*:*` colon rule, or fold the
+instead of prompt text: unattended, an ask is a prompt nobody answers, so the run stalls there;
+attended, it is one approval card. `ask`, not `deny`, is the user's decision (2026-09-26), because
+a deny would also refuse the wrap's own push and sync in attended sessions. Merges, repo/api
+writes and a hard reset to origin stay DENIED. A rule list is easy to break by one edit that looks
+like a tidy-up: widen `git push origin afk/*` to `git push *`, drop a colon rule, or fold the
 `sync_backlog` forms into one that misses `sh run.sh tools/sync_backlog.py`. Nothing else would
 notice until a firing pushed.
 
@@ -16,8 +20,9 @@ code.claude.com/docs/en/permissions (read 2026-09-26), not the real one:
   - `*` matches any text, spaces included; a rule with no `*` matches one exact command;
   - a trailing ` *` also matches the bare command, but only when it is the rule's ONLY wildcard;
   - `:*` at the very end is the same as ` *`;
-  - deny is checked before allow, and an allow can never carve an exception out of a deny;
-  - a deny rule matches past any leading `VAR=value` assignment.
+  - deny, then ask, then allow; an allow can never carve an exception out of a deny OR an ask;
+  - a deny rule matches past any leading `VAR=value` assignment (the docs say this of deny and
+    ask rules together in the wrapper section; the emulation applies it to both).
 Compound commands (`a && b`) are split by Claude Code before matching; every case below is a single
 command, so the split is not emulated. The emulation can be wrong where the docs are silent (tab
 and quote handling above all); the dossier for B69 lists the forms no pattern can close.
@@ -68,9 +73,17 @@ def rules(kind, tool="Bash"):
 ASSIGN = re.compile(r"\A(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)+")
 
 
-def denied(cmd, tool="Bash"):
+def _restrictive(kind, cmd, tool):
     bare = ASSIGN.sub("", cmd)
-    return [r for r, rx in rules("deny", tool) if rx.match(cmd) or rx.match(bare)]
+    return [r for r, rx in rules(kind, tool) if rx.match(cmd) or rx.match(bare)]
+
+
+def denied(cmd, tool="Bash"):
+    return _restrictive("deny", cmd, tool)
+
+
+def asked(cmd, tool="Bash"):
+    return _restrictive("ask", cmd, tool)
 
 
 def allowed(cmd, tool="Bash"):
@@ -80,6 +93,8 @@ def allowed(cmd, tool="Bash"):
 def decision(cmd, tool="Bash"):
     if denied(cmd, tool):
         return "deny"
+    if asked(cmd, tool):
+        return "ask"
     return "allow" if allowed(cmd, tool) else "prompt"
 
 
@@ -89,7 +104,7 @@ if not SETTINGS.is_file():
 
 DATA = json.loads(SETTINGS.read_text(encoding="utf-8"))
 
-print("1. every push form that can reach main is DENIED (deny holds in every mode, Auto included)")
+print("1. every push form that can reach main hits an ASK rule (unattended: a stall; attended: one card)")
 MAIN_REACHING = [
     "git push",
     "git push origin",
@@ -144,18 +159,27 @@ MAIN_REACHING = [
     "GIT_TRACE=1 git push origin main",
 ]
 for cmd in MAIN_REACHING:
-    check(f"deny: {cmd!r}", decision(cmd) == "deny")
+    check(f"ask: {cmd!r}", decision(cmd) == "ask")
 
-print("\n2. no ALLOW rule matches a main-reaching push, even before deny is consulted")
-for cmd in ["git push origin main", "git push origin HEAD:main", "git push", "git push -u origin main"]:
-    check(f"no allow for {cmd!r}", not allowed(cmd))
+print("\n2. no ALLOW rule matches a main-reaching push -- except where no pattern can prevent it")
+# Belt and braces: if an ask rule is ever deleted, a matching allow would turn a stall into a push.
+# But `*` spans spaces and colons, so the afk/ allow `git push origin afk/*` necessarily matches a
+# push that STARTS with an afk/ branch and then names main. For exactly those forms the ask rule is
+# load-bearing (ask is checked before allow); they are pinned separately so a reader sees it.
+SHADOWED = [c for c in MAIN_REACHING if c.startswith("git push origin afk/")]
+check("the shadowed set is exactly the afk/-prefixed forms (6 of them)", len(SHADOWED) == 6)
+for cmd in MAIN_REACHING:
+    if cmd in SHADOWED:
+        check(f"allow matches, ASK stops it: {cmd!r}", bool(allowed(cmd)) and decision(cmd) == "ask")
+    else:
+        check(f"no allow for {cmd!r}", not allowed(cmd))
 
-print("\n3. the one push an unattended run needs is allowed, and not denied")
+print("\n3. the one push an unattended run needs is allowed, and not asked or denied")
 for cmd in ["git push origin afk/2026-09-27-01-B69-settings-rules",
             "git push origin afk/2026-09-27-02-B12-main-branch-guard"]:   # slug containing 'main'
     check(f"allow: {cmd!r}", decision(cmd) == "allow")
 
-print("\n4. sync_backlog is DENIED in every invocation form the skills or a shell would use")
+print("\n4. sync_backlog hits an ASK rule in every invocation form the skills or a shell would use")
 SYNC = [
     "python plugins/cairn/tools/sync_backlog.py",
     "python3 plugins/cairn/tools/sync_backlog.py --pull",
@@ -170,7 +194,13 @@ SYNC = [
     "plugins/cairn/tools/sync_backlog.py",
 ]
 for cmd in SYNC:
-    check(f"deny: {cmd!r}", decision(cmd) == "deny")
+    check(f"ask: {cmd!r}", decision(cmd) == "ask")
+    if cmd.startswith(("python plugins/cairn/tools/", "python3 plugins/cairn/tools/",
+                       "sh plugins/cairn/hooks/run.sh ")):
+        # The tools/run.sh allows match these by construction; only the ask rule stops them.
+        check(f"allow matches, ASK stops it: {cmd!r}", bool(allowed(cmd)) and decision(cmd) == "ask")
+    else:
+        check(f"no allow for {cmd!r}", not allowed(cmd))
 
 print("\n5. a lane can still WORK ON sync_backlog.py: stage it, commit it, test it")
 for cmd in ["git add plugins/cairn/tools/sync_backlog.py",
@@ -199,19 +229,28 @@ for cmd in ["gh pr merge 12 --squash", "gh api -X POST repos/o/r/merges",
     check(f"deny: {cmd!r}", decision(cmd) == "deny")
 check("allow read: 'gh api repos/o/r/pulls' is not denied", not denied("gh api repos/o/r/pulls"))
 
-print("\n8. the PowerShell tool gets the same push/sync denies (Windows sessions have both tools)")
+print("\n8. the PowerShell tool gets the same rules (Windows sessions have both tools)")
 for cmd in ["git push", "git push origin main", "git push origin HEAD:main", "git push --force",
-            "python plugins/cairn/tools/sync_backlog.py", "gh pr merge 1"]:
-    check(f"PowerShell deny: {cmd!r}", bool(denied(cmd, "PowerShell")))
+            "python plugins/cairn/tools/sync_backlog.py"]:
+    check(f"PowerShell ask: {cmd!r}", decision(cmd, "PowerShell") == "ask")
+for cmd in ["gh pr merge 1", "git reset --hard origin/main"]:
+    check(f"PowerShell deny: {cmd!r}", decision(cmd, "PowerShell") == "deny")
+
+print("\n8b. push and sync rules live in ask, and nothing else was moved out of deny")
+perm = DATA["permissions"]
+check("no push or sync_backlog rule left in deny",
+      not [r for r in perm["deny"] if "push" in r or "sync_backlog" in r])
+check("every ask rule is a push or sync_backlog rule",
+      all("push" in r or "sync_backlog" in r for r in perm.get("ask", [])))
 
 print("\n9. no allow rule is a bare Bash / PowerShell, or an unanchored wildcard")
 allow = DATA["permissions"]["allow"]
 check("no bare Bash or Bash(*)", not {"Bash", "Bash(*)", "PowerShell", "PowerShell(*)"} & set(allow))
 check("no allow rule for 'git push *'", not any(re.fullmatch(r"Bash\(git push \*\)", r) for r in allow))
 # A specifier ending in `:*` is the documented trailing-wildcard form, so `git push *:*` does NOT
-# mean "contains a colon" -- it means `git push * *`, which also denies the afk/ push. The first
+# mean "contains a colon" -- it means `git push * *`, which also catches the afk/ push. The first
 # draft of this file had exactly that rule; this emulation is what caught it.
-every = DATA["permissions"]["allow"] + DATA["permissions"]["deny"]
+every = DATA["permissions"]["allow"] + DATA["permissions"].get("ask", []) + DATA["permissions"]["deny"]
 check("no rule ends in ':*' (it would be read as a trailing ' *')",
       not [r for r in every if r.endswith(":*)")])
 
