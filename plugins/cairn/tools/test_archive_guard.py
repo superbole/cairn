@@ -222,7 +222,11 @@ print("\n4. UNKNOWN allows, with one line")
 r4 = new_repo("unknown")
 do_work(r4)                          # marker now stale -- and no baseline for this session
 check("no baseline for this session", wrap_receipt.baseline(r4, SESSION), None)
-check("--check alone would say OPEN here (stale marker, no baseline)", verdict_of(r4)[0], "OPEN")
+# Was "--check alone would say OPEN here" until B10: with no baseline, a stale marker alone
+# made `verdict()` read OPEN, which is why the guard skips baseline-less roots. `verdict()`
+# now reaches the guard's own conclusion; the guard's decision below is unchanged.
+check("--check agrees with the guard here: UNKNOWN (stale marker, no baseline; B10)",
+      verdict_of(r4)[0], "UNKNOWN")
 p = guard(r4, payload(r4))
 check("guard allows: no baseline means it did not measure THIS session", p.returncode, 0)
 note = json.loads(p.stdout or "{}").get("systemMessage", "")
