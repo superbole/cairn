@@ -60,6 +60,10 @@ bookkeeping PRs already merged cover part of this, so read `git log` first.
 the `Overnight handover 2026-09-27` PR on `superbole/cairn`, then each `afk/2026-09-27-*` PR against its diff.
 Confirm `origin/main` did not move. Worktrees are left under `.claude/worktrees/afk-*`; remove them after review.
 It ran before W5's F1, so it is also the first real test of the afk/ PR model — fold what it shows into W5.
+Also fix `docs/running-a-batch.md`'s VPN preflight: "set it to reconnect on drop" is wrong for NB1. Its
+OpenVPN GUI client already reconnects by itself, but the profile asks for a TOTP code (`static-challenge`), so
+an unattended reconnect fails with `auth-failure` — the 2026-09-26 drop, ~20h after connecting. The real
+preflight is a fresh manual connect just before the firing; only the VPN's admins can remove TOTP-on-reconnect.
 
 ---
 
