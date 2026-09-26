@@ -568,13 +568,154 @@ check("with a verifiable id", wrap_receipt.verify(r11, body11b["id"])[0])
 check("and the next session is told it was unmeasured, not that it did not wrap",
       "could not be measured" in (wrap_receipt.orientation_line(r11) or ""))
 
-print("\n11c. `skipped` still outranks `unverifiable` — UNKNOWN is not a soft landing")
+print("\n11c. With a baseline, `skipped` still outranks `unverifiable` — UNKNOWN is not a "
+      "soft landing")
+# Changed by B10. This used to assert OPEN with NO baseline, from the un-drained INBOX alone.
+# But with no baseline the tool cannot tell whether a wrap was owed at all, so a bullet the
+# capture process added to an idle session read OPEN just the same -- the cry-wolf the
+# archive guard already refuses to act on (D36). The ordering guarantee is kept, and pinned,
+# where it can mean something: a session WITH a baseline whose tracked steps are blind.
 r11c = new_repo("blind-and-skipped", inbox="# INBOX\n\n- an un-triaged thing\n")
-do_wrap(r11c)                                 # no baseline AND a required step measurably gone
-st11c = wrap_receipt.steps(r11c, None)
-check("inbox is measured skipped even with no baseline", st11c["inbox"]["state"], "skipped")
+wrap_receipt.stamp_baseline(r11c)
+do_wrap(r11c)
+run(r11c, "git", "config", "core.logallrefupdates", "false")
+shutil.rmtree(r11c / ".git" / "logs", ignore_errors=True)   # tracked steps go blind
+b11c = wrap_receipt.baseline(r11c)
+st11c = wrap_receipt.steps(r11c, b11c)
+check("with a baseline but no reflog, next_rewrite is blind",
+      st11c["next_rewrite"]["state"], "unverifiable")
+check("and inbox is measured skipped", st11c["inbox"]["state"], "skipped")
 check("so the verdict is OPEN, not UNKNOWN — verdict()'s ordering is the guarantee",
-      wrap_receipt.verdict(r11c, None, st11c)[0], "OPEN")
+      wrap_receipt.verdict(r11c, b11c, st11c)[0], "OPEN")
+
+r11d = new_repo("no-baseline-and-skipped", inbox="# INBOX\n\n- an un-triaged thing\n")
+do_wrap(r11d)                                 # no baseline, and the inbox is not drained
+st11d = wrap_receipt.steps(r11d, None)
+v11d, why11d = wrap_receipt.verdict(r11d, None, st11d)
+check("with NO baseline the inbox fact is still measured", st11d["inbox"]["state"], "skipped")
+check("but the verdict is UNKNOWN: whether a wrap was owed cannot be measured (B10)",
+      v11d, "UNKNOWN")
+check("and the un-drained inbox is not hidden — it is in the reasons, as current state",
+      any(r.startswith("inbox:") and "current state" in r for r in why11d))
+
+
+# --------------------------------------------------------------------------------------
+# 12. B10 — with no session-start baseline, the receipt says "cannot tell", once.
+#
+# Filed on a `--resume`: SessionStart never stamped for the session, the wrap rewrote
+# NEXT.md and CHANGELOG.md and committed both, and the receipt printed `[SKIP] next_rewrite
+# NEXT.md is byte-identical to session start` and `CAIRN OPEN`. Re-measured against v1.63.0
+# the tracked rows had already gone blind, but two holes remained: a stale `.last_wrap` alone
+# still read `OPEN` under a note that said "hence UNKNOWN rather than OPEN", and a baseline
+# file that loaded but held no snapshot was measured against as if it did — reading `SET`.
+# --------------------------------------------------------------------------------------
+def resume_shaped(name, *, restamp_marker):
+    """No SessionStart stamp; real edits to NEXT.md and CHANGELOG.md; a commit."""
+    root = new_repo(name)
+    (root / "NEXT.md").write_text(NEXT_MD + "\n" + "rewritten\n" * 37, encoding="utf-8")
+    (root / "CHANGELOG.md").write_text("# CHANGELOG\n\n" + "entry\n" * 79, encoding="utf-8")
+    commit(root, "chore: wrap")
+    if restamp_marker:
+        stamp_marker(root)
+    return root
+
+
+print("\n12a. A --resume-shaped wrap with no baseline reads UNKNOWN, with ONE top line")
+r12 = resume_shaped("b10-resume", restamp_marker=False)
+check("the fixture really has no baseline", wrap_receipt.baseline(r12) is None)
+st12 = wrap_receipt.steps(r12, None)
+v12, why12 = wrap_receipt.verdict(r12, None, st12)
+check("verdict UNKNOWN, not OPEN (it was OPEN at v1.63.0, from the marker alone)",
+      v12, "UNKNOWN")
+check("no step claims a comparison with a session-start snapshot",
+      [n for n, s in st12.items()
+       if any(p in s["detail"] for p in ("byte-identical", "untouched", "since session start"))],
+      [])
+check("the stale marker is still reported, as a fact", st12["marker"]["state"], "skipped")
+check("the first reason names the missing baseline",
+      why12[0], wrap_receipt.NO_BASELINE_REASON)
+rc, out12 = cli(r12, "--record")
+check("--record prints CAIRN UNKNOWN", "CAIRN UNKNOWN · " in out12)
+check("never CAIRN OPEN", "CAIRN OPEN" not in out12)
+check("never `[SKIP] next_rewrite`", "[SKIP] next_rewrite" not in out12)
+check("never `[SKIP] changelog`", "[SKIP] changelog" not in out12)
+check("the missing baseline is stated once, at the top",
+      out12.count("NOTE: no session-start baseline"), 1)
+check("...and before the step table",
+      out12.find("NOTE:") < out12.find("next_rewrite"))
+check("the long reason is not repeated under the table",
+      wrap_receipt.NO_BASELINE_REASON not in out12)
+check("nor the attribution line, which is the same fact again",
+      "attribution       UNAVAILABLE" not in out12)
+check("the note names the resume cause, not only 'started elsewhere'", "--resume" in out12)
+check("and the marker gap is still printed as a reason", "! marker:" in out12)
+body12 = wrap_receipt.last_receipt(r12)
+check("the receipt records that there was no baseline", body12.get("baseline"), False)
+check("and the next session is told why it could not be measured",
+      "no session-start baseline" in (wrap_receipt.orientation_line(r12) or ""))
+
+print("\n12b. A complete --resume-shaped wrap: the marker is not credited as 'this session'")
+r12b = resume_shaped("b10-resume-complete", restamp_marker=True)
+st12b = wrap_receipt.steps(r12b, None)
+check("a matching marker is unverifiable without a clock, not `ran`",
+      st12b["marker"]["state"], "unverifiable")
+check("and still UNKNOWN", wrap_receipt.verdict(r12b, None, st12b)[0], "UNKNOWN")
+
+print("\n12c. An idle session with no baseline and an inherited stale marker (D36's shape)")
+r12c = new_repo("b10-idle-stale")
+(r12c / "code.txt").write_text("an earlier session's commit\n", encoding="utf-8")
+commit(r12c, "earlier work, never wrapped")   # marker now stale; this session did nothing
+v12c = wrap_receipt.verdict(r12c, None, wrap_receipt.steps(r12c, None))[0]
+check("reads UNKNOWN — --check now agrees with archive_guard's reasoning", v12c, "UNKNOWN")
+
+print("\n12d. A baseline that loads but holds no snapshot is NO baseline — never SET")
+r12d = new_repo("b10-hollow")
+hollow_dir = wrap_receipt._baseline_dir(r12d)
+(hollow_dir / "test-session-cairn.json").write_text(
+    '{"schema": 2, "at": 1.0, "head": "%s"}' % head_of(r12d), encoding="utf-8")
+do_wrap(r12d)
+hollow = wrap_receipt.baseline(r12d)
+check("the hollow file does load as a dict", isinstance(hollow, dict))
+check("but it is not usable", wrap_receipt._usable(hollow) is None)
+body12d = wrap_receipt.record(r12d)
+check("so the verdict is UNKNOWN (it was SET at v1.63.0)", body12d["verdict"], "UNKNOWN")
+check("and the receipt says there was no baseline", body12d["baseline"], False)
+check("no usable baseline without a stamp time either",
+      wrap_receipt._usable({"files": {}, "head": "x"}) is None)
+r12e = new_repo("b10-hollow-idle")
+st12e = wrap_receipt.steps(r12e, {"schema": 2, "at": 1.0, "head": head_of(r12e)})
+check("an idle session is not told NEXT.md 'changed since session start'",
+      "since session start" in st12e["next_rewrite"]["detail"], False)
+
+print("\n12e. A snapshot that does not MENTION a file has not measured it")
+r12f = new_repo("b10-partial")
+wrap_receipt.stamp_baseline(r12f)
+partial = dict(wrap_receipt.baseline(r12f))
+partial["files"] = {k: v for k, v in partial["files"].items() if k != "CHANGELOG.md"}
+check("a missing key is None (unmeasured), not True (created this session)",
+      wrap_receipt._changed(r12f, partial, "CHANGELOG.md"), None)
+check("a key that IS there still measures", wrap_receipt._changed(r12f, partial, "NEXT.md"),
+      False)
+
+print("\n12f. A real baseline keeps its measured negatives — the fix is not a blanket UNKNOWN")
+r12g = new_repo("b10-idle-real")
+wrap_receipt.stamp_baseline(r12g)
+(r12g / "code.txt").write_text("work, and no wrap\n", encoding="utf-8")
+commit(r12g, "feat: work")
+b12g = wrap_receipt.baseline(r12g)
+st12g = wrap_receipt.steps(r12g, b12g)
+check("an untouched NEXT.md with a real baseline still reads [SKIP]",
+      st12g["next_rewrite"]["state"], "skipped")
+check("with the byte-identical detail",
+      "byte-identical" in st12g["next_rewrite"]["detail"])
+check("and the verdict is still OPEN", wrap_receipt.verdict(r12g, b12g, st12g)[0], "OPEN")
+
+print("\n12g. The property itself: with no usable baseline, NO step table reads SET")
+all_ran = {n: {"state": "ran", "detail": "forged"} for n in wrap_receipt.REQUIRED}
+for label, base in (("None", None), ("{}", {}), ("hollow", hollow),
+                    ("no at", {"files": {}, "head": "x"})):
+    got = wrap_receipt.verdict(r3, base, all_ran)[0]
+    check(f"base={label}: every required step forged `ran` still reads UNKNOWN", got, "UNKNOWN")
 
 
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))

@@ -100,6 +100,31 @@ leaves the agent with nothing to quote, which is precisely the gap prose walks i
 And prevention comes first: `stamp_child_baselines()` below means the ordinary foreign-root
 session -- a parent directory whose child repos are the real projects -- gets a real baseline
 and therefore a real verdict, so `UNKNOWN` is the backstop rather than the everyday answer.
+
+NO BASELINE MEANS NO `OPEN` EITHER  (B10, 2026-09-26)
+------------------------------------------------------
+B2 made the BLIND steps honest; the steps that need no baseline stayed able to decide the
+verdict alone. With no baseline, a stale `.last_wrap`, an INBOX bullet or a dangling brief link
+still read `skipped`, and `skipped` outranks `unverifiable`, so the receipt printed `CAIRN OPEN`
+directly under a note saying *"hence UNKNOWN rather than OPEN"*. Reproduced against v1.63.0: a
+session that did nothing at all, in a project whose marker an earlier session left behind,
+read `OPEN`. That is the exact cry-wolf `archive_guard.py` already refuses to act on (D36).
+
+The reason is structural, not a detail: `OPEN` asserts *a wrap was owed and a step of it was
+not done*, and "owed" is what the baseline measures (`_nothing_to_wrap`). Without one, the tool
+cannot tell a skipped step from a step nobody needed, so **no usable baseline reads `UNKNOWN`,
+always** -- and the facts the other steps did measure ride along in the reasons, labelled as
+current state rather than as this session's omissions. The `skipped`-before-`unverifiable`
+ordering still holds wherever a baseline exists; this only removes the case where there was
+nothing to order against.
+
+A baseline that is present but unusable (no `files` map, no stamp time) counts as none. Before
+this, one such file made `_changed()` report every tracked file as changed -- a comparison never
+made -- which read `SET` on one fixture and printed "changed since session start" about a file
+nobody touched on another. See `_usable()`.
+
+REJECTED here: stamping lazily inside `--record` (compares the tree to itself and reads all
+green -- the dangerous direction), and reading no baseline as `NOT DUE` (hides a real wrap).
 """
 from __future__ import annotations
 
@@ -183,6 +208,15 @@ UNVERIFIABLE = {
     "session_rename": "the current session title cannot be read back, by design",
     "close": "prose",
 }
+
+# What a blind step says when the cause is "no baseline". Deliberately short: the receipt
+# states the missing baseline ONCE, at the top, and each row only points back at it (B10).
+NO_BASELINE = "not measured: no session-start baseline"
+
+# The first reason of every no-baseline verdict. `_print_receipt` recognises it so the fact is
+# printed once, as the note at the top, rather than again under the table.
+NO_BASELINE_REASON = ("no session-start baseline for this session here, so whether a wrap was "
+                      "owed, and whether it ran, cannot be measured")
 
 _LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+\.md)\)")
 _BULLET_RE = re.compile(r"^\s*[-*]\s+\S")
@@ -385,13 +419,46 @@ def baseline(root: Path, session: str = "") -> dict | None:
     return data if isinstance(data, dict) else None
 
 
+def _usable(base: dict | None) -> dict | None:
+    """`base` if it is a baseline that can actually be measured against, else None (B10).
+
+    "A baseline loaded" is not `bool(base)`. Every measuring branch needs the `files` snapshot
+    (what the tracked files hashed to at session start) and `at` (when -- the marker's
+    inherited-sha check and both mtime steps compare against it). A dict missing either is not
+    a snapshot, and measuring against it asserts comparisons that were never made: with no
+    `files`, `_changed()` read every tracked file as changed. `head` may be "" -- a repo with no
+    commits at session start -- because attribution already reads that as blind.
+
+    Applied at every entry point that takes a baseline, so a caller that hands one in raw (the
+    archive guard, the tests) gets the same answer as `record()`. `baseline()` itself still
+    returns the raw file, so `--stamp-baseline` can say truthfully that it REPLACED one.
+    """
+    if not isinstance(base, dict):
+        return None
+    if not isinstance(base.get("files"), dict):
+        return None
+    at = base.get("at")
+    if isinstance(at, bool) or not isinstance(at, (int, float)) or at <= 0:
+        return None
+    return base
+
+
 # ------------------------------------------------------------------------ step checks
 
 def _changed(root: Path, base: dict, name: str) -> bool | None:
-    """True/False if measurable against the baseline, None if it is not."""
-    if not base:
+    """True/False if measurable against the baseline, None if it is not.
+
+    A file the snapshot does not MENTION is unmeasured, not "absent at session start": the two
+    used to share `.get(name) -> None`, so a baseline written before a name joined `TRACKED`
+    reported that file as created this session (B10, same one-value-two-states family).
+    """
+    base = _usable(base)
+    if base is None:
         return None
-    before = (base.get("files") or {}).get(name)
+    files = base["files"]
+    if name not in files:
+        return None
+    before = files.get(name)
     if before is None and not (root / name).is_file():
         return None
     return _digest(root / name) != before
@@ -441,6 +508,7 @@ def attribution(root: Path, base: dict | None) -> dict:
     composed), `paths` (repo-relative paths this session changed, committed or not).
     Any of them may be None, meaning unmeasurable — which propagates to `unverifiable`.
     """
+    base = _usable(base)
     window = _reflog_window(root, base)
     # WHY it cannot see, not just THAT it cannot. Without this the printer had to name a cause,
     # and it named the wrong one: a bare `--check` outside a Claude Code session has no session id
@@ -449,7 +517,9 @@ def attribution(root: Path, base: dict | None) -> dict:
     if base and (base.get("head") or ""):
         reason = "" if window is not None else "the baseline HEAD is not in this checkout's reflog"
     else:
-        reason = "no session baseline (a bare CLI run outside a session has none)"
+        # No cause asserted here: "a bare CLI run" is one of THREE ways to have none (B2, B10),
+        # and the printer's note, which can read the session id, is where the cause is named.
+        reason = "no session-start baseline"
     commits = None if window is None else [s for s, subj in window if _authored_here(subj)]
 
     paths: set[str] | None = None
@@ -481,7 +551,17 @@ def attribution(root: Path, base: dict | None) -> dict:
 
 
 def _changed_by_session(root: Path, base: dict, attrib: dict, name: str) -> bool | None:
-    """True only when the content moved AND git says this tree moved it."""
+    """True only when the content moved AND git says this tree moved it. None = cannot tell.
+
+    B10 named this function as the source of a false `False` ("`paths` is `[]`, not `None`,
+    when attribution can see nothing"). Re-measured against v1.63.0 it no longer is: with no
+    baseline `_changed()` is None and returns first, and `attribution()` only builds `paths`
+    once a reflog window exists. The explicit guard below keeps that true by construction
+    rather than by the order of two calls -- a False from here is read as "measured, and this
+    session did not touch it", which is the claim nobody gets to make without a baseline.
+    """
+    if _usable(base) is None:
+        return None
     changed = _changed(root, base, name)
     if changed is None:
         return None
@@ -498,6 +578,7 @@ def work_head(root: Path, base: dict | None, attrib: dict | None = None) -> str:
     stamped before `_divergence_warning` fetches, so a recorded origin sha would be the
     stale one.
     """
+    base = _usable(base)
     attrib = attribution(root, base) if attrib is None else attrib
     for sha, subject in (attrib.get("window") or []):
         if not _authored_here(subject):
@@ -587,19 +668,26 @@ def steps(root: Path, base: dict | None, attrib: dict | None = None) -> dict:
     def put(name, state, detail=""):
         out[name] = {"state": state, "detail": detail}
 
-    have_base = bool(base)
+    # Gated on a baseline that can actually be measured against, not on `bool(base)` (B10).
+    base = _usable(base)
+    have_base = base is not None
     base_head = (base or {}).get("head") or ""
     base_at = float((base or {}).get("at") or 0)
     attrib = attribution(root, base) if attrib is None else attrib
     session_shas = attrib.get("commits")
 
     def tracked_step(name, filename, ran_detail, idle_detail, blind_detail):
-        state = _changed_by_session(root, base or {}, attrib, filename) if have_base else None
+        if not have_base:
+            # The idle and pull branches below are CLAIMS about a comparison with the
+            # session-start snapshot. With no snapshot there is no comparison to report.
+            put(name, "unverifiable", NO_BASELINE)
+            return
+        state = _changed_by_session(root, base, attrib, filename)
         if state is None:
             put(name, "unverifiable", blind_detail)
         elif state:
             put(name, "ran", ran_detail)
-        elif _changed(root, base or {}, filename):
+        elif _changed(root, base, filename):
             # The whole of B122: content moved, but not by anything this session did.
             put(name, "skipped",
                 f"{filename} changed since session start, but the change arrived by "
@@ -611,20 +699,20 @@ def steps(root: Path, base: dict | None, attrib: dict | None = None) -> dict:
     tracked_step("next_rewrite", "NEXT.md",
                  "NEXT.md rewritten here this session",
                  "NEXT.md is byte-identical to session start",
-                 "no session baseline, or no HEAD reflog — cannot tell a rewrite from a pull")
+                 "no HEAD reflog above the baseline — cannot tell a rewrite from a pull")
 
     # --- step 2: the CHANGELOG entry ---------------------------------------------------
     tracked_step("changelog", "CHANGELOG.md",
                  "CHANGELOG.md written here this session",
                  "CHANGELOG.md untouched",
-                 "no session baseline, no CHANGELOG.md, or no HEAD reflog")
+                 "no CHANGELOG.md, or no HEAD reflog above the baseline")
 
     # --- step 4: the commit --------------------------------------------------------------
     head = git(root, "rev-parse", "HEAD") or ""
     if not head:
         put("commit", "unverifiable", "not a git repo, or no commits yet")
     elif not have_base:
-        put("commit", "unverifiable", "no session baseline to compare HEAD against")
+        put("commit", "unverifiable", NO_BASELINE)
     elif session_shas is None:
         put("commit", "unverifiable",
             "this checkout keeps no HEAD reflog, so a commit cannot be told from a pull")
@@ -669,7 +757,14 @@ def steps(root: Path, base: dict | None, attrib: dict | None = None) -> dict:
         put("marker", "skipped", "no .claude/.last_wrap")
     elif marked != head:
         put("marker", "skipped", f".last_wrap is {marked[:8]}, HEAD is {head[:8]}")
-    elif have_base and _mtime_after(root / WRAP_MARKER_REL, base_at) is False:
+    elif not have_base:
+        # "stamped this session" is a claim about WHEN, and `base_at` is the only clock this
+        # tool has. Without it a matching sha may be inherited -- the hole the branch below
+        # closes when it can (B10: no positive claims about comparisons never made).
+        put("marker", "unverifiable",
+            f".last_wrap == HEAD ({head[:8]}), but with no session-start baseline it cannot "
+            f"be told whether it was stamped this session or inherited")
+    elif _mtime_after(root / WRAP_MARKER_REL, base_at) is False:
         # An INHERITED marker: it names the right sha but was written before this session
         # began, which is the hole B122's last paragraph describes. An honest wrap always
         # rewrites the marker during the session, so this can never cause a false `skipped`.
@@ -684,7 +779,7 @@ def steps(root: Path, base: dict | None, attrib: dict | None = None) -> dict:
     if record is None:
         put("decisions", "n/a", "this project has no rationale record")
     elif not have_base:
-        put("decisions", "unverifiable", "no session baseline")
+        put("decisions", "unverifiable", NO_BASELINE)
     else:
         # mtime alone greens on a pull — the rationale record is tracked and routinely
         # pulled — so conjoin it with git's attribution, same as the tracked files above.
@@ -709,7 +804,7 @@ def steps(root: Path, base: dict | None, attrib: dict | None = None) -> dict:
     # not a weak signal here, it is the only signal there is.
     mistakes = _mistakes_path()
     if not have_base:
-        put("mistakes", "unverifiable", "no session baseline")
+        put("mistakes", "unverifiable", NO_BASELINE)
     elif not mistakes.is_file():
         # Measurably not appended to — the plugin creates this file on every machine, so
         # its absence is a fact, not a blind spot. Distinct from the unreadable case below:
@@ -864,6 +959,7 @@ def _nothing_to_wrap(root: Path, base: dict | None, attrib: dict | None = None) 
     changes = dirty_paths(root)
     if changes is None or changes:
         return False
+    base = _usable(base)
     if base is None:
         return False                    # cannot see this session's activity — never claim
     attrib = attribution(root, base) if attrib is None else attrib
@@ -882,16 +978,30 @@ def verdict(root: Path, base: dict | None, step_states: dict,
     """(`SET` | `NOT DUE` | `OPEN` | `UNKNOWN`, reasons). All four come from here, or none do.
 
     `OPEN` and `UNKNOWN` are the two halves of what used to be one answer (B2), and the
-    ORDER of the two tests below is the whole guarantee. `skipped` — measured absent — is
-    checked FIRST, so a wrap that both skipped a step and could not measure another still
-    reads `OPEN`. `UNKNOWN` is reachable only when NOTHING was measured skipped and something
+    ORDER of the two tests below is the whole guarantee. Once a baseline exists, `skipped` —
+    measured absent — is checked FIRST, so a wrap that both skipped a step and could not
+    measure another still reads `OPEN`. `UNKNOWN` is reachable only when NOTHING was measured skipped and something
     could not be measured at all: the apparatus is missing, not the work.
 
     That ordering is what stops `UNKNOWN` becoming the soft landing an incomplete wrap gets.
     Do not reverse it, and do not fold `unverifiable` back into `OPEN` "to be safe" — an
     `OPEN` that cries wolf teaches the reader to discount the `OPEN` that does not, which is
     the failure the verdict exists to prevent.
+
+    WITH NO USABLE BASELINE THE ANSWER IS `UNKNOWN`, BEFORE ANYTHING ELSE IS LOOKED AT (B10).
+    `OPEN` means "a wrap was owed and part of it was not done"; the baseline is what measures
+    "owed", so without one a stale marker left by an earlier session is indistinguishable from
+    one this session forgot. The steps that were still measurable (marker, inbox, briefs) are
+    not dropped -- they follow `NO_BASELINE_REASON` in the reasons, worded as current state.
+    This test comes FIRST and returns only `UNKNOWN`, so `step_states` cannot talk a
+    no-baseline session into `SET` or `NOT DUE` however they read: that is the direction B10's
+    own rejected fix (a lazy stamp inside `--record`) would have gone wrong in.
     """
+    if _usable(base) is None:
+        gaps = [f"{n}: {step_states[n]['detail']} (current state; with no baseline this "
+                f"cannot be attributed to this session)"
+                for n in REQUIRED if step_states.get(n, {}).get("state") == "skipped"]
+        return "UNKNOWN", [NO_BASELINE_REASON] + gaps
     if _nothing_to_wrap(root, base, attrib):
         return "NOT DUE", ["no commits, no file changes and a clean tree since session start"]
     skipped = [name for name in REQUIRED if step_states.get(name, {}).get("state") == "skipped"]
@@ -915,7 +1025,7 @@ def record(root: Path, session: str = "", held: bool = False) -> dict:
     did NOT push — see `measurements()` for why this cannot be inferred.
     """
     session = session or session_id()
-    base = baseline(root, session)
+    base = _usable(baseline(root, session))
     attrib = attribution(root, base)
     step_states = steps(root, base, attrib)
     state, reasons = verdict(root, base, step_states, attrib)
@@ -989,8 +1099,12 @@ def orientation_line(root: Path) -> str | None:
         # NOT "did not wrap" (B2). The previous session may have wrapped perfectly; what the
         # receipt records is that it could not be measured from where that session stood.
         # Saying otherwise here would reintroduce the cry-wolf the fourth verdict removed.
+        # The cause is read off the receipt, not assumed (B10): "from where it was started"
+        # was wrong for a `--resume` in the project itself, and for a blind reflog.
+        why = ("it had no session-start baseline here" if data.get("baseline") is False
+               else "its steps could not be measured")
         return (f"Last {STEM}: UNKNOWN at {when} — the previous session's wrap could not be "
-                f"measured from where it was started, so whether it ran is unrecorded.")
+                f"measured ({why}), so whether it ran is unrecorded.")
     if state != "SET":
         return (f"Last {STEM}: {state} at {when} — the previous session did not record a "
                 f"completed wrap.")
@@ -1023,17 +1137,28 @@ def _print_receipt(body: dict, root: Path | None = None) -> None:
     # is simply false of a real in-session wrap run from a parent directory, which is the case
     # B2 was filed on. One message for two opposite states is the defect this whole file
     # exists to catch, so the cause is now read off the session id rather than assumed.
-    if body.get("attributed") is False and "baseline" in (body.get("attribution_reason") or ""):
+    #
+    # B10 -- and a THIRD way, which this note used to misname as the second: a `--resume` or a
+    # crash-restart in the project itself, where SessionStart never stamped for this session id.
+    # The note is also now the ONLY place the missing baseline is stated: the rows point back at
+    # it, and the attribution line and the reason that would repeat it are not printed.
+    no_base = (body.get("baseline") is False if "baseline" in body else
+               (body.get("attributed") is False
+                and "baseline" in (body.get("attribution_reason") or "")))
+    if no_base:
         where = f" for {root}" if root is not None else ""
         print()
-        print("  NOTE: no session baseline, so next_rewrite / changelog / commit CANNOT be")
-        print("  measured here. That is a wrong place to stand, not a failure.")
+        print("  NOTE: no session-start baseline, so this tool cannot tell whether a wrap was")
+        print("  owed or whether it ran. The verdict is UNKNOWN, never OPEN or SET, and each")
+        print("  `?` row below that says so is this same fact. A missing measurement, not a")
+        print("  failure.")
         if body.get("session"):
-            print(f"  This process HAS a session id ({body['session'][:24]}), but no baseline")
-            print(f"  was stamped{where}. A baseline is written at SessionStart for the directory")
-            print("  the session STARTED in; this session started somewhere else, so the three")
-            print("  tracked steps are blind here. Hence UNKNOWN rather than OPEN: the wrap may")
-            print("  have run in full, and this tool cannot say either way.")
+            print(f"  This process HAS a session id ({body['session'][:24]}), but no usable")
+            print(f"  baseline was stamped{where}. A baseline is written at SessionStart, for")
+            print("  the directory the session started in. Either this session")
+            print("  started somewhere else, or SessionStart never ran for it here (a --resume")
+            print("  or a crash-restart).")
+            print("  The wrap may have run in full, and this tool cannot say either way.")
         else:
             print("  The baseline is keyed to the session id, which a plain terminal does not")
             print("  have. Run this from INSIDE a Claude Code session to get a real answer.")
@@ -1060,14 +1185,17 @@ def _print_receipt(body: dict, root: Path | None = None) -> None:
         print(f"  {'archive':<17} {body['advisory']}   (live, not part of the id)")
     # Printed only when there is something to say: without a HEAD reflog, a pull and a
     # commit are indistinguishable and the steps above degrade to `unverifiable` (B122).
-    if body.get("attributed") is False:
+    if body.get("attributed") is False and not no_base:
         why = body.get("attribution_reason") or "cause not recorded"
         print(f"  {'attribution':<17} UNAVAILABLE — {why}, so a pull cannot be told from a commit")
     print()
     if body["verdict"] != "SET":
-        for reason in body.get("reasons", []):
+        reasons = [r for r in body.get("reasons", [])
+                   if not (no_base and r == NO_BASELINE_REASON)]
+        for reason in reasons:
             print(f"  ! {reason}")
-        print()
+        if reasons:
+            print()
     print(_token(body["verdict"], body["id"]))
 
 
@@ -1104,7 +1232,7 @@ def main(argv: list[str] | None = None) -> int:
         _print_receipt(body, root)
         return 0 if body["verdict"] in ("SET", "NOT DUE") else 1
     if args[0] == "--check":
-        base = baseline(root)
+        base = _usable(baseline(root))
         attrib = attribution(root, base)
         step_states = steps(root, base, attrib)
         state, reasons = verdict(root, base, step_states, attrib)
@@ -1113,6 +1241,7 @@ def main(argv: list[str] | None = None) -> int:
         # from a foreign root is the commoner of the two ways to meet that question.
         body = {"steps": step_states, "verdict": state, "reasons": reasons,
                 "session": session_id(),
+                "baseline": base is not None,
                 "measurements": measurements(root, base, "--held" in args, attrib),
                 "attributed": attrib.get("paths") is not None,
                 "attribution_reason": attrib.get("reason") or "",
