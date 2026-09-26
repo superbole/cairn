@@ -140,6 +140,11 @@ check("subprocess with tiktoken blocked exits 0", result.returncode, 0)
 check("estimate banner names tiktoken as NOT INSTALLED",
       "NOT INSTALLED" in result.stdout, True)
 check("install hint printed for exact counts", "pip install tiktoken" in result.stdout, True)
+# The brief (B23) is explicit: the hint is a HEADER line, said once -- never repeated per row.
+# A count of >1 would mean it started leaking onto every estimated line, which is the exact
+# "one value, two opposite states" shape the labelling exists to prevent one level up.
+check("install hint printed exactly once, not once per estimated row",
+      result.stdout.count("pip install tiktoken"), 1)
 check("no traceback leaked to stdout", "Traceback" not in result.stdout, True)
 check("stderr is empty (no crash noise)", result.stderr.strip(), "")
 
