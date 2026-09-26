@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 77 -->
+<!-- next-id: 78 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,38 +7,6 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
-
-## B10. With NO baseline at all, the receipt reports a confident `[SKIP]` instead of "cannot tell"
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-20` · issue `#8` · closed
-Brief: [briefs/receipt-no-baseline.md](briefs/receipt-no-baseline.md). Pulled to refill the Queue by the 2026-09-26 overnight batch.
-Was `agent-reentry` B143 (migrated 2026-09-23). **Re-check against v1.57.0 first** — that release
-added `CAIRN UNKNOWN` and reordered `verdict()` so `skipped` is tested before `unverifiable`, which
-makes this defect *more* consequential, not less: a false `skipped` now always wins.
-
-Found wrapping a project on 2026-09-20. The wrap rewrote `NEXT.md` (37 lines) and `CHANGELOG.md`
-(79 lines) and committed both — verifiable with one `git show --stat`. `wrap_receipt.py --record`
-printed `[SKIP] next_rewrite  NEXT.md is byte-identical to session start` and `[SKIP] changelog
-CHANGELOG.md untouched`, then `CAIRN OPEN`. **There was no baseline**: the session was a `--resume`,
-the `SessionStart` stamp never ran for it, and `wrap_baseline/` was created by the `--record` itself.
-
-**The defect is in `tracked_step`, not in the missing stamp.** The two helpers disagree about "no data":
-`_changed(root, {}, name)` returns **`None`** (correctly unmeasurable), but `_changed_by_session(...)`
-returns `bool(changed and name in paths)` → **`False`**, because `attrib["paths"]` is `[]` rather
-than `None` when attribution can see nothing. `False` is not `None`, so the `unverifiable` guard is
-skipped and control reaches `put(name, "skipped", idle_detail)` — printing *"byte-identical to
-session start"* as a positive claim about a comparison never made. Measured on the live tree:
-`paths: []`, `commits: None`, `window: None`.
-
-**Why it matters:** `CAIRN OPEN` is defined as actionable (*"go back and run them, then re-record"*).
-Here the only way to clear it is to edit two correct files purely to move a hash. A verdict that
-cannot be honestly cleared trains the reader to ignore it.
-
-**Fix:** (1) `_changed_by_session` returns `None` when `paths` is empty AND `_changed` is `None`;
-(2) gate the measuring branch on a baseline that actually loaded, not on `have_base`; (3) a receipt
-with no baseline says so **once, at the top**, rather than six plausible negatives.
-**Rejected:** stamping a baseline lazily inside `--record` (compares the tree to itself, all green —
-worse in the dangerous direction); treating no baseline as `NOT DUE` (hides a real wrap).
-**Related:** B11 (the same missing baseline, the resume/crash cause), B6 (`/clear`), B5 (siblings).
 
 ## B11. A baseline keyed only by session id does not survive a crash-and-resume
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06` · issue `#9`
@@ -283,21 +251,6 @@ listed; (2) a linked brief must be newer than the newest decision it cites — a
 agreement, **do not build alone**; (3) at wrap, list Queue-linked briefs unchanged since the last
 decision row and ASK — report-only, but needs precision discipline (B21) before shipping. Re-read
 any mechanism against the correction above: here both files were self-consistent at every step.
-
-## B23. `measure_context.py` hard-fails on any machine without `tiktoken`
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#21` · closed
-Brief: [briefs/measure-context-no-tiktoken.md](briefs/measure-context-no-tiktoken.md). Pulled to refill the Queue by the 2026-09-26 overnight batch.
-Was `agent-reentry` B95 (migrated 2026-09-23). `import tiktoken` is at module level, unguarded; on a
-machine without it (`pip show tiktoken` → not found, Python 3.14.0) the tool dies with
-`ModuleNotFoundError` before printing anything. **Confirmed on a second machine 2026-09-07.**
-`rules/CLAUDE.md`'s last rule says *"Measure with the plugin's `tools/measure_context.py` instead of
-quoting"*, so the payload tells every agent to run a tool that cannot run there — leaving only a
-stale quote (forbidden) or a bytes fallback. **Ruled out:** PATH/venv; the package is absent and
-nothing installs it; README and docstring mention no dependency step.
-**Options:** (a) guard the import, fall back to bytes-and-estimate labelled as such; (b) print an
-install line and exit non-zero; (c) `requirements.txt` + README step — but the plugin has zero Python
-dependencies and that is worth something. **Recommend (a), with (c) as the documented way to get
-exact counts.** Blocks B24's real number.
 
 ## B24. Nothing tracks the always-loaded context budget, and the files have grown since the last trim
 `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-07` · issue `#22`
@@ -1125,35 +1078,6 @@ for a human, so `python3`/`py` alternatives are fine there). Leave `skills/*/ref
 alone: it quotes history verbatim on purpose. Consider widening `test_skill_calls.py` to `docs/` with
 an allow-list for dated evidence.
 
-## B69. Scheduled batch tasks start in Manual; make an unattended run safe without a mode
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#67` · closed
-Found 2026-09-25 when both overnight tasks came up in default/Manual mode. `create_scheduled_task` and
-`update_scheduled_task` have no permission-mode field, `SKILL.md` frontmatter has none, the mode lives
-in app state and is set from the Scheduled sidebar, and `set_session_permission_mode` needs a human
-approval card to go up to auto, so it cannot help an unattended run. `docs/running-a-batch.md` already
-records the 2026-09-06 Manual stall (the 05:00 firing sat four hours on a prompt) but only says "tell
-him which mode". **Fix:** before scheduling, write or verify a project `.claude/settings.json` with
-allow rules for exactly what a batch needs (Read/Edit/Write/Agent, `Bash(git add/diff/commit/status/log:*)`,
-`Bash(sh plugins/cairn/hooks/run.sh:*)` and `Bash(python plugins/cairn/...)`), plus `deny: Bash(git push:*)`
-and a deny on `tools/sync_backlog.py`. Allow rules apply in every mode; the deny makes the no-push rule
-mechanical instead of prompt text. Update `running-a-batch.md`. This repo has no `.claude/settings.json`
-today (checked 2026-09-26). **Ruled out:** relying on the user to flip the mode, which is what failed.
-**Also add a network preflight to the same doc.** The 05:00 wave-2 firing on 2026-09-26 died on its
-first model call (`ECONNREFUSED`), because that machine sends API traffic through a proxy reachable only
-on VPN, and the VPN had dropped overnight. The batch did nothing and nobody knew until morning. The
-machine-specific half is that hub's watch; the durable half is a line in `running-a-batch.md`: an
-overnight batch needs the machine to keep its route to the API all night (VPN held, no sleep), and a
-failed firing is visible only in the routine's Runs list. Filed by the W5 review; wave 2 was meant to
-file it and never ran.
-
-## B70. Plan the October AFK token spend
-`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · issue `#68` · closed
-Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md), a stub. The full brief is in the private config store. Queued as item 1 because it is due 2026-10-01.
-Plan how unattended work uses the weekly allowance over the coming weeks: cloud routines versus
-local scheduled tasks (B69 is a prerequisite for local runs), a branch-and-PR review model, and a
-dry run before the due date. Also decide whether cairn should read the reset time itself and print
-it in the orientation.
-
 ## B71. Wrap: act on sync_backlog dangling-citation warnings inline; prefer gh/glab for cross-repo backlog items
 added `2026-09-26` · issue `#69`
 Two related findings from an ai-coach wrap session (2026-09-26), both about how an agent
@@ -1222,7 +1146,7 @@ spent floor that isn't already in the file, refuse, don't renumber. Add a test w
 numbered headings does the same.
 
 ## B73. Offer "do N covers N, M" when a queue item can run other queued AFK items as its own lanes
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#74`
 **Requested 2026-09-26**, on seeing the orientation say that queue item 1 (B70) runs items 2 and 3
 as background worktree subagents, so one "do 1" covers all three: *"I like this, we should provide
 this as an option when it's possible."* Today that only happened because B70's hand-written brief
@@ -1250,7 +1174,7 @@ orientation hook's queue rendering, the brief template, and `docs/running-a-batc
 **Ruled out:** a second parallel session per item, because the user has rejected that.
 
 ## B74. The orientation should say when the weekly allowance resets, and how much AFK work is runnable
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#75`
 **Decided 2026-09-26 in B70's planning session: file it, don't build it yet.** The weekly allowance
 is use-it-or-lose-it, but the only place the reset time lives is the user's profile (prose, in their
 private store). So nothing reminds anyone on the day it matters. By the time someone notices unused
@@ -1269,7 +1193,7 @@ has to be decided), `docs/file-formats.md`, and the README's opt-in list. **Rule
 this user's reset times anywhere in the plugin, since they are personal and the plugin is public.
 
 ## B75. `run_tests.py`'s leak detector blames a test for a state dir another session created
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#76`
 **Seen 2026-09-26** during B70's planning session. It ran three worktree lanes and a doc-fix agent at
 once. The doc agent's `run_tests.py --timeout=300` reported `33/33 test files passed … ALL PASS` and then
 `LEAKED 1 new directory into ~/.claude/reentry-state from 1 file(s): ['test_archive_guard.py']`, exiting 1.
@@ -1289,7 +1213,7 @@ prune dirs whose project path no longer exists. **Ruled out:** relaxing the dete
 fail, because the B74 docstring in `run_tests.py` explains why a real leak must fail the run.
 
 ## B76. Model labels are pinned to version strings, so a new release (Opus 5.5) reads as "no model"
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · queued
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#77` · queued
 Brief: [briefs/model-labels-by-family.md](briefs/model-labels-by-family.md). Pulled to refill the Queue at B70's wrap, 2026-09-26.
 **Asked 2026-09-26:** *"how does Cairn handle this?"*, on Opus 5.5 being released. **It doesn't.**
 Cairn has no model discovery at all. An agent writes the model label into each item when it files or
@@ -1318,7 +1242,7 @@ version is optional.
 work, and at what cost.
 
 ## B77. Guard `main` against unattended pushes with something stronger than permission patterns
-`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26`
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · issue `#78`
 **From B69's lane (v1.64.0), dossier `docs/review/2026-09-26-1225-lane-b69.md` §5.** `.claude/settings.json`
 now **asks** before every push that can reach `main`. A local unattended run therefore stalls rather than
 pushes. But patterns cannot close everything: quoted or escaped verbs, git aliases, `exec`/`xargs`
@@ -1339,3 +1263,13 @@ Changing a repo setting is his to approve (HITL).
 (its limit: it is not installed in a fresh cloud clone unless `core.hooksPath` is committed and honoured).
 **Ruled out:** `deny` in `settings.json`, because it also refuses his attended wraps (his decision,
 2026-09-26).
+
+## B78. Wrap close: print the 'Next: item N …' line in a copy box
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#73`
+Reported 2026-09-26 (captured via a project's INBOX.md, then triaged here).
+
+The wrap close ends with the "what's next" line, e.g. *"Next: item 1 — <title>. Opus 5, effort high, AFK in Auto mode."* The user copied that line by hand from the close to start the next session. They asked for it to be printed in a **copy box**, i.e. a fenced code block, so the desktop app gives it a copy button.
+
+Tension to resolve: step 9 says **do not paste a ready-to-copy prompt into chat** (the 2026-08-09 correction), because everything a prompt would hold is already on disk. This is not that. It is a one-line handle (item number, title, model, effort, attendance/mode), and it is evidently what the user types to re-enter. A likely resolution: fence the one "Next:" line and keep the prose around it.
+
+Touches: `skills/wrap/SKILL.md` step 9, plus the matching incident note in `skills/wrap/references/incidents.md`.
