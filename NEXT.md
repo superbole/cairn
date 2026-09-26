@@ -39,6 +39,20 @@ The real dogfooding test, and no current machine can run it — every one has ha
 all could pass while a stranger fails. When it fires, check: does the orientation print, does
 `install_rules` write the managed block, and does the plugin stay silent in a project with no `NEXT.md`.
 
+**W5. The first real cloud firing (F1) ran as specified** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-09-30`
+F1 is scheduled for 2026-09-29 20:00 (B70's plan, in the private store). Check: the routine's Runs list
+shows success; each item became one `afk/<date>-<nn>-<Bnn>-<slug>` PR off `origin/main` that touches no
+shared file; the PR notification reached the phone; and nothing reached `main`. Also read the usage page
+and compare it with the dry run's delta. **Blocked on the dry run's own verdict:** if
+`git push --dry-run origin main` was NOT blocked in the cloud, F1 must not have run until the push rules
+were set back to `deny` (D39).
+
+**W6. Review and merge the unattended `afk/` PRs, then catch the bookkeeping up** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-10-20`
+Every cloud firing through 2026-10-18 leaves PRs on `superbole/cairn`. Read each dossier against its diff
+(`docs/running-a-batch.md`, "The review surface"), merge or close each one, then do one bookkeeping pass
+(CHANGELOG, version bump, `BACKLOG.md` closes, the Queue) and run `tools/sync_backlog.py`. Any lane-0
+bookkeeping PRs already merged cover part of this, so read `git log` first.
+
 ---
 
 `cairn` — session re-entry for people who cannot hold state between sessions.

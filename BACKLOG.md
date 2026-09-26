@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 75 -->
+<!-- next-id: 77 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1125,7 +1125,7 @@ alone: it quotes history verbatim on purpose. Consider widening `test_skill_call
 an allow-list for dated evidence.
 
 ## B69. Scheduled batch tasks start in Manual; make an unattended run safe without a mode
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#67`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#67` · closed
 Found 2026-09-25 when both overnight tasks came up in default/Manual mode. `create_scheduled_task` and
 `update_scheduled_task` have no permission-mode field, `SKILL.md` frontmatter has none, the mode lives
 in app state and is set from the Scheduled sidebar, and `set_session_permission_mode` needs a human
@@ -1286,3 +1286,54 @@ Alternatively, run each test file with its own `CLAUDE_CONFIG_DIR` and drop the 
 whether the orientation hook should skip stamping for `.claude/worktrees/*` cwds, or whether a sweep should
 prune dirs whose project path no longer exists. **Ruled out:** relaxing the detector to warn instead of
 fail, because the B74 docstring in `run_tests.py` explains why a real leak must fail the run.
+
+## B76. Model labels are pinned to version strings, so a new release (Opus 5.5) reads as "no model"
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26`
+**Asked 2026-09-26:** *"how does Cairn handle this?"*, on Opus 5.5 being released. **It doesn't.**
+Cairn has no model discovery at all. An agent writes the model label into each item when it files or
+refills it, choosing by the tiering rule (the stronger model for deciding, the cheaper one for
+executing; see `rules/CLAUDE.md` "How work gets done" and the profile). The agent checks for a
+mismatch by comparing that label with the model named in its own context. The list of models comes
+from the harness's system context, never from cairn.
+**The defect:** `hooks/backlog_file.py:78`,
+`_MODEL_RE = re.compile(r"`(Opus 5|Sonnet 5|Haiku 4\.5|Fable 5)`", re.I)`, is a fixed list of version
+strings. `validate_next.py` and the orientation reuse it. So an item labelled `` `Opus 5.5` `` (or
+`` `Fable 5.1` `` or `` `Sonnet 5.5` ``) doesn't match, and reads as **missing its model**. Every model
+release would need a plugin release, and "Opus 5" has quietly come to mean "the Opus tier". This
+session (Opus 5.5) ran items labelled `Opus 5` and judged "above or equal" by family, which is right,
+but nothing in the code knows that.
+**Fix to decide:** (a) labels name the FAMILY, meaning the tier (`Opus`, `Sonnet`, `Haiku`, `Fable`), and
+the regex accepts an optional version (`(Opus|Sonnet|Haiku|Fable)(\s+\d+(\.\d+)?)?`). The mismatch check
+compares families by a tier order (Haiku < Sonnet < Opus, with Fable's place stated explicitly), not by
+version. (b) keep versions and widen the regex only. **(a) is recommended:** a queued item's brief
+outlives releases, and the question at pick time is "am I on the tier this item needs?", not "am I
+on this exact version?". The `Agent` tool already takes `model: opus|sonnet`, which resolves to the
+current release, so lanes launched today ran on the newest Opus with no change. Update
+`rules/CLAUDE.md`'s queue template, both skills' examples, the profile's tiering line (it lives in the
+private store), and the tests that pin `Opus 5`. Existing `Opus 5` labels keep parsing, since the
+version is optional.
+**Where Fable fits** has to be written down, not assumed: whether it sits above Opus for judgement
+work, and at what cost.
+
+## B77. Guard `main` against unattended pushes with something stronger than permission patterns
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26`
+**From B69's lane (v1.64.0), dossier `docs/review/2026-09-26-1225-lane-b69.md` §5.** `.claude/settings.json`
+now **asks** before every push that can reach `main`. A local unattended run therefore stalls rather than
+pushes. But patterns cannot close everything: quoted or escaped verbs, git aliases, `exec`/`xargs`
+wrappers, `GIT_CONFIG_*` injection, globs, and a run writing a script and executing it with an allowed
+interpreter. That last one cannot be closed by a pattern or a hook. The `afk/` and `tools/*` allows also
+match six push forms and some sync forms by construction, so the `ask` rules are load-bearing. And the
+routines docs say a cloud routine runs "without stopping for approval", which may mean `ask` is simply
+approved there. The cloud dry run tests that.
+**The strongest candidate is GitHub-side:** the routines docs say a routine **refuses to push to a
+protected branch**
+(https://code.claude.com/docs/en/routines.md#repositories-and-branch-permissions). Routines push as the
+user's own GitHub identity, so a ruleset cannot tell a routine from him at GitHub. But the refusal is
+the routine's own check, so protecting `main`, while his attended pushes still work through an admin
+bypass, may stop routines cold. **Unverified.** Test it on a throwaway repo before relying on it.
+Changing a repo setting is his to approve (HITL).
+**Also proposed:** a project `PreToolUse` push-guard hook that resolves a push's real destination with
+`git push --dry-run --porcelain` and refuses anything that reaches `main`, plus a `pre-push` git hook
+(its limit: it is not installed in a fresh cloud clone unless `core.hooksPath` is committed and honoured).
+**Ruled out:** `deny` in `settings.json`, because it also refuses his attended wraps (his decision,
+2026-09-26).
