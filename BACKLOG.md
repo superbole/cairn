@@ -1200,7 +1200,7 @@ This issue itself was filed this way, from the ai-coach session that found it, a
 instance of the proposed rule.
 
 ## B72. An inbound issue whose body has `## N.` headings becomes extra backlog items
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#72`
 **Seen 2026-09-26.** `sync_backlog.py` pulled issue #69 in as B71, and that issue's body has two
 sub-headings, `## 1. …` and `## 2. …`. On the next sync, `backlog_file._ITEM_RE`
 (`^##\s+B?(\d+)\.\s+(.+?)\s*$`, where the `B` is optional) read them as items **1** and **2**. It
