@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 70 -->
+<!-- next-id: 71 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1149,3 +1149,53 @@ allowance is use-it-or-lose-it. The plan picks cloud routines vs local scheduled
 needs the VPN, see `workspace` W11, and B69), the review model for 19 days of AFK output, and a way to
 notify him, then dry-runs all three before he leaves. Also decide whether cairn should read the reset
 time itself and print it in the orientation.
+
+## B71. Wrap: act on sync_backlog dangling-citation warnings inline; prefer gh/glab for cross-repo backlog items
+added `2026-09-26` · issue `#69`
+Two related findings from an ai-coach wrap session (2026-09-26), both about how an agent
+should behave when cairn-relevant work surfaces from inside a *different* project's session.
+
+## 1. A named, unambiguous sync warning got deferred instead of fixed
+
+`sync_backlog.py` closed ai-coach's B141 and printed:
+
+    backlog: 3 reference(s) elsewhere still name an item this sync is about to drop (B141) —
+    they will point at nothing once BACKLOG.md is rewritten; fix them by hand:
+      · BACKLOG.md:1319 — ...
+      · BACKLOG.md:1709 — ...
+      · BACKLOG.md:1724 — ...
+
+The session reported this to the user as a heads-up for later ("doesn't block anything —
+a note for whoever next touches those entries") instead of just fixing it. The user pushed
+back: *"why didn't you do this automatically?"* — correctly. The warning named exact files,
+exact lines, and an unambiguous fix (repoint the citation to the CHANGELOG entry that has
+the real narrative). There was no judgement call left to defer.
+
+**Proposed fix:** `skills/wrap/SKILL.md` step 8a (or wherever `sync_backlog.py`'s output is
+handled) should say plainly: a dangling-citation warning is fixed in the same wrap turn it is
+printed in, not logged as a note — unless the fix is genuinely ambiguous (multiple plausible
+targets, or the citation's meaning is unclear), in which case *that* ambiguity is what gets
+surfaced, not the mechanical fact that something needs fixing.
+
+## 2. Cross-repo backlog additions should go through gh/glab, not a local edit
+
+The above surfaced a broader question: when a session working in project A notices something
+that belongs in project B's (e.g. cairn's own) `BACKLOG.md`, editing B's file locally means a
+checkout, a commit, and a push from a session that has no other reason to be in that repo —
+and risks exactly the concurrent-edit collision the whole system exists to prevent, just
+against the *tooling's own* repo instead of a project repo. This is live right now: cairn is
+being edited on NB1 while this finding came from a DeepThought session in ai-coach.
+
+`sync_backlog.py` already has the reconciliation path for this — an issue that exists on the
+host but isn't yet in `BACKLOG.md` is pulled in and marked `inbound` on that repo's own next
+wrap. So the round-trip already exists; it's just not named as the default.
+
+**Proposed fix:** document in `rules/CLAUDE.md` or `skills/wrap/SKILL.md`: when a session
+notices a backlog-worthy item for a DIFFERENT project (including cairn itself) than the one
+it is working in, file it via `gh issue create` / `glab issue create` against that repo,
+never by editing its `BACKLOG.md`/`NEXT.md` locally. Local edits to a project's own re-entry
+files stay reserved for sessions actually working in that project (or, for cairn specifically,
+actual plugin development — editing rules/skills/hooks, which needs a real checkout anyway).
+
+This issue itself was filed this way, from the ai-coach session that found it, as a live
+instance of the proposed rule.
