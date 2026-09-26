@@ -23,6 +23,15 @@ session was needed. Each was reviewed against its diff and cherry-picked onto `m
 - **Filed B73**, from the user's request: offer "do N also runs M" when queued AFK items don't
   overlap on files. **Filed B74**: the orientation should print the weekly reset and the runnable AFK
   count (a B70 decision: file it, don't build it yet).
+- **B69 closed: unattended runs no longer depend on a permission mode** (D39). A committed
+  `.claude/settings.json` allows exactly what a batch needs, **asks** before every main-reaching push and
+  `sync_backlog.py` (an unattended run stalls; an attended one approves once, which was his choice over `deny`),
+  and denies merges, `gh repo`/`gh api` writes and hard resets to origin. Unattended firings push one
+  `afk/<date>-<nn>-<Bnn>-<slug>` branch and PR per item. `running-a-batch.md` gains a network preflight and
+  the `afk/` section. New test: `test_settings_rules.py`. Whether a cloud routine honours `ask` is unverified;
+  the cloud dry run decides.
+- **Filed B76** (model labels are pinned to version strings, so `Opus 5.5` reads as "no model") and **B77**
+  (a stronger guard on `main`: branch protection, which routines refuse to push past, and a push-guard hook).
 - **Filed B75:** the test runner's leak detector blames a test for a state dir that a concurrent session
   created. It failed one run during this session's lanes.
 
