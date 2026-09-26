@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 69 -->
+<!-- next-id: 70 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1140,3 +1140,11 @@ machine-specific half is that hub's watch; the durable half is a line in `runnin
 overnight batch needs the machine to keep its route to the API all night (VPN held, no sleep), and a
 failed firing is visible only in the routine's Runs list. Filed by the W5 review; wave 2 was meant to
 file it and never ran.
+
+## B70. Plan the October AFK token spend
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-26` · queued
+Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md), a stub. The full brief is in the private config store. Queued as item 1 because it is due 2026-10-01.
+Plan how unattended work uses the weekly allowance over the coming weeks: cloud routines versus
+local scheduled tasks (B69 is a prerequisite for local runs), a branch-and-PR review model, and a
+dry run before the due date. Also decide whether cairn should read the reset time itself and print
+it in the orientation.
