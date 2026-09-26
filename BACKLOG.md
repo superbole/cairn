@@ -318,18 +318,6 @@ number:** fix it, measure, then decide whether the ceiling is a row in `docs/dec
 in the suite. **Also decide:** is a brief pointer into a *different* repo allowed at all (one such
 pointer went dead when that clone was deleted), or must briefs be copied in?
 
-## B26. Say what changed in the rules block, not just `vX → vY`
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#24` · closed `2026-09-26`
-Brief: [briefs/rules-block-change-announcement.md](briefs/rules-block-change-announcement.md)
-Was `agent-reentry` B101 (migrated 2026-09-23); decision row **D9**. `install_rules.py` rewrites
-always-loaded, machine-wide instruction text at every `SessionStart` where the version or rendered
-bytes differ, and prints only `v1.44.0 → v1.45.0`. A marketplace auto-update applied one such change
-unattended before anyone read anything. **Announce, do not gate** (a `SessionStart` hook cannot
-prompt; holding the old block leaves machines silently stale). A bounded added/removed/changed
-summary plus the exact diff command, computed from `existing[start:end]` vs `block`, both already in
-hand; the silent path stays bit-for-bit silent. Plus a block digest in `check_install.py`, reusing
-`wrap_receipt._digest()`. **Depends on B25** — the summary inherits whatever boundaries it finds.
-
 ## B27. Third-party text reaches session context unmarked — label at `pull()`, neutralise at the printer
 `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-06` · issue `#25`
 Brief: [briefs/untrusted-text-boundary.md](briefs/untrusted-text-boundary.md)
@@ -1073,33 +1061,6 @@ how an inbox item is closed (by the machine that acts on it, and with what evide
 also lands in that hub's `BACKLOG.md` or stays a session-start line only. `HITL/Plan` because the
 design is still open.
 
-## B59. Skills and rules still tell the agent to run bare `python "$CLAUDE_PLUGIN_ROOT/…"`
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#59` · closed `2026-09-26`
-Brief: [briefs/skill-python-calls.md](briefs/skill-python-calls.md). Pulled to refill the Queue at the v1.61.0 wrap.
-v1.61.0 (D31) moved every HOOK onto `hooks/run.sh`, but the text the agent reads still names
-the interpreter directly. There are 17 call sites across `skills/` and `rules/CLAUDE.md`:
-`wrap_receipt.py` 4, `archive_offer.py` 3, `measure_context.py` 3, and one each for `backlog_file`,
-`issues_backlog`, `item_start`, `session_orientation`, `check_repos`, `label_backlog` and `sync_backlog`
-(`grep -rn 'python "' plugins/cairn/skills plugins/cairn/rules`). On stock Ubuntu each one fails
-with `python: not found`.
-
-It was left out of the hook fix on purpose. That failure is VISIBLE: it happens in the agent's
-own shell, and an agent recovers by trying `python3`. The hook failure was silent, and fixing it
-was the aim line. The skill failure still costs a wasted tool call and a moment of doubt at every
-wrap on Linux, and the `--record` step is REQUIRED.
-
-**Options:** (a) rewrite them as `sh "$CLAUDE_PLUGIN_ROOT/hooks/run.sh" wrap_receipt.py --check`.
-That is longer, and the rules are always loaded, so measure the token cost with
-`tools/measure_context.py` before choosing it. (b) Add one line to `rules/CLAUDE.md`: "`python`
-below means your Python 3: `python3` on Linux/macOS". Cheap, but it's prose, and prose is what
-agents reason past. (c) Both.
-
-**Measured 2026-09-25, and it widens the item:** `$CLAUDE_PLUGIN_ROOT` is **UNSET** in the
-agent's Bash tool (NB1, desktop app, `echo ${CLAUDE_PLUGIN_ROOT:-unset}` → `unset`). So every
-one of these 17 call sites expands to `python "/hooks/…"` on EVERY platform, not just Linux, and
-agents have been silently substituting a path they found some other way. The interpreter name is the
-smaller half of this.
-
 ## B60. Native Windows without Git for Windows can't run any hook since v1.61.0
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-25` · issue `#60`
 Accepted cost of D31. When Git for Windows is absent, Claude Code runs shell-form hooks through
@@ -1114,79 +1075,8 @@ field is per hook, not per OS, so that "way" is the whole problem. Or exec-form 
 future Claude Code adds per-platform commands. Rejected already (D31): a sh/PowerShell polyglot
 command string, because of CommandNotFound noise on every PowerShell hook call.
 
-## B63. An older installed plugin silently DOWNGRADES a newer rules block
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#63` · closed `2026-09-26`
-Brief: [briefs/rules-block-downgrade.md](briefs/rules-block-downgrade.md). Queued above B59 because B59 is the first release since v1.59.0 to change the rules body.
-**Seen 2026-09-25 on NB1.** A session started and the hook reported *"Updated the cairn rules block
-in `~/.claude/CLAUDE.md`: v1.62.0 → v1.60.0"*, which is a rollback reported as an update. The same
-orientation also printed the `version_drift` warning (installed v1.60.0, repo v1.62.0). After
-`claude plugin update cairn@superbole` and a restart, the next start reported v1.60.0 → v1.62.0.
-**What the backups show** (`~/.claude/`, mtimes on NB1):
-- `CLAUDE.md.bak-reentry-install-v1.60.0-6182d1dd` at 08:59. The per-outgoing-state name is
-  v1.62.0's scheme (88d6c5c), so a **v1.62.0 installer** ran at 08:59 and upgraded v1.60.0 → v1.62.0.
-- `CLAUDE.md.bak-reentry-install` at 21:24. That is the older single-file name, so a **v1.60.0
-  installer** ran at this session's start and wrote the downgrade.
-- `CLAUDE.md` at 22:50 is the re-upgrade after the plugin update.
-So two installers of different versions ran on one machine on the same day. **Which process ran
-v1.62.0 at 08:59 is unconfirmed.** It might be a CLI session that had already loaded the new cache
-while the desktop app still had v1.60.0, or it might be a scheduled task (`agent-reentry-lane-batch-0500`,
-`ReentryPluginSync`). The cache dirs were both re-stamped at 22:48 by the update, so their mtimes say
-nothing about 08:59.
-**The defect is in `_install_block` (`plugins/cairn/hooks/install_rules.py`).** It rewrites on any
-mismatch: `if installed == version and existing[start:end] == block: return` and otherwise writes.
-It never checks the direction. Two installed versions that both run will each rewrite the block to
-their own version, every session, on every machine where that can happen.
-**Harmless THIS time, only by luck:** `plugins/cairn/rules/CLAUDE.md` hasn't changed since v1.59.0
-(0e7e9f4), so the v1.60.0 and v1.62.0 bodies are identical. A release that changes the rules text
-would have had its rules silently reverted.
-**Fix:** compare versions, and when the installed block is NEWER than this plugin, write nothing and
-print one line naming both versions and telling the user to update the plugin. Keep the block. Put
-the comparison in a helper that is shared with `version_drift.py` rather than parsing versions twice.
-Add a test to `tools/test_install_rules.py` for a newer block against an older plugin: no write, one
-line. **Ruled out:** "newest content wins" by diffing bodies, because a body cannot say which one is
-newer and the version marker can. Making the block per-process is impossible too, since
-`~/.claude/CLAUDE.md` is one file.
-**Related:** B26 (queued, announcing what changed in the block), which should say "downgrade
-refused" in the same voice. B61 (auto-update off by default) is why a machine sits on a stale install
-long enough for this to happen.
-
-## B64. Refuse an agent-initiated archive while the wrap verdict is `CAIRN OPEN`
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · closed `2026-09-26`
-**Asked for by the user on 2026-09-25**, after a session wrapped (`CAIRN SET` 22:38), then made two
-more commits (`f393976`, `3beac4b`) and ended unwrapped. The next session opened with "did not finish
-cleanly". Their words: *"a hook or something that doesn't allow a session to archive when the
-session isn't fully wrapped."*
-**What exists (searched 2026-09-25):** `hooks/hooks.json` has no archive matcher, and `BACKLOG.md`
-and `docs/decisions.md` have no archive-guard item. `archive_offer.py` only records whether the
-offer was asked, accepted or declined. It blocks nothing. The wrap's step 10 is the only gate, and
-it is an instruction, which is the thing a session that goes off-script skips.
-**Fix (decided, so this is AFK):** add a `PreToolUse` hook with the matcher
-`mcp__ccd_session_mgmt__archive_session`, and a new `hooks/archive_guard.py` run through
-`hooks/run.sh` like every other hook. It computes the same verdict as `wrap_receipt.py --check`, by
-importing it, not by parsing its output.
-- `OPEN` → **deny**. Give the missing steps and tell the agent to run `/cairn:wrap` first.
-- `SET` / `NOT DUE` → allow, silently.
-- `UNKNOWN` → **allow**, with one line saying the verdict could not be measured. The rules say
-  UNKNOWN is not evidence that anything was skipped, and blocking on it would teach people to
-  discount the block.
-- Any error, an unparseable input, or no project → **allow**. Fail open, the same contract as
-  `staged_review_guard.py` (its docstring: "a guard that blocks..." on uncertainty is the wrong
-  failure).
-- Only `session_id: "self"` is this session's verdict to judge. For another session's id the hook
-  cannot measure that session, so it allows.
-**Known limit, which must go in the README row:** a hook only sees TOOL calls. When the user
-archives from the sidebar, nothing fires, and `SessionEnd` can warn but not block. So this closes
-the agent path only. The UI path stays covered by the next session's "did not finish cleanly" box.
-**Also check:** "HEAD moved after a SET receipt" (the exact 2026-09-25 case) has to read `OPEN`
-from `--check`, not `SET`. The orientation already detects it (`wrap_receipt.py` near the
-"but HEAD has moved" message). If `--check`'s `verdict()` does not, the guard has to add that test,
-or it would have waved the incident through.
-**Tests:** a new `tools/test_archive_guard.py` with fixture repos only, for OPEN denies, SET
-allows, UNKNOWN allows with a note, an error allows, another session's id allows, and SET followed
-by a new commit denies.
-
 ## B66. After B63, two messages still give the wrong remedy for a rules block NEWER than the plugin
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#64`
 Found by lane A of the 2026-09-26 overnight batch (dossier `docs/review/lane-a-2026-09-26.md`, "Chose
 not to do"). Since v1.63.0 `install_rules` KEEPS a newer block instead of rolling it back (D33), so
 "restart and it resyncs" is false in that direction. Two places still say it or half-say it:
@@ -1206,7 +1096,7 @@ not to do"). Since v1.63.0 `install_rules` KEEPS a newer block instead of rollin
 `version_drift.py`, which was outside its lane.
 
 ## B67. The `next-id` marker has two readings, and the parser and the people disagree
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#65`
 Found in the 2026-09-26 overnight batch's bookkeeping. `backlog_file.next_id()` returns
 `max(parsed, marker, origin) + 1`, so the code reads `<!-- next-id: N -->` as **the highest id already
 spent**. The name, and every hand edit, read it as **the next free id**: the 2026-09-25 wrap filed B64
@@ -1219,7 +1109,7 @@ rename the marker (`<!-- last-id: N -->`, reading the old spelling on the way in
 parser keeps accepting the old marker. B65 was never filed; nothing needs renumbering.
 
 ## B68. The old `python "$CLAUDE_PLUGIN_ROOT/…"` command form survives outside the skills
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#66`
 B59 (v1.63.0, D35) rewrote every call site in `skills/*/SKILL.md` and `rules/CLAUDE.md`, and
 `tools/test_skill_calls.py` pins those two places only. Lane B listed the copies it did not own:
 `plugins/cairn/tools/check_repos.py:56-57` (a docstring quoting the old wrap step-1a command),
@@ -1231,7 +1121,7 @@ alone: it quotes history verbatim on purpose. Consider widening `test_skill_call
 an allow-list for dated evidence.
 
 ## B69. Scheduled batch tasks start in Manual; make an unattended run safe without a mode
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-25` · issue `#67`
 Found 2026-09-25 when both overnight tasks came up in default/Manual mode. `create_scheduled_task` and
 `update_scheduled_task` have no permission-mode field, `SKILL.md` frontmatter has none, the mode lives
 in app state and is set from the Scheduled sidebar, and `set_session_permission_mode` needs a human
