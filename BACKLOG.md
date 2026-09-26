@@ -1142,7 +1142,7 @@ failed firing is visible only in the routine's Runs list. Filed by the W5 review
 file it and never ran.
 
 ## B70. Plan the AFK token spend through the France trip (1–20 Oct 2026)
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-26` · queued
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-26` · issue `#68` · queued
 Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md). Queued as item 1 because it is due before Thu 2026-10-01.
 Sheldon is away 1–20 Oct, and three work-account resets (Sundays 16:00 SAST) fall inside that. The
 allowance is use-it-or-lose-it. The plan picks cloud routines vs local scheduled tasks (local on NB1
