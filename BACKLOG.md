@@ -1141,14 +1141,13 @@ overnight batch needs the machine to keep its route to the API all night (VPN he
 failed firing is visible only in the routine's Runs list. Filed by the W5 review; wave 2 was meant to
 file it and never ran.
 
-## B70. Plan the AFK token spend through the France trip (1–20 Oct 2026)
+## B70. Plan the October AFK token spend
 `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · issue `#68` · queued
-Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md). Queued as item 1 because it is due before Thu 2026-10-01.
-Sheldon is away 1–20 Oct, and three work-account resets (Sundays 16:00 SAST) fall inside that. The
-allowance is use-it-or-lose-it. The plan picks cloud routines vs local scheduled tasks (local on NB1
-needs the VPN, see `workspace` W11, and B69), the review model for 19 days of AFK output, and a way to
-notify him, then dry-runs all three before he leaves. Also decide whether cairn should read the reset
-time itself and print it in the orientation.
+Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md), a stub. The full brief is in the private config store. Queued as item 1 because it is due 2026-10-01.
+Plan how unattended work uses the weekly allowance over the coming weeks: cloud routines versus
+local scheduled tasks (B69 is a prerequisite for local runs), a branch-and-PR review model, and a
+dry run before the due date. Also decide whether cairn should read the reset time itself and print
+it in the orientation.
 
 ## B71. Wrap: act on sync_backlog dangling-citation warnings inline; prefer gh/glab for cross-repo backlog items
 added `2026-09-26` · issue `#69`
