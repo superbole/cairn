@@ -15,21 +15,10 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 1. **Plan the October AFK token spend — due 2026-10-01** — Opus 5 · high · HITL/Auto
    Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md) (a stub; the full brief is private)
-   Decides how unattended work uses the weekly allowance over the coming weeks. The same session runs
-   items 2 and 3 as worktree subagents, so there is no second session. Stops at each checkpoint. Backlog B70.
+   Decides how unattended work uses the weekly allowance over the coming weeks. Items 2 and 3 (B10, B23)
+   already ran as its worktree lanes and landed in v1.64.0. Stops at each checkpoint. Backlog B70.
 
-2. **With no baseline, the receipt must say "cannot tell", not a confident `[SKIP]`** — Opus 5 · high · AFK/Auto
-   Brief: [briefs/receipt-no-baseline.md](briefs/receipt-no-baseline.md)
-   A resumed session with no SessionStart stamp gets six plausible negatives and `CAIRN OPEN` for a wrap
-   that ran in full, and the only way to clear it is to edit correct files. Backlog B10. It commits
-   locally and stops before the push.
-
-3. **`measure_context.py` must run without `tiktoken`** — Sonnet 5 · medium · AFK/Auto
-   Brief: [briefs/measure-context-no-tiktoken.md](briefs/measure-context-no-tiktoken.md)
-   The rules tell every agent to measure with this tool, and it dies on every machine checked so far.
-   Backlog B23. It commits locally and stops before the push.
-
-4. **Cursor adapter v1 — reconcile the hand-written copy that already exists** — Opus 5 · high · HITL/Plan
+2. **Cursor adapter v1 — reconcile the hand-written copy that already exists** — Opus 5 · high · HITL/Plan
    Brief: [briefs/cursor-adapter-reconcile.md](briefs/cursor-adapter-reconcile.md)
    A 102-line pair of Cursor `next`/`wrap` skills, hand-written 2026-09-04 against a pre-rename
    plugin, is installed and has drifted ~14 versions. The question is whether it is regenerated from

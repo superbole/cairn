@@ -148,8 +148,9 @@ shell, and bare `python` is missing on stock Linux — so always go through `hoo
 
    **If it reads `CAIRN UNKNOWN` instead, quote that** — and say what it means, because the two
    are not interchangeable. `UNKNOWN` is what a session started outside the project it worked in
-   gets: no session-start baseline, so `next_rewrite` / `changelog` / `commit` are blind. It is not
-   a claim that anything was skipped, and it is not a `SET` you may infer from memory.
+   gets, or a `--resume`/crash-restart whose SessionStart never stamped: no session-start baseline,
+   so `next_rewrite` / `changelog` / `commit` are blind. It is not a claim that anything was
+   skipped, and it is not a `SET` you may infer from memory.
 
    **Verify the stop held — B86, and do not skip this.** Deciding not to push and reporting that
    decision is exactly the thing B86 says cannot be trusted from inside the session. Run

@@ -150,6 +150,11 @@ whether it is authenticated to that host specifically, with the one command that
 is wrong. On-demand only: a missing optional CLI is not news every session, so this never runs
 from a hook — check it yourself, or let `/cairn:wrap` surface it when a human is watching.
 
+**`tiktoken` is OPTIONAL, for `tools/measure_context.py` only.** Without it, the tool falls back
+to a bytes/4 estimate, labelled `~N` everywhere it prints one, with a header line saying so, and
+it still exits 0. Install it for exact token counts: `pip install tiktoken`. Nothing else in the
+plugin uses it, so the plugin still has no required Python dependencies.
+
 ## Opting a project in
 
 Create a `NEXT.md`. That's the entire opt-in. A project without one gets **total silence** from

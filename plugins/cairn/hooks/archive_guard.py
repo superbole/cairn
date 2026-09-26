@@ -37,10 +37,9 @@ Every candidate root where THIS session has a session-start baseline: `project_r
 repo), and the opted-in children of a non-project root (B2's parent-directory session, which
 stamps one baseline per child). Any one reading `OPEN` denies.
 
-A root WITHOUT this session's baseline is deliberately not judged, even though `--check` would
-return a verdict there: with no baseline, a stale `.last_wrap` left by an EARLIER session reads
-`marker: skipped` -> `OPEN`, and the guard would block a session for work it never did. That is
-the cry-wolf the fourth verdict exists to prevent, so it degrades to UNKNOWN-and-allow instead.
+A root WITHOUT this session's baseline is deliberately not judged. `verdict()` reads `UNKNOWN`
+there anyway (B10), so judging it would only cost git calls; the skip is kept as the cheaper route
+to the same answer.
 
 KNOWN LIMIT
 -----------
