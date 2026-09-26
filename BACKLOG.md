@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 71 -->
+<!-- next-id: 72 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1154,7 +1154,7 @@ added `2026-09-26` · issue `#69`
 Two related findings from an ai-coach wrap session (2026-09-26), both about how an agent
 should behave when cairn-relevant work surfaces from inside a *different* project's session.
 
-## 1. A named, unambiguous sync warning got deferred instead of fixed
+### 1. A named, unambiguous sync warning got deferred instead of fixed
 
 `sync_backlog.py` closed ai-coach's B141 and printed:
 
@@ -1176,7 +1176,7 @@ printed in, not logged as a note — unless the fix is genuinely ambiguous (mult
 targets, or the citation's meaning is unclear), in which case *that* ambiguity is what gets
 surfaced, not the mechanical fact that something needs fixing.
 
-## 2. Cross-repo backlog additions should go through gh/glab, not a local edit
+### 2. Cross-repo backlog additions should go through gh/glab, not a local edit
 
 The above surfaced a broader question: when a session working in project A notices something
 that belongs in project B's (e.g. cairn's own) `BACKLOG.md`, editing B's file locally means a
@@ -1198,3 +1198,20 @@ actual plugin development — editing rules/skills/hooks, which needs a real che
 
 This issue itself was filed this way, from the ai-coach session that found it, as a live
 instance of the proposed rule.
+
+## B72. An inbound issue whose body has `## N.` headings becomes extra backlog items
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26`
+**Seen 2026-09-26.** `sync_backlog.py` pulled issue #69 in as B71, and that issue's body has two
+sub-headings, `## 1. …` and `## 2. …`. On the next sync, `backlog_file._ITEM_RE`
+(`^##\s+B?(\d+)\.\s+(.+?)\s*$`, where the `B` is optional) read them as items **1** and **2**. It
+rewrote them as `## B1.` and `## B2.`, gave them fields lines, filed them as issues #70 and #71, and
+dropped an indented line from B71's body. That makes three defects: the optional `B` accepts any
+numbered `##` heading; a pulled-in body is written into the file without demoting its headings; and
+the parser takes an item number from the heading, so it reused **B1** and **B2**, ids spent long ago,
+even though `next_id()` exists to stop exactly that. Repaired by hand: B71's sub-headings are now
+`###`, and #70 and #71 are closed as not planned. **Fix:** when pulling, demote every `#` heading in
+an issue body by two levels, or indent it. Decide whether `B?` can become `B` (check what the
+`## 12.` REFUSED guard from 2026-09-03 relies on). If the parser sees a number at or below the
+spent floor that isn't already in the file, refuse, don't renumber. Add a test with a body carrying
+`## 1.` headings. **Ruled out:** fixing only #69's text, because the next inbound issue with
+numbered headings does the same.
