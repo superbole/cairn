@@ -13,9 +13,10 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Queue
 
-1. **Plan the October AFK token spend — due 2026-10-01** — Opus 5 · high · HITL/Plan
+1. **Plan the October AFK token spend — due 2026-10-01** — Opus 5 · high · HITL/Auto
    Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md) (a stub; the full brief is private)
-   Decides how unattended work uses the weekly allowance over the coming weeks. Stops at each checkpoint. Backlog B70.
+   Decides how unattended work uses the weekly allowance over the coming weeks. The same session runs
+   items 2 and 3 as worktree subagents, so there is no second session. Stops at each checkpoint. Backlog B70.
 
 2. **With no baseline, the receipt must say "cannot tell", not a confident `[SKIP]`** — Opus 5 · high · AFK/Auto
    Brief: [briefs/receipt-no-baseline.md](briefs/receipt-no-baseline.md)

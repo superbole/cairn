@@ -1142,7 +1142,7 @@ failed firing is visible only in the routine's Runs list. Filed by the W5 review
 file it and never ran.
 
 ## B70. Plan the October AFK token spend
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-26` · issue `#68` · queued
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · issue `#68` · queued
 Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md), a stub. The full brief is in the private config store. Queued as item 1 because it is due 2026-10-01.
 Plan how unattended work uses the weekly allowance over the coming weeks: cloud routines versus
 local scheduled tasks (B69 is a prerequisite for local runs), a branch-and-PR review model, and a
