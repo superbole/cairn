@@ -35,6 +35,10 @@ record is the one thing in a repo that cannot be re-derived from the repo.
    plugin, is installed and has drifted ~14 versions. The question is whether it is regenerated from
    this repo or stays hand-maintained. Backlog B57.
 
+## Decisions
+
+**D37. Purge personal schedule detail from public history (commits `5d2cd6a`–`cfec2f7`, issue #68's edit history)?** — answer: `here` · added `2026-09-26` → the 2026-09-26 CHANGELOG entry
+
 ## Watching
 
 **W2. The empty-Queue backlog offer (v1.18.0) fires in a genuinely NEW session** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-08-28` · check after `the next new session in a project whose Queue is empty`

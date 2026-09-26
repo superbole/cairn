@@ -14,6 +14,12 @@ No version bump. This is the review of v1.63.0 below.
 - **Wave 2 (05:00) failed on its first model call** with `ECONNREFUSED`. NB1's API traffic goes
   through a proxy reachable only on VPN, and the VPN had dropped. It did no work. The machine-specific
   half is the `workspace` hub's W11.
+- **Queued B70 (the October token plan) as item 1.** Its full brief is in the private config store,
+  because the first public versions carried personal schedule detail. Those versions are still in
+  public history (commits `5d2cd6a`–`cfec2f7`, and #68's edit history); whether to purge them is D37.
+  Purging means a force-push and deleting the issue, both his to do or approve.
+- **Sync bug found:** B71's `## 1.` sub-headings were parsed as items and filed as #70 and #71 (now
+  closed as not planned). Repaired by hand; the fix is B72.
 - **Filed B69**, the backlog item wave 2 was meant to file. Scheduled tasks start in Manual; fix it
   with allow and deny rules in `.claude/settings.json`. It now also asks for a network preflight
   in `running-a-batch.md`.
