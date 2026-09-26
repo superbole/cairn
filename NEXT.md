@@ -13,18 +13,23 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Queue
 
-1. **With no baseline, the receipt must say "cannot tell", not a confident `[SKIP]`** — Opus 5 · high · AFK/Auto
+1. **Plan the AFK token spend through the France trip (1–20 Oct) — due before Thu 1 Oct** — Opus 5 · high · HITL/Plan
+   Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md)
+   Three weekly resets fall while he is away. It decides cloud vs local runs, the review model and
+   the notification channel, and dry-runs them before he leaves. Stops at each checkpoint. Backlog B70.
+
+2. **With no baseline, the receipt must say "cannot tell", not a confident `[SKIP]`** — Opus 5 · high · AFK/Auto
    Brief: [briefs/receipt-no-baseline.md](briefs/receipt-no-baseline.md)
    A resumed session with no SessionStart stamp gets six plausible negatives and `CAIRN OPEN` for a wrap
    that ran in full, and the only way to clear it is to edit correct files. Backlog B10. It commits
    locally and stops before the push.
 
-2. **`measure_context.py` must run without `tiktoken`** — Sonnet 5 · medium · AFK/Auto
+3. **`measure_context.py` must run without `tiktoken`** — Sonnet 5 · medium · AFK/Auto
    Brief: [briefs/measure-context-no-tiktoken.md](briefs/measure-context-no-tiktoken.md)
    The rules tell every agent to measure with this tool, and it dies on every machine checked so far.
    Backlog B23. It commits locally and stops before the push.
 
-3. **Cursor adapter v1 — reconcile the hand-written copy that already exists** — Opus 5 · high · HITL/Plan
+4. **Cursor adapter v1 — reconcile the hand-written copy that already exists** — Opus 5 · high · HITL/Plan
    Brief: [briefs/cursor-adapter-reconcile.md](briefs/cursor-adapter-reconcile.md)
    A 102-line pair of Cursor `next`/`wrap` skills, hand-written 2026-09-04 against a pre-rename
    plugin, is installed and has drifted ~14 versions. The question is whether it is regenerated from

@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 69 -->
+<!-- next-id: 70 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1140,3 +1140,12 @@ machine-specific half is that hub's watch; the durable half is a line in `runnin
 overnight batch needs the machine to keep its route to the API all night (VPN held, no sleep), and a
 failed firing is visible only in the routine's Runs list. Filed by the W5 review; wave 2 was meant to
 file it and never ran.
+
+## B70. Plan the AFK token spend through the France trip (1–20 Oct 2026)
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-26` · queued
+Brief: [briefs/token-plan-2026-10.md](briefs/token-plan-2026-10.md). Queued as item 1 because it is due before Thu 2026-10-01.
+Sheldon is away 1–20 Oct, and three work-account resets (Sundays 16:00 SAST) fall inside that. The
+allowance is use-it-or-lose-it. The plan picks cloud routines vs local scheduled tasks (local on NB1
+needs the VPN, see `workspace` W11, and B69), the review model for 19 days of AFK output, and a way to
+notify him, then dry-runs all three before he leaves. Also decide whether cairn should read the reset
+time itself and print it in the orientation.
