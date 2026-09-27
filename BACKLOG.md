@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 84 -->
+<!-- next-id: 85 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1310,7 +1310,7 @@ finds a session variable in a later Cursor. **The constraint to respect:** B72's
 machine-global stamp. Two concurrent chats in one project must not share a baseline.
 
 ## B84. "Burn tokens": a named `/cairn:burn` that schedules ONE persistent task and survives Manual
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#91`
 **Found 2026-09-27, NB1.** The 03:00 firing (`cairn-lane-batch-2026-09-27-0300`) did fire, and the VPN held.
 It stalled on its 6th command at 03:01 and sat until a human approved at 09:44. The command was
 `git show origin/main:BACKLOG.md > "$TEMP/bl.md"; sed -n …`. `sed` is not on the allow list, and a
@@ -1340,7 +1340,7 @@ Manual stall in a row (2026-09-06, 2026-09-25, 2026-09-27).
 the reminder (blocked on the work account). A cloud routine (GitHub blocked on the work account).
 
 ## B85. `check_repos.py` reports every pushed `afk/` worktree as "1 unpushed"
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-27`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-27` · issue `#92`
 **Seen at the 2026-09-27 batch's wrap.** `check_repos.py` flagged all seven `afk/2026-09-27-*` worktrees as
 `[!!] … 1 unpushed` (afk-02 as 2), and then said *"Do NOT write a CHANGELOG entry saying this work landed"*.
 Every branch was in fact identical to its remote: `git ls-remote origin refs/heads/<branch>` matched each
