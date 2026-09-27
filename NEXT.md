@@ -53,15 +53,19 @@ Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier agains
 (CHANGELOG, version bump, `BACKLOG.md` closes, the Queue) and run `tools/sync_backlog.py`. Any lane-0
 bookkeeping PRs already merged cover part of this, so read `git log` first.
 
-**W7. Did the NB1 03:00 lane batch (`cairn-lane-batch-2026-09-27-0300`) run, and what did it leave?** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-09-27`
-**run on NB1.** Read the task's Runs list FIRST (a VPN drop killed the 2026-09-26 05:00 firing silently). Then
-the `Overnight handover 2026-09-27` PR on `superbole/cairn`, then each `afk/2026-09-27-*` PR against its diff.
-Confirm `origin/main` did not move. Worktrees are left under `.claude/worktrees/afk-*`; remove them after review.
-It ran before W5's F1, so it is also the first real test of the afk/ PR model — fold what it shows into W5.
-Also fix `docs/running-a-batch.md`'s VPN preflight: "set it to reconnect on drop" is wrong for NB1. Its
-OpenVPN GUI client already reconnects by itself, but the profile asks for a TOTP code (`static-challenge`), so
-an unattended reconnect fails with `auth-failure` — the 2026-09-26 drop, ~20h after connecting. The real
-preflight is a fresh manual connect just before the firing; only the VPN's admins can remove TOTP-on-reconnect.
+**W7. Review the 2026-09-27 overnight batch: six `afk/` PRs (#84–#89), handover #90** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-09-28`
+Any machine. Start from PR #90 on `superbole/cairn`: judgement calls first, then each PR's body (its dossier)
+against its diff. Merging needs `gh` auth there; `CREDENTIALS.md` still lists NB5's GitHub token as not entered.
+**Merge B75 (#88) first**, or any concurrent session fails the suite on a false leak. At merge: a version bump
+means re-running `tools/build_cursor.py` (#85 regenerated `cairn.mdc`); consider dropping #85's "over twice
+Opus's price" clause from the rules (a bare constant); once #84 and #86 are both in, add one README sentence
+for #86's new newer-rules line; accept or close #88's blind spot (its review note). After #85, fold #89's
+`hooks/fence_scan.py` into `backlog_file._strip_fences()`. Hand-edit #84's PR body: it still has a home path.
+Then the bookkeeping (CHANGELOG, close B14 B15 B58 B61 B66 B75 B76, Queue 1–2, #85's decisions row, sync),
+which is W6's job brought forward. Also fix `docs/running-a-batch.md`'s VPN preflight: NB1's OpenVPN profile
+asks for a TOTP code on reconnect, so "reconnect on drop" fails; the preflight is a fresh manual connect just
+before the firing. It was the first real run of the afk/ PR model, so fold what it showed into W5. NB1's
+local leftovers are `workspace`'s watch, not this one.
 
 ---
 
