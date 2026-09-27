@@ -1338,3 +1338,16 @@ Manual stall in a row (2026-09-06, 2026-09-25, 2026-09-27).
    user-facing.
 **Ruled out:** `defaultMode` in the project file (D39: `auto` is ignored there). Push notifications as
 the reminder (blocked on the work account). A cloud routine (GitHub blocked on the work account).
+
+## B85. `check_repos.py` reports every pushed `afk/` worktree as "1 unpushed"
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-27`
+**Seen at the 2026-09-27 batch's wrap.** `check_repos.py` flagged all seven `afk/2026-09-27-*` worktrees as
+`[!!] … 1 unpushed` (afk-02 as 2), and then said *"Do NOT write a CHANGELOG entry saying this work landed"*.
+Every branch was in fact identical to its remote: `git ls-remote origin refs/heads/<branch>` matched each
+local HEAD. **Cause:** `docs/running-a-batch.md` and the task prompts create lanes with
+`git worktree add … -b afk/… origin/main`, which sets each branch's **upstream to `origin/main`**. So
+`@{u}..HEAD` counts the PR's own commits, and a pushed PR branch looks unpushed forever. **Fix, either or both:**
+create lane branches with `--no-track` (the push stays `git push origin afk/<branch>`); and in
+`check_repos.py`, for an `afk/` branch, compare HEAD with `origin/<same branch>`, not `@{u}`. **Why it
+matters:** it's the wrap's gate on the CHANGELOG, so a false `[!!]` there either blocks an honest entry or
+teaches the next agent to ignore the gate.

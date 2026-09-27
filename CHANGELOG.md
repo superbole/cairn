@@ -3,6 +3,19 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-27 — First NB1 unattended batch: six `afk/` PRs, none merged (no version)
+
+`cairn-lane-batch-2026-09-27-0300` fired about 12:30, not 03:00 (why is workspace W13). It opened PRs
+#84 (B61), #85 (B76), #86 (B66), #87 (B58), #88 (B75), #89 (B14+B15), plus handover #90, all on `afk/`
+branches off `origin/main`. **Nothing is merged**, and B14, B15, B58, B61, B66, B75 and B76 stay open
+until W7's review. The orchestrator re-ran each suite itself: every test file passed, but #84–#86 carry a
+`LEAKED` line from the false positive #88 fixes. Round 1 of B75 failed review, because it cached
+worktrees at suite start, and was redone. The weekly limit hit about 16:00 and stopped three lanes; they
+were resumed after the reset. Found: B85 (`check_repos` reads every pushed `afk/` worktree as unpushed,
+because `worktree add -b … origin/main` sets that as the upstream). W7 was rewritten to be done from any
+machine, due 2026-09-28, with the merge order; NB1's cleanup is workspace W13. Queue 2–3 (B76, B61) are
+marked blocked by W7.
+
 ## 2026-09-27 — v1.65.0: cairn is also a Cursor plugin (B57); an above-tier item now waits
 
 The plugin directory is now also a Cursor plugin, so the three hand-written Cursor skill pairs,
