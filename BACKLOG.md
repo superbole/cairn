@@ -1308,3 +1308,33 @@ session carries that id. **Candidates:** a `beforeSubmitPrompt` hook stamps `{pr
 and the receipt adopts it only when exactly one live Cursor session holds that project; or a probe
 finds a session variable in a later Cursor. **The constraint to respect:** B72's reverted
 machine-global stamp. Two concurrent chats in one project must not share a baseline.
+
+## B84. "Burn tokens": a named `/cairn:burn` that schedules ONE persistent task and survives Manual
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27`
+**Found 2026-09-27, NB1.** The 03:00 firing (`cairn-lane-batch-2026-09-27-0300`) did fire, and the VPN held.
+It stalled on its 6th command at 03:01 and sat until a human approved at 09:44. The command was
+`git show origin/main:BACKLOG.md > "$TEMP/bl.md"; sed -n …`. `sed` is not on the allow list, and a
+redirect to a file outside the project is not covered either, so in `Manual` it became a prompt. The
+next stall was the same shape: `python plugins/cairn/tools/run_tests.py … > "$TEMP/b61-tests.txt"`. The
+allow list (D39, B69) is right. The prompt text still let the run write commands outside it. Third
+Manual stall in a row (2026-09-06, 2026-09-25, 2026-09-27).
+**Three fixes, one item:**
+1. **One persistent task, rescheduled, not a new one-shot each night.** The app stores tool approvals
+   on the TASK and reapplies them on later runs, and the mode is set per task in the Scheduled
+   sidebar. A fresh `taskId` every night throws both away, which is why Auto has to be set again
+   every time. Keep `cairn-burn` and move its `fireAt` with `update_scheduled_task`. **Unverified:**
+   whether a mode set on a task survives into its next firing. Test it on the first reuse.
+2. **The prompt forbids the shapes that miss the allow list:** no `>`/`>>` redirects, no `$VAR`, no
+   `sed`/`awk`/`cat` (use Read/Grep/the file tools), no `cd && …` into paths outside the repo. The
+   task prompt is where the allowed shapes are named, so name them. Alternatively, add narrowly
+   scoped allows (e.g. `Bash(sed -n *)`). Weigh that against D39's point that `*` spans spaces.
+3. **A named command and a reminder.** He never knows what to call this. It is a local scheduled task
+   (a "routine" is the cloud kind) running `docs/running-a-batch.md`. Name it **the burn**: `/cairn:burn`
+   picks the AFK items, creates or reschedules `cairn-burn`, and ends with a preflight checklist he
+   acts on while still at the keyboard: set the task to **Auto** in the Scheduled sidebar (first time
+   only, if 1 holds); reconnect the VPN (TOTP, see W7); lid open; app open. The SessionStart hook
+   already lists registered tasks, so it can also print "a burn is scheduled; is it set to Auto?"
+   when `cairn-burn` has a future `fireAt`. Rename the doc's "lane batch" to "burn" where it is
+   user-facing.
+**Ruled out:** `defaultMode` in the project file (D39: `auto` is ignored there). Push notifications as
+the reminder (blocked on the work account). A cloud routine (GitHub blocked on the work account).
