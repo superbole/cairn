@@ -5,7 +5,7 @@ history; this file holds the history and no queue.
 
 ## 2026-09-27 — First NB1 unattended batch: six `afk/` PRs, none merged (no version)
 
-`cairn-lane-batch-2026-09-27-0300` fired about 12:30, not 03:00 (why is workspace W13). It opened PRs
+`cairn-lane-batch-2026-09-27-0300` fired at 03:00 and stalled on a `sed` permission prompt until 09:44 (B84). It opened PRs
 #84 (B61), #85 (B76), #86 (B66), #87 (B58), #88 (B75), #89 (B14+B15), plus handover #90, all on `afk/`
 branches off `origin/main`. **Nothing is merged**, and B14, B15, B58, B61, B66, B75 and B76 stay open
 until W7's review. The orchestrator re-ran each suite itself: every test file passed, but #84–#86 carry a
