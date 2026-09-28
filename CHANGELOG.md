@@ -3,6 +3,18 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-28 — Backlog triage from NB5: Claude Code team install replaces B81 on the Queue (no version)
+
+Pulled 50 commits (fast-forward). The orientation had printed a stale local queue under the "behind"
+banner, so the answer had to come from `git show origin/main:NEXT.md`: filed and queued as **B87**.
+**B86** (team install for colleagues who use Claude Code only) took Queue slot 1 from **B81**, which stays
+in the backlog: he knows no Cursor-only colleagues, several Claude-only ones. New brief
+`briefs/claude-team-install.md`. **B56** narrowed: `bsr-tools` has filed and closed GitLab issues on the
+13.12 server many times, so only update/label/note remain, and the fix is a manufactured test.
+Filed **B88** (a "where do I run what" SOP plus cross-project search over Windows and WSL; graphify
+already measured as no help) and **B89** (an issue-finding scan writing to each project's `INBOX.md`,
+run as B84's burn). The M365 feed findings went to `workspace` (B66, B67 queued, B44 closed).
+
 ## 2026-09-27 — First NB1 unattended batch: six `afk/` PRs, none merged (no version)
 
 `cairn-lane-batch-2026-09-27-0300` fired at 03:00 and stalled on a `sed` permission prompt until 09:44 (B84). It opened PRs

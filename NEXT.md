@@ -13,9 +13,9 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Queue
 
-1. **Team install for colleagues who use Cursor only** — Opus 5 · high · HITL/Plan
-   Brief: [briefs/cursor-team-install.md](briefs/cursor-team-install.md)
-   The Cursor half of the aim: today a Cursor-only colleague cannot install without asking the maintainer. Stops at the plan. Backlog B81.
+1. **Team install for colleagues who use Claude Code only** — Opus 5 · high · HITL/Plan
+   Brief: [briefs/claude-team-install.md](briefs/claude-team-install.md)
+   He knows several Claude-Code-only colleagues and no Cursor-only ones (2026-09-28), so this replaced B81, which stays in the backlog. Stops at the plan. Backlog B86.
 
 2. **Model labels name the tier, not a version: `Opus 5.5` reads as "no model" today** — Opus 5 · high · AFK/Auto
    Brief: [briefs/model-labels-by-family.md](briefs/model-labels-by-family.md)
@@ -24,6 +24,10 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 3. **The README says how to turn on auto-update (off by default for this marketplace)** — Sonnet 5 · medium · AFK/Auto
    Brief: [briefs/readme-auto-update.md](briefs/readme-auto-update.md)
    A stranger's install otherwise stays on its first version forever. Backlog B61. **Done as PR #84, blocked by W7** (review and merge); don't redo it.
+
+4. **When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base** — Opus 5 · high · HITL/Plan
+   Brief: `BACKLOG.md` B87
+   Found 2026-09-28: 50 behind, and the orientation printed a stale queue under the warning. Agreed in chat. The plan picks worktree-off-origin or decline for an item that exists only on origin.
 
 ## Decisions
 

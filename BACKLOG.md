@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 85 -->
+<!-- next-id: 89 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -725,8 +725,18 @@ silent when absent**, consumed to emit rows in the timesheet's shape. Codes are 
 mechanism ships, the content never does (the D16/profile split). **Not an id:** a billing code is an
 attribution axis and changes when funding changes; an item id must never change — two fields.
 
-## B56. The GitLab write path has never run against a real server, and one known server is from 2021
+## B56. GitLab writes: create and close are proven on a 2021 server; update, label and note are not
 `Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-03` · issue `#54`
+**Measured 2026-09-28 (SBOLE-NB5), and the answer to "check first" below.** `bsr-tools` (WSL, on the
+13.12.15 server) has filed and closed issues through `sync_backlog.py` many times — e.g.
+`c3ddb98` (close #85, file #86 #87), `02b215d` (#88), `17c81f4` (close #88, file #89), `e73054e`
+(close #86, file #90 #91); 40 of its 42 items carry an issue number. So `issue create --yes` and
+`issue close` work against the old server. **Still unproven:** `issue update --description-file`,
+`issue update --label`, `label create --color '#…'`, and `issue note` on a closed issue.
+**The fix is a manufactured test, not waiting for it to happen:** on a throwaway GitLab project (never
+`bsr-tools` or another real repo), a scratch `BACKLOG.md` that forces each of the four writes once, then
+reads the issue back with `glab api` to check the server did what the argv claimed. `HITL` because it
+writes to the employer's host: it stops for him before the first write and says which project.
 Was `agent-reentry` B50 (migrated 2026-09-23). **Check first whether it has run since** — a `glab`
 backlog sync has reported success in at least one WSL work repo (see B5), which may already be the
 evidence. v1.34.0's GitLab backend was verified for **reads** only; every write —
@@ -1275,8 +1285,11 @@ whether `Auto` reports which model it used. **To decide:** where in the wrap, or
 review (B79), the step sits, and whether it is offered or required.
 
 ## B81. Team install for colleagues who use Cursor only
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#81` · queued
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#81`
 Brief: [briefs/cursor-team-install.md](briefs/cursor-team-install.md). Pulled to refill the Queue at B57's wrap, 2026-09-27.
+**Taken off the Queue 2026-09-28, kept in the backlog.** He knows of no colleague who uses only
+Cursor, but several who use only Claude Code, so B86 (the Claude Code team install) took its slot.
+Kept on purpose: no such colleague *today* is not a reason to drop the option.
 **From B57's plan (2026-09-27).** This is the Cursor half of the aim that "a stranger installs from
 this repo and orients in their own project with no manual setup". Cursor has team marketplaces and
 account-level installs (cursor.com/docs/plugins). An account-level install lands on every machine
@@ -1351,3 +1364,72 @@ create lane branches with `--no-track` (the push stays `git push origin afk/<bra
 `check_repos.py`, for an `afk/` branch, compare HEAD with `origin/<same branch>`, not `@{u}`. **Why it
 matters:** it's the wrap's gate on the CHANGELOG, so a false `[!!]` there either blocks an honest entry or
 teaches the next agent to ignore the gate.
+
+## B86. Team install for colleagues who use Claude Code only
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · queued
+Brief: [briefs/claude-team-install.md](briefs/claude-team-install.md). Took B81's Queue slot 2026-09-28.
+**He said, 2026-09-28:** he knows of no colleague who uses only Cursor, but several who use only
+Claude Code. One person can already install cairn from the marketplace (README). What is missing is
+a way to hand it to a team without walking each person through it, and a check of what a colleague
+who is not the maintainer actually gets on first run. B81 (the Cursor-only version) stays in the backlog.
+
+## B87. When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · queued
+**Found 2026-09-28, SBOLE-NB5.** `main` was 50 commits behind `origin/main`. The banner said so, but the
+queue it printed came from the stale local `NEXT.md`: two of its three items had already been replaced
+on origin, and a new decision (D37) wasn't shown. The agent had to `git show origin/main:NEXT.md` by
+hand to give a true answer. He agreed the fix below ("then the user is never seeing a stale queue").
+**Shape:** when HEAD is strictly behind `@{u}` and `NEXT.md` has no uncommitted or unpushed local
+change, print the orientation from `git show @{u}:NEXT.md`, labelled *from origin, local is N behind*,
+then offer the pull. It's a local read of a ref the detached fetch already updated, so the hot path
+still makes no network call. If `NEXT.md` *does* have local changes, show the local file and say
+origin differs; don't merge the two.
+**The case he asked about, a pull refused and then an item started that exists only on origin:**
+the brief is not on disk, the item may already be done on another machine, and any id minted
+collides (B33: 19 behind, four items collided). So the agent must not start it on the stale checkout.
+Recommended default: say in one line *"item N exists only on origin; I'll start it in a worktree
+off origin/main, which leaves your checkout as it is"*, and use `git worktree add --no-track … origin/main`
+(`--no-track` because of B85). The only other honest answer is to decline until he pulls. The plan picks one.
+**Related:** B4 (a merged feature branch reads as in-sync), B33/B34 (concurrency), B36, B58.
+
+## B88. "Where do I run what?" — an SOP, and a cross-project search that crosses Windows and WSL
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28`
+**Asked for 2026-09-28:** *"I'm still having issues with knowing where I should be running what
+from … This needs a plan session."* The trigger: asked about Planner/Outlook ingestion, the agent searched
+only `cairn`, said nothing existed, and was wrong. The flows, the reader (`scripts/propose-queue.ps1`)
+and the `inflow` brief all live in `workspace`, on purpose (cairn D20: cairn doesn't grow an
+employer-specific Graph client). The layout is correct, and neither he nor an agent can find things in it.
+**Two halves, one plan session:**
+1. **The SOP.** A short written procedure: which machine, which repo or hub (there are two `workspace`s),
+   Windows or WSL, Claude Code or Cursor, for each kind of work. It is his, so it probably belongs with
+   the profile or in `workspace`, not in the shipped rules. The plan decides where.
+2. **A cairn tool: find which project owns X.** A search over every opted-in project's `NEXT.md`,
+   `BACKLOG.md`, `docs/decisions.md` and briefs, across **both** sweep roots. Today the sibling sweep
+   is per-cwd and never sees Windows and WSL together (B36). Candidate: `/cairn:find <term>`, and a
+   rule that an agent runs it before saying something does not exist.
+**Would graphify have helped? Measured, no:** `workspace` B62's graphify test (2026-09-27) had the graph
+beat grep on 0 of 3 questions, and it maps code inside one repo, not who owns what across repos.
+`workspace` B64 (orientation maps in each repo's `AGENTS.md`) is the code-level half of this problem.
+**"ponytail":** no mention in `cairn` or `workspace` backlogs, docs or briefs (grep, 2026-09-28). The plan
+should ask him what it is. **Related:** B31 (cross-project roll-up), B36.
+
+## B89. An issue-finding scan: a scheduled AFK run that files findings into each project's `INBOX.md`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28`
+**Asked for 2026-09-28:** *"I'm struggling to find time to get to everything and a bot that can log
+issues sounds wonderful right now!"* 13 of 17 tracked projects (Windows and WSL) have empty or nearly
+empty queues. He corrected the reading of that: an empty `NEXT.md` means nothing *has been added
+yet*, not that nothing needs doing.
+**Shape agreed in chat:** a local scheduled task on NB5 (cloud routines can't reach GitHub or the
+work account), running as B84's "burn" so it spends the weekly allowance before the reset. For each
+project on an opt-in list he keeps, it reads the code and writes up to N findings as `INBOX.md`
+bullets. `INBOX.md` is the existing seam that cairn triages at session start, so no new mechanism is
+needed to surface them. It commits locally and doesn't push (AFK). It never files to the issue host
+directly, because the file is the writer and the host is the copy.
+**Will it find issues nobody has identified? Yes, of the kind a code reviewer finds:** bugs, failing or
+missing tests, dead code, committed secrets, stale dependencies, docs that contradict the code,
+TODO/FIXME debt, and a first seed backlog for a project that has none. **No, for product-level gaps**
+(what users need next); those need him. Each bullet must carry `file:line` evidence and be deduped
+against `BACKLOG.md`, `NEXT.md` and `INBOX.md`, or the inbox becomes noise he learns to skip.
+**Open for the plan:** reaching WSL projects from a Windows task (B36), the cap per project per run,
+which model scans (cost against the allowance), and how a rejected finding stops being re-filed.
+**Related:** B84, B74 (the reset and how much AFK work is runnable), B31.
