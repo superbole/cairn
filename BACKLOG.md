@@ -1366,7 +1366,7 @@ matters:** it's the wrap's gate on the CHANGELOG, so a false `[!!]` there either
 teaches the next agent to ignore the gate.
 
 ## B86. Team install for colleagues who use Claude Code only
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · queued
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · issue `#93` · queued
 Brief: [briefs/claude-team-install.md](briefs/claude-team-install.md). Took B81's Queue slot 2026-09-28.
 **He said, 2026-09-28:** he knows of no colleague who uses only Cursor, but several who use only
 Claude Code. One person can already install cairn from the marketplace (README). What is missing is
@@ -1374,7 +1374,7 @@ a way to hand it to a team without walking each person through it, and a check o
 who is not the maintainer actually gets on first run. B81 (the Cursor-only version) stays in the backlog.
 
 ## B87. When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · queued
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · issue `#94` · queued
 **Found 2026-09-28, SBOLE-NB5.** `main` was 50 commits behind `origin/main`. The banner said so, but the
 queue it printed came from the stale local `NEXT.md`: two of its three items had already been replaced
 on origin, and a new decision (D37) wasn't shown. The agent had to `git show origin/main:NEXT.md` by
@@ -1393,7 +1393,7 @@ off origin/main, which leaves your checkout as it is"*, and use `git worktree ad
 **Related:** B4 (a merged feature branch reads as in-sync), B33/B34 (concurrency), B36, B58.
 
 ## B88. "Where do I run what?" — an SOP, and a cross-project search that crosses Windows and WSL
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · issue `#95`
 **Asked for 2026-09-28:** *"I'm still having issues with knowing where I should be running what
 from … This needs a plan session."* The trigger: asked about Planner/Outlook ingestion, the agent searched
 only `cairn`, said nothing existed, and was wrong. The flows, the reader (`scripts/propose-queue.ps1`)
@@ -1414,7 +1414,7 @@ beat grep on 0 of 3 questions, and it maps code inside one repo, not who owns wh
 should ask him what it is. **Related:** B31 (cross-project roll-up), B36.
 
 ## B89. An issue-finding scan: a scheduled AFK run that files findings into each project's `INBOX.md`
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · issue `#96`
 **Asked for 2026-09-28:** *"I'm struggling to find time to get to everything and a bot that can log
 issues sounds wonderful right now!"* 13 of 17 tracked projects (Windows and WSL) have empty or nearly
 empty queues. He corrected the reading of that: an empty `NEXT.md` means nothing *has been added
