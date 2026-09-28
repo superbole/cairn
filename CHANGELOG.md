@@ -14,6 +14,9 @@ in the backlog: he knows no Cursor-only colleagues, several Claude-only ones. Ne
 Filed **B88** (a "where do I run what" SOP plus cross-project search over Windows and WSL; graphify
 already measured as no help) and **B89** (an issue-finding scan writing to each project's `INBOX.md`,
 run as B84's burn). The M365 feed findings went to `workspace` (B66, B67 queued, B44 closed).
+**Later the same day:** he chose *decline until pull* for B87 (**D46**; worktrees rejected). The "glab not
+set up on NB5" diagnosis was wrong: glab was logged in, and the stalled `workspace` sync was **B9**
+(workaround `CLAUDE_PROJECT_DIR`, added to B9). ponytail checked for B88: a YAGNI coding guide, not a search tool.
 
 ## 2026-09-27 — First NB1 unattended batch: six `afk/` PRs, none merged (no version)
 

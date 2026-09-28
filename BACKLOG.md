@@ -764,6 +764,12 @@ repo in a sync is worse than a wrong count: it writes to a different issue host.
 prefer the git root of `cwd`, and print the root being used on the first line (sync already names
 the repo; validate does not).
 
+**Seen again 2026-09-28 (NB5), and it cost a false diagnosis.** A session opened on `cairn` ran the
+wrap's sync from `cd …/workspace`. It printed nothing inside a 100 s timeout, and the agent blamed `glab`
+as unconfigured, from a stale memory. In fact `glab` was logged in and fast, and `--dry-run` showed the
+sync answering for `superbole/cairn`. **Working workaround:** `CLAUDE_PROJECT_DIR='<repo path>'` in front of the
+command made it sync that repo to its GitLab host correctly (closed #44, filed #64–#66).
+
 **Merged in 2026-09-23 from `agent-reentry` B139 and B133**, which were the same defect, filed twice:
 - **The cause is confirmed, not probable.** `validate_next.py` falls back to `project_root()`, and
   `sync_backlog.py` does `root = project_root() if project_root else Path.cwd()`.
@@ -1387,9 +1393,9 @@ origin differs; don't merge the two.
 **The case he asked about, a pull refused and then an item started that exists only on origin:**
 the brief is not on disk, the item may already be done on another machine, and any id minted
 collides (B33: 19 behind, four items collided). So the agent must not start it on the stale checkout.
-Recommended default: say in one line *"item N exists only on origin; I'll start it in a worktree
-off origin/main, which leaves your checkout as it is"*, and use `git worktree add --no-track … origin/main`
-(`--no-track` because of B85). The only other honest answer is to decline until he pulls. The plan picks one.
+**Decided 2026-09-28 (D46): decline until he pulls.** Say in one line that the item exists only on
+origin and a pull unblocks it. A worktree off `origin/main` was considered and rejected: he doesn't yet
+follow worktree workflows.
 **Related:** B4 (a merged feature branch reads as in-sync), B33/B34 (concurrency), B36, B58.
 
 ## B88. "Where do I run what?" — an SOP, and a cross-project search that crosses Windows and WSL
@@ -1410,8 +1416,9 @@ employer-specific Graph client). The layout is correct, and neither he nor an ag
 **Would graphify have helped? Measured, no:** `workspace` B62's graphify test (2026-09-27) had the graph
 beat grep on 0 of 3 questions, and it maps code inside one repo, not who owns what across repos.
 `workspace` B64 (orientation maps in each repo's `AGENTS.md`) is the code-level half of this problem.
-**"ponytail":** no mention in `cairn` or `workspace` backlogs, docs or briefs (grep, 2026-09-28). The plan
-should ask him what it is. **Related:** B31 (cross-project roll-up), B36.
+**Would ponytail have helped? No:** github.com/dietrichgebert/ponytail (read 2026-09-28) is a YAGNI
+guide that steers an agent toward writing less code, and it works inside one project. It doesn't search
+across repos or record who owns what. **Related:** B31 (cross-project roll-up), B36.
 
 ## B89. An issue-finding scan: a scheduled AFK run that files findings into each project's `INBOX.md`
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · issue `#96`

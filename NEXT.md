@@ -27,7 +27,7 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 4. **When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base** — Opus 5 · high · HITL/Plan
    Brief: `BACKLOG.md` B87
-   Found 2026-09-28: 50 behind, and the orientation printed a stale queue under the warning. Agreed in chat. The plan picks worktree-off-origin or decline for an item that exists only on origin.
+   Found 2026-09-28: 50 behind, and the orientation printed a stale queue under the warning. Agreed in chat. An item that exists only on origin is declined until he pulls (D46).
 
 ## Decisions
 
