@@ -40,10 +40,23 @@ is behind) has zero payoff to show for the wait. Offline or on a flaky connectio
 fetch can instead cost up to its own timeout before failing — worse, not better. That
 rules out running this inline, for exactly the reason `issues_backlog.py` already
 rejected a live call for the GitHub backlog: this module copies that pattern rather than
-inventing a second one. `summary_line()` only reads a JSON cache (a stat + a read, no
-subprocess at all); `spawn_refresh()` fires a DETACHED child that does the real work for
-the NEXT session. The view is up to one session stale — the same trade `issues_backlog`
-already made, for the same reason.
+inventing a second one. `summary_line()` mostly reads a JSON cache (a stat + a read);
+`spawn_refresh()` fires a DETACHED child that does the real (network) work for the NEXT
+session. The view is up to one session stale — the same trade `issues_backlog` already
+made, for the same reason.
+
+B58 (2026-09-24, recurred 2026-09-25): the cache can name a repo that is no longer true —
+deleted from disk entirely, or since pushed/pulled back in sync from another machine or a
+detached refresh. `summary_line()` now spends a SMALL, BOUNDED amount of local-only work
+(never a fetch) re-checking just the named repos it is about to print, capped at
+MAX_NAMED per session start: one `Path.exists()` (is the directory even still there) and,
+if so, one `git rev-list --count HEAD..@{u}` against the remote-tracking ref ALREADY on
+disk from some past fetch — no `git fetch`, so the no-network contract at session start
+still holds. A repo that is gone or reads 0 is dropped from the line; a repo the recheck
+cannot read (git missing, no upstream, detached HEAD, lock contention, the short per-call
+timeout) keeps its CACHED count rather than being dropped or assumed caught-up — silently
+hiding a genuinely-behind repo because one `git` call hiccuped would be the same class of
+bug this section fixes, one level up.
 
 FAILURE IS SILENT, ON PURPOSE — same contract as `_divergence_warning`: offline, no
 remote, detached HEAD, credential prompt, git missing. `GIT_TERMINAL_PROMPT=0` and a
@@ -88,8 +101,16 @@ FETCH_TIMEOUT = 8
 # How many behind-repo names to put ON the one summary line before collapsing to a count.
 # The line is read at every session start in every project; a name-everything line for a
 # portfolio-wide problem would out-grow the "as few lines as possible" budget this whole
-# feature is held to.
+# feature is held to. Also the bound (B58) on how many `Path.exists()` checks and local,
+# no-fetch `git rev-list` re-checks `summary_line` performs per session start — it never
+# spends that work on names past the ones it is about to print.
 MAX_NAMED = 5
+
+# Seconds for the B58 re-check in `summary_line` — one local `git rev-list` against a
+# remote-tracking ref already on disk, no fetch, so this is a lock-contention/hung-git
+# guard, not a network timeout. Short on purpose: at most MAX_NAMED of these run in a row,
+# in the foreground, at every session start.
+LOCAL_CHECK_TIMEOUT = 2
 
 
 def sibling_repos(root: Path) -> list[Path]:
@@ -172,6 +193,48 @@ def _behind(repo: Path) -> int | None:
     return behind
 
 
+def _local_behind(repo: Path) -> int | None:
+    """B58: the SAME question as `_behind`, answered with refs already on disk — no
+    `git fetch`, so this is the call `summary_line` is allowed to make at session start
+    without breaking the no-network contract the module docstring describes.
+
+    `HEAD..@{u}` fails outright (non-zero exit, no output) for exactly the cases that must
+    read as "cannot verify" rather than "0" or "still behind": no upstream configured,
+    detached HEAD, `repo` missing or not a git repo at all, git itself missing, or the
+    short timeout above tripping under lock contention. All of those return None; callers
+    MUST treat None as "unknown", never coerce it to 0 (falsely claims caught-up) or to
+    the old cached count being definitely still true (that is the caller's own choice to
+    make, not this function's).
+    """
+    out = _git(repo, "rev-list", "--count", "HEAD..@{u}", timeout=LOCAL_CHECK_TIMEOUT)
+    if out is None:
+        return None
+    try:
+        return int(out)
+    except ValueError:
+        return None
+
+
+def _cache_age_text(at: object) -> str:
+    """Human text for the summary line naming how stale the cache is.
+
+    Never fabricates a clock time it cannot support: `at` missing, non-numeric, or <= 0
+    (a malformed cache) falls back to the generic 'from last session' rather than
+    printing a bogus 'as of 00:00' that would be an outright lie about when the sweep
+    actually ran.
+    """
+    try:
+        ts = float(at)                   # type: ignore[arg-type]
+        if ts <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        return "from last session"
+    try:
+        return "as of " + time.strftime("%H:%M", time.localtime(ts))
+    except Exception:
+        return "from last session"
+
+
 def refresh(root: Path) -> None:
     """Sweep every sibling and (re)write the cache. Never raises, never prints.
 
@@ -230,12 +293,25 @@ def spawn_refresh(root: Path) -> None:
 def summary_line(root: Path) -> str | None:
     """One line naming only the sibling repos behind origin, or None for silence.
 
-    Reads a JSON file — no subprocess, no network, effectively free at session start.
-    Silent for: no cache yet (first session after install; a refresh was just spawned
-    for next time), a cache with nothing behind (the common case, by design), or an
-    unreadable cache. A stale-but-real cache is preferred over none, same as
-    `issues_backlog` — this never re-checks whether the cache itself is fresh; that is
-    what `spawn_refresh` at the end of every session is for.
+    Reads a JSON file — no network. Silent for: no cache yet (first session after
+    install; a refresh was just spawned for next time), a cache with nothing behind
+    (the common case, by design), or an unreadable cache. A stale-but-real cache is
+    preferred over none, same as `issues_backlog` — this never re-checks whether the
+    cache's SWEEP is fresh; that is what `spawn_refresh` at the end of every session
+    is for.
+
+    B58: it DOES re-check the handful of names it is about to print, because the cache
+    can otherwise say something that is flatly no longer true — the sibling directory
+    was deleted, or the repo has since been pushed/pulled back in sync from another
+    machine. That re-check is local-only (a `Path.exists()` and a `git rev-list` against
+    a remote-tracking ref already on disk, never a `git fetch`) and bounded to at most
+    MAX_NAMED repos — the ones this line is about to name — so the no-network,
+    "effectively free" contract at session start still holds; it is merely no longer
+    literally subprocess-free. A repo whose directory is gone, or that the local re-check
+    finds is now caught up (0), is dropped from the line. A repo the re-check cannot read
+    at all (no upstream, detached HEAD, git missing, the short timeout) keeps its CACHED
+    count instead — dropping it there would silently hide a genuinely-behind repo over a
+    single flaky `git` call, the same bug one level up.
     """
     if state_dir is None:
         return None
@@ -250,13 +326,45 @@ def summary_line(root: Path) -> str | None:
     named = [b for b in behind if isinstance(b, dict) and b.get("name")]
     if not named:
         return None
-    shown = named[:MAX_NAMED]
-    names = ", ".join(f"{b['name']} ({b['behind']} behind)" for b in shown)
-    extra = len(named) - len(shown)
-    noun = "sibling repo is" if len(named) == 1 else "sibling repos are"
-    line = f"⚠  {len(named)} {noun} behind origin: {names}"
+
+    try:
+        parent = root.resolve().parent
+    except Exception:
+        parent = None
+
+    shown_candidates = named[:MAX_NAMED]
+    extra = len(named) - len(shown_candidates)
+
+    confirmed: list[dict] = []
+    for b in shown_candidates:
+        name = b["name"]
+        repo_path = (parent / name) if parent is not None else None
+        try:
+            exists = repo_path is not None and repo_path.exists()
+        except OSError:
+            exists = False
+        if not exists:
+            continue                     # B58: the directory is gone — drop it
+        fresh = _local_behind(repo_path)
+        if fresh is None:
+            confirmed.append(b)          # can't verify — keep the cached count, don't guess
+        elif fresh == 0:
+            continue                     # caught up since the cache was written — drop it
+        else:
+            confirmed.append({"name": name, "behind": fresh})
+
+    if not confirmed and extra == 0:
+        return None
+
+    total = len(confirmed) + extra
+    names = ", ".join(f"{b['name']} ({b['behind']} behind)" for b in confirmed)
+    noun = "sibling repo is" if total == 1 else "sibling repos are"
+    age = _cache_age_text(cache.get("at"))
+    line = f"⚠  {total} {noun} behind origin ({age})"
+    if names:
+        line += f": {names}"
     if extra > 0:
-        line += f", … {extra} more"
+        line += f"{',' if names else ''} … {extra} more"
     return line
 
 

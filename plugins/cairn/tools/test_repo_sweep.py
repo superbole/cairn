@@ -2,13 +2,16 @@
 
     python plugins/cairn/tools/test_repo_sweep.py
 
-WHY THIS IS A TEST AND NOT A CODE REVIEW. `repo_sweep.py` has three failure modes that are
-each invisible from reading the code alone: (1) `sibling_repos` silently including a folder
+WHY THIS IS A TEST AND NOT A CODE REVIEW. `repo_sweep.py` has failure modes that are each
+invisible from reading the code alone: (1) `sibling_repos` silently including a folder
 that never opted into the system (no NEXT.md) — the exact scope B26 was raised to avoid
 guessing at; (2) `_behind` silently misreading "no upstream"/"detached HEAD"/"in sync" as
 "behind"; (3) the cache round-trip (`refresh` writes, `summary_line` reads) disagreeing about
-shape and going silent for the wrong reason. All three need REAL git repos to catch, because
-they are decided by what real `git` commands actually return, not by what the code appears to
+shape and going silent for the wrong reason; (4) B58 — `summary_line` naming a repo the
+cache remembers as behind when the directory is gone, or the repo has since been synced
+back up, while still not silently swallowing a genuinely-behind repo the moment its own
+local recheck can't be answered. All of these need REAL git repos to catch, because they
+are decided by what real `git` commands actually return, not by what the code appears to
 do.
 
 NO NETWORK, NO REAL REPO. Every repo here is built fresh under a temp dir with a LOCAL
@@ -23,6 +26,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(sys.argv[1] if len(sys.argv) > 1
@@ -198,6 +202,8 @@ try:
               line is not None and "behind_two" in line and "2 behind" in line, True)
         check("summary_line: does not mention repos that are not behind",
               "in_sync" in (line or ""), False)
+        check("summary_line: names the cache's age (a valid `at`) as 'as of HH:MM'",
+              line is not None and "as of " in line, True)
 
         # Empty cache -> total silence, the common case.
         (state_base / "proj" / rs.CACHE_NAME).write_text(
@@ -208,10 +214,61 @@ try:
         (state_base / "proj" / rs.CACHE_NAME).unlink()
         check("summary_line: no cache yet -> None (silence)", rs.summary_line(root), None)
 
-        # MAX_NAMED truncation: more behind-repos than the line budget collapse to a count.
+        # ------------------------------------------------------------------------------ B58
+
+        # Case 1 — the cached repo's DIRECTORY IS GONE (the `agent-reentry` report,
+        # 2026-09-24). Never even a candidate for a local `git` recheck: there is nowhere
+        # to run it. Must be dropped, not printed as if it were still there.
+        (state_base / "proj" / rs.CACHE_NAME).write_text(
+            json.dumps({"at": time.time(), "behind": [{"name": "ghost_repo", "behind": 5}]}),
+            encoding="utf-8")
+        check("summary_line: a cached repo whose directory no longer exists -> silence",
+              rs.summary_line(root), None)
+
+        # Case 2 — the directory and the repo are both still there, but it has been
+        # pushed/pulled BACK IN SYNC since the cache was written (the 2026-09-25
+        # recurrence: a live fetch showed 0/0 where the cache said 1 and 7). `in_sync`'s
+        # own remote-tracking ref already reads 0 with no fetch needed (it was cloned
+        # after `origin` last moved), so the local recheck alone must catch this and drop
+        # it — never repeat the stale cached count.
+        (state_base / "proj" / rs.CACHE_NAME).write_text(
+            json.dumps({"at": time.time(), "behind": [{"name": "in_sync", "behind": 3}]}),
+            encoding="utf-8")
+        check("summary_line: cache says behind but the local ref now reads 0 -> dropped, "
+              "not repeated stale", rs.summary_line(root), None)
+
+        # Case 3 — the directory exists but the recheck itself CANNOT be answered
+        # (`local_only` has no remote at all, so `@{u}` fails outright). Must KEEP the
+        # cached count rather than dropping it or inventing 0 — a re-check failure must
+        # never silently hide a genuinely-behind repo, which would be the same bug one
+        # level up from the one B58 fixes.
+        (state_base / "proj" / rs.CACHE_NAME).write_text(
+            json.dumps({"at": time.time(), "behind": [{"name": "local_only", "behind": 4}]}),
+            encoding="utf-8")
+        line3 = rs.summary_line(root)
+        check("summary_line: recheck can't be answered (no upstream) -> keeps the cached "
+              "count instead of dropping it or claiming caught-up",
+              line3 is not None and "local_only" in line3 and "4 behind" in line3, True)
+
+        # Cache age must never be dressed up as a clock time it can't support.
+        (state_base / "proj" / rs.CACHE_NAME).write_text(
+            json.dumps({"at": "not-a-timestamp",
+                        "behind": [{"name": "local_only", "behind": 4}]}), encoding="utf-8")
+        line4 = rs.summary_line(root)
+        check("summary_line: malformed `at` -> generic 'from last session', never a "
+              "fabricated clock time",
+              line4 is not None and "from last session" in line4, True)
+
+        # MAX_NAMED truncation: more behind-repos than the line budget collapse to a
+        # count. Each name needs a real directory to survive the B58 exists() check;
+        # none is a real git repo, so its own local recheck fails outright (no `.git` at
+        # all) and it keeps its CACHED count -- exercising "can't verify, don't drop" and
+        # the truncation at the same time.
+        for i in range(rs.MAX_NAMED + 3):
+            (projects / f"r{i}").mkdir(exist_ok=True)
         many_behind = [{"name": f"r{i}", "behind": i + 1} for i in range(rs.MAX_NAMED + 3)]
         (state_base / "proj" / rs.CACHE_NAME).write_text(
-            json.dumps({"at": 0, "behind": many_behind}), encoding="utf-8")
+            json.dumps({"at": time.time(), "behind": many_behind}), encoding="utf-8")
         line2 = rs.summary_line(root)
         check(f"summary_line: names at most MAX_NAMED ({rs.MAX_NAMED}) then collapses",
               line2 is not None and "… 3 more" in line2, True)
