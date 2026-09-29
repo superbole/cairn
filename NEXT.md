@@ -15,9 +15,13 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 1. **Team install for colleagues who use Claude Code only** — Opus 5 · high · HITL/Plan
    Brief: [briefs/claude-team-install.md](briefs/claude-team-install.md)
-   He knows several Claude-Code-only colleagues and no Cursor-only ones (2026-09-28), so this replaced B81, which stays in the backlog. Stops at the plan. Backlog B86.
+   He knows several Claude-Code-only colleagues and no Cursor-only ones (2026-09-28), so this replaced B81, which stays in the backlog. Stops at the plan. Backlog B86. Stays first: it is the item that serves the aim.
 
-2. **When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base** — Opus 5 · high · HITL/Plan
+2. **Purge personal schedule detail from public history** — Opus 5 · high · HITL/Auto
+   Brief: [briefs/purge-public-history.md](briefs/purge-public-history.md)
+   Was W8. The window closes 2026-10-01. Stop and warn before the force-push of `main`. Backlog B93.
+
+3. **When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base** — Opus 5 · high · HITL/Plan
    Brief: `BACKLOG.md` B87
    Found 2026-09-28: 50 behind, and the orientation printed a stale queue under the warning. Agreed in chat. An item that exists only on origin is declined until he pulls (D46).
 
@@ -47,15 +51,6 @@ Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier agains
 (`docs/running-a-batch.md`, "The review surface"), merge or close each one, then do one bookkeeping pass
 (CHANGELOG, version bump, `BACKLOG.md` closes, the Queue) and run `tools/sync_backlog.py`. Any lane-0
 bookkeeping PRs already merged cover part of this, so read `git log` first.
-
-**W7. Finish the leftovers from the 2026-09-27 batch** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-09-28`
-#84–#89 are merged, #90 is closed, v1.66.0 is on `main`, and the backlog sync is pushed (`71267a4`).
-`_strip_fences()` now calls `fence_scan.mask()` and still fences an unclosed block to EOF. The VPN
-preflight is a fresh manual connect. Close this watch at the wrap. NB1's local leftovers are
-`workspace`'s watch, not this one.
-
-**W8. Purge personal schedule detail from public history (commits `5d2cd6a`–`cfec2f7`, issue #68's edit history)** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-29` · check after `W7 is wrapped, and not after 2026-10-01`
-Answered here 2026-09-29: yes, purge, after W7. The current tree is already the stub (`briefs/token-plan-2026-10.md`); the commits are still on `origin/main`. This is a history rewrite and a force-push of `main`. Stop and warn before that push. Row: `docs/decisions.md` D37.
 
 ---
 

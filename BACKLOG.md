@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 92 -->
+<!-- next-id: 93 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1325,3 +1325,7 @@ added `2026-09-29` · issue `#98`
 **Fix shape:** before filing an item that has no `issue`, search the open issues for an exact title match, or a `Synced from BACKLOG.md (item Bn)` footer, and adopt the match instead of creating a new one. Or write each issue number back to the file right after its create, not in one batch at the end.
 
 Cleanup done by hand: #217/#218 closed as duplicates, B177/B178 removed.
+
+## B93. Purge personal schedule detail from public history
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-29` · issue `#100` · queued
+Brief: [briefs/purge-public-history.md](briefs/purge-public-history.md). Was W8. W7 wrapped 2026-09-29, so the trigger has fired. The window closes 2026-10-01. Commits `5d2cd6a`–`cfec2f7` are still on `origin/main`. The working tree is already the stub. Issue #68 is closed and its current body does not carry the schedule detail; the edit history is separate. This is a history rewrite. Stop and warn before any force-push of `main`. Row: `docs/decisions.md` D37.

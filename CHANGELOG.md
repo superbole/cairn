@@ -3,6 +3,10 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-29 — W7 closed (no version)
+
+The 2026-09-27 review is finished. #84–#89 are on `main`, handover #90 is closed, and v1.66.0 is pushed. `_strip_fences()` calls `fence_scan.mask()` and still blanks an unclosed fence through EOF (`09ac881`). Inbox counters still report that unclosed line. The batch guide now says to connect the VPN by hand just before a firing. W7 is closed. W8 is queued as B93: the history purge stops and warns before any force-push of `main`. It is not done.
+
 ## 2026-09-29 — v1.66.0: the 2026-09-27 afk batch, reviewed and merged
 
 Reviewed the overnight PRs and merged #88, #85, #84, #86, #87 and #89. Closed handover #90. It still said none of them were merged.
