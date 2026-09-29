@@ -17,21 +17,9 @@ record is the one thing in a repo that cannot be re-derived from the repo.
    Brief: [briefs/claude-team-install.md](briefs/claude-team-install.md)
    He knows several Claude-Code-only colleagues and no Cursor-only ones (2026-09-28), so this replaced B81, which stays in the backlog. Stops at the plan. Backlog B86.
 
-2. **Model labels name the tier, not a version: `Opus 5.5` reads as "no model" today** — Opus 5 · high · AFK/Auto
-   Brief: [briefs/model-labels-by-family.md](briefs/model-labels-by-family.md)
-   Every model release would otherwise need a plugin release. Backlog B76. **Done as PR #85, blocked by W7** (review and merge); don't redo it.
-
-3. **The README says how to turn on auto-update (off by default for this marketplace)** — Sonnet 5 · medium · AFK/Auto
-   Brief: [briefs/readme-auto-update.md](briefs/readme-auto-update.md)
-   A stranger's install otherwise stays on its first version forever. Backlog B61. **Done as PR #84, blocked by W7** (review and merge); don't redo it.
-
-4. **When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base** — Opus 5 · high · HITL/Plan
+2. **When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base** — Opus 5 · high · HITL/Plan
    Brief: `BACKLOG.md` B87
    Found 2026-09-28: 50 behind, and the orientation printed a stale queue under the warning. Agreed in chat. An item that exists only on origin is declined until he pulls (D46).
-
-## Decisions
-
-**D37. Purge personal schedule detail from public history (commits `5d2cd6a`–`cfec2f7`, issue #68's edit history)?** — answer: `here` · added `2026-09-26` → the 2026-09-26 CHANGELOG entry
 
 ## Watching
 
@@ -50,6 +38,9 @@ unavailable on this account, because its GitHub access is blocked. Check: the ta
 success, with no stall on a permission prompt; each item became one `afk/<date>-<nn>-<Bnn>-<slug>` PR off
 `origin/main` that touches no shared file; the PR notification reached the phone; and nothing reached
 `main`. Also read the usage page against Monday's dry-run delta, and adjust the firings per week if needed.
+The first real `afk/` run (NB1, 2026-09-27, reviewed as W7) showed: a firing can stall for hours on a
+permission prompt (B84); a README-only item is its own PR; the leak detector false-failed three PRs until
+B75 merged; bookkeeping stays in the attended session.
 
 **W6. Review and merge the unattended `afk/` PRs, then catch the bookkeeping up** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-10-20`
 Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier against its diff
@@ -57,19 +48,16 @@ Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier agains
 (CHANGELOG, version bump, `BACKLOG.md` closes, the Queue) and run `tools/sync_backlog.py`. Any lane-0
 bookkeeping PRs already merged cover part of this, so read `git log` first.
 
-**W7. Review the 2026-09-27 overnight batch: six `afk/` PRs (#84–#89), handover #90** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-09-28`
-Any machine. Start from PR #90 on `superbole/cairn`: judgement calls first, then each PR's body (its dossier)
-against its diff. Merging needs `gh` auth there; `CREDENTIALS.md` still lists NB5's GitHub token as not entered.
-**Merge B75 (#88) first**, or any concurrent session fails the suite on a false leak. At merge: a version bump
-means re-running `tools/build_cursor.py` (#85 regenerated `cairn.mdc`); consider dropping #85's "over twice
-Opus's price" clause from the rules (a bare constant); once #84 and #86 are both in, add one README sentence
-for #86's new newer-rules line; accept or close #88's blind spot (its review note). After #85, fold #89's
-`hooks/fence_scan.py` into `backlog_file._strip_fences()`. Hand-edit #84's PR body: it still has a home path.
-Then the bookkeeping (CHANGELOG, close B14 B15 B58 B61 B66 B75 B76, Queue 1–2, #85's decisions row, sync),
-which is W6's job brought forward. Also fix `docs/running-a-batch.md`'s VPN preflight: NB1's OpenVPN profile
-asks for a TOTP code on reconnect, so "reconnect on drop" fails; the preflight is a fresh manual connect just
-before the firing. It was the first real run of the afk/ PR model, so fold what it showed into W5. NB1's
-local leftovers are `workspace`'s watch, not this one.
+**W7. Finish the leftovers from the 2026-09-27 batch** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-09-28`
+#84–#89 are merged (#88 first), #90 is closed, and the bookkeeping through v1.66.0 is in. Still to do:
+fold `hooks/fence_scan.py` into `backlog_file._strip_fences()` (they disagree on an unclosed fence; #85 is
+already in), fix the VPN preflight in `docs/running-a-batch.md` (NB1's OpenVPN profile asks for a TOTP on
+reconnect, so the preflight is a fresh manual connect just before the firing), and run
+`tools/sync_backlog.py` so the closed issues match `BACKLOG.md`. NB1's local leftovers are `workspace`'s
+watch, not this one.
+
+**W8. Purge personal schedule detail from public history (commits `5d2cd6a`–`cfec2f7`, issue #68's edit history)** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-29` · check after `W7 is wrapped, and not after 2026-10-01`
+Answered here 2026-09-29: yes, purge, after W7. The current tree is already the stub (`briefs/token-plan-2026-10.md`); the commits are still on `origin/main`. This is a history rewrite and a force-push of `main`. Stop and warn before that push. Row: `docs/decisions.md` D37.
 
 ---
 

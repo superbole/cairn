@@ -3,6 +3,16 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-29 — v1.66.0: the 2026-09-27 afk batch, reviewed and merged
+
+Reviewed the overnight PRs and merged #88, #85, #84, #86, #87 and #89. Closed handover #90. It still said none of them were merged.
+- **B75** (#88). The leak detector attributes a new state dir to a real worktree before blaming a test. The suite checkout's own slug stays ignored (B91). An unrecognised name still fails the run.
+- **B76** (#85, D47). A model label is the family, with an optional version. Order: Haiku < Sonnet < Opus < Fable. The price clause was removed from the always-loaded rules.
+- **B61** (#84) and **B66** (#86). The README says how to turn auto-update on, and one sentence covers the newer-rules line.
+- **B58** (#87). The behind-origin banner re-checks the repos it names.
+- **B14** and **B15** (#89). `fence_check` has a default set and says how many files it read. Inbox counts skip fenced bullets. `hooks/fence_scan.py` is still a second copy (left on W7).
+- **D37** answered: purge commits `5d2cd6a`–`cfec2f7` and issue #68's edit history after W7, before 2026-10-01 (W8). Not done. It is a force-push of `main`.
+
 ## 2026-09-29 — Two findings from an NB5 hub session: B88 evidence, B90 filed (no version)
 
 Asked from a Windows session in the `SBole/workspace` hub. **B88** gets the evidence: a session there

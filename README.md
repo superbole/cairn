@@ -137,7 +137,9 @@ python -c "import json,pathlib;d=json.loads((pathlib.Path.home()/'.claude/plugin
 **cairn cannot tell you a newer version exists.** The `⚠ … installed cairn plugin is vX, but this
 repo's plugin.json is vY` line appears only inside a checkout of this repo, where it means the
 source is ahead of this machine's install. The `rules block is vX` line appears anywhere and means
-the plugin updated but this session started before the rules were rewritten: restart. Neither one
+the plugin updated but this session started before the rules were rewritten: restart. A line
+that says the rules block is NEWER than the installed plugin means a restart will not resync,
+because the plugin is the old side: update the plugin, then start a session. Neither warning
 checks GitHub, so auto-update is the only thing that keeps a stranger's install current.
 
 Contributing a change? The maintainer half of this — pushing the source and bumping the version —

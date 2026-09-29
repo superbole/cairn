@@ -79,7 +79,7 @@ carrying `closed|shipped|dropped`, and the lines it flagged said **`fixed`** —
 not know (same narrow-vocabulary shape as B15).
 
 ## B14. `fence_check.py` with no arguments checks nothing and prints a clean pass
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09` · issue `#12`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09` · issue `#12` · closed `2026-09-29`
 Was `agent-reentry` B138 (migrated 2026-09-23). `fence_check.py` is `for path in sys.argv[1:]` with
 **no default file set**. With no arguments it prints `fence check: 0 line(s) inside a fence that a
 parser would read as structure` and **exits 0 having read no files** — byte-identical to a pass.
@@ -94,7 +94,7 @@ hits, all deliberate format examples in `README.md`, `docs/guide.md`, `docs/file
 line-start parser reads — **so the default set must NOT include docs**, or it cries wolf.
 
 ## B15. Bullet counters and `fence_check.py` don't know a bullet inside a fence isn't a bullet
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09` · issue `#13`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09` · issue `#13` · closed `2026-09-29`
 Was `agent-reentry` B132 (migrated 2026-09-23). **Live incident:** an `INBOX.md` intake contract
 carried four example bullets inside a fenced code block, and the file was read as **5 un-triaged
 items instead of 1**. `wrap_receipt.py:_inbox_bullets()` uses `_BULLET_RE = ^\s*[-*]\s+\S` per line
@@ -942,7 +942,7 @@ project from the session and ignores the cwd, and it has no `--root` flag. Setti
 changed in bsr-tools.
 
 ## B58. The sibling "behind origin" banner still names a repo whose directory is gone
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-24` · issue `#58`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-24` · issue `#58` · closed `2026-09-29`
 Seen 2026-09-24 in `workspace` on DeepThought. `agent-reentry` had been archived and deleted from
 `~/Projects` that day, yet the next SessionStart printed *"1 sibling repo is behind origin:
 agent-reentry (5 behind)"*. The agent relayed that and offered a pull, and the user had to correct
@@ -971,7 +971,7 @@ remote-tracking ref (one `git rev-list`, no fetch, no network) and drop it when 
 keeps the no-network contract and catches the "already pulled/pushed since" case.
 
 ## B61. The README never says how to turn on auto-update, and it is off by default for this marketplace
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-25` · issue `#61` · queued
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-25` · issue `#61` · closed `2026-09-29`
 Brief: [briefs/readme-auto-update.md](briefs/readme-auto-update.md). Pulled to refill the Queue at B70's wrap, 2026-09-26.
 **Found 2026-09-25** when NB1 was still on v1.60.0 hours after v1.62.0 was pushed. The official docs
 (fetched that day: `code.claude.com/docs/en/plugins/install.md` and `…/plugins/loading.md`) say:
@@ -1031,7 +1031,7 @@ future Claude Code adds per-platform commands. Rejected already (D31): a sh/Powe
 command string, because of CommandNotFound noise on every PowerShell hook call.
 
 ## B66. After B63, two messages still give the wrong remedy for a rules block NEWER than the plugin
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#64`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#64` · closed `2026-09-29`
 Found by lane A of the 2026-09-26 overnight batch (dossier `docs/review/lane-a-2026-09-26.md`, "Chose
 not to do"). Since v1.63.0 `install_rules` KEEPS a newer block instead of rolling it back (D33), so
 "restart and it resyncs" is false in that direction. Two places still say it or half-say it:
@@ -1190,7 +1190,7 @@ has to be decided), `docs/file-formats.md`, and the README's opt-in list. **Rule
 this user's reset times anywhere in the plugin, since they are personal and the plugin is public.
 
 ## B75. `run_tests.py`'s leak detector blames a test for a state dir another session created
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#76`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#76` · closed `2026-09-29`
 **Seen 2026-09-26** during B70's planning session. It ran three worktree lanes and a doc-fix agent at
 once. The doc agent's `run_tests.py --timeout=300` reported `33/33 test files passed … ALL PASS` and then
 `LEAKED 1 new directory into ~/.claude/reentry-state from 1 file(s): ['test_archive_guard.py']`, exiting 1.
@@ -1210,7 +1210,7 @@ prune dirs whose project path no longer exists. **Ruled out:** relaxing the dete
 fail, because the B74 docstring in `run_tests.py` explains why a real leak must fail the run.
 
 ## B76. Model labels are pinned to version strings, so a new release (Opus 5.5) reads as "no model"
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#77` · queued
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#77` · closed `2026-09-29`
 Brief: [briefs/model-labels-by-family.md](briefs/model-labels-by-family.md). Pulled to refill the Queue at B70's wrap, 2026-09-26.
 **Asked 2026-09-26:** *"how does Cairn handle this?"*, on Opus 5.5 being released. **It doesn't.**
 Cairn has no model discovery at all. An agent writes the model label into each item when it files or
@@ -1467,3 +1467,7 @@ cairn's own read-only calls (`git -C * status|log|rev-list|diff`, the `--check` 
 `check_settings.py` offers to add; (3) say so when `settings.local.json` is full of one-off compound
 rules. **Check B77 first:** any allowlist here must not widen what can push to `main`.
 The per-checkout cleanup is `SBole/workspace` B69.
+
+## B91. The leak detector ignores a new state dir for the suite checkout's own slug
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-29`
+Accepted with #88 (B75), not queued. A test that writes the checkout the suite is running in is ignored, because that checkout is a real worktree. Refusing to ignore that slug fails the suite whenever it runs inside a live worktree, which is how a batch re-runs its own lanes. An unrecognised name still fails the run. Do not close this by blaming every real worktree.

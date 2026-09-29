@@ -1,7 +1,7 @@
 {
   "name": "cairn",
   "description": "Never lose your place between sessions. Relays the project's NEXT.md queue, due watches and inbox at the start of a chat, and provides cairn-next to re-enter work and cairn-wrap to end a session so the next one starts from disk. The same plugin, and the same files, as cairn for Claude Code.",
-  "version": "1.65.0",
+  "version": "1.66.0",
   "author": {
     "name": "superbole"
   },
