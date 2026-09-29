@@ -49,12 +49,10 @@ Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier agains
 bookkeeping PRs already merged cover part of this, so read `git log` first.
 
 **W7. Finish the leftovers from the 2026-09-27 batch** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-09-28`
-#84–#89 are merged (#88 first), #90 is closed, and the bookkeeping through v1.66.0 is in. Still to do:
-fold `hooks/fence_scan.py` into `backlog_file._strip_fences()` (they disagree on an unclosed fence; #85 is
-already in), fix the VPN preflight in `docs/running-a-batch.md` (NB1's OpenVPN profile asks for a TOTP on
-reconnect, so the preflight is a fresh manual connect just before the firing), and run
-`tools/sync_backlog.py` so the closed issues match `BACKLOG.md`. NB1's local leftovers are `workspace`'s
-watch, not this one.
+#84–#89 are merged, #90 is closed, v1.66.0 is on `main`, and the backlog sync is pushed (`71267a4`).
+`_strip_fences()` now calls `fence_scan.mask()` and still fences an unclosed block to EOF. The VPN
+preflight is a fresh manual connect. Close this watch at the wrap. NB1's local leftovers are
+`workspace`'s watch, not this one.
 
 **W8. Purge personal schedule detail from public history (commits `5d2cd6a`–`cfec2f7`, issue #68's edit history)** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-29` · check after `W7 is wrapped, and not after 2026-10-01`
 Answered here 2026-09-29: yes, purge, after W7. The current tree is already the stub (`briefs/token-plan-2026-10.md`); the commits are still on `origin/main`. This is a history rewrite and a force-push of `main`. Stop and warn before that push. Row: `docs/decisions.md` D37.

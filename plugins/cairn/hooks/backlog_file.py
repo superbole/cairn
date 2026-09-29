@@ -53,6 +53,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import fence_scan  # noqa: E402  — hooks/ is on the path only after the insert above
+
 FILE_NAME = "BACKLOG.md"
 
 # `## B12. Some title` -- and, B46, a bare `## 12. Some title` too: `n` is the ONLY identity
@@ -92,13 +94,14 @@ _BRIEF_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 # B75/B80's floor marker: `<!-- next-id: 84 -->`. See `read_next_id_marker()` / `write()`.
 _NEXT_ID_MARKER_RE = re.compile(r"<!--\s*next-id:\s*(\d+)\s*-->")
 
-# A ``` or ~~~ fence delimiter, line-start (allowing leading whitespace, same as a real
-# markdown renderer). Toggled on/off by `_strip_fences()` below.
-_FENCE_RE = re.compile(r"^\s*(```|~~~)")
-
-
 def _strip_fences(lines: list[str]) -> list[str]:
     """Blank out every line inside a fenced code block (B85).
+
+    The fence rule itself lives in `fence_scan.mask`. This wrapper keeps the backlog
+    policy: an unclosed fence is fenced to EOF, and the reported open-line is ignored.
+    Fail toward ignoring suspect text, never toward inventing structure from it.
+    Inbox counters use the same mask and do the opposite with that report. See
+    `fence_scan.py`.
 
     `_ITEM_RE`, `_NEXT_ID_MARKER_RE` and `_CHANGELOG_DATE_RE` all match on line-start
     structure with no idea that markdown fences exist, so pasted command output quoting a
@@ -113,18 +116,9 @@ def _strip_fences(lines: list[str]) -> list[str]:
     offset) can run entirely against the cleaned text without the two ever drifting apart.
     Line count and order are preserved either way — callers that index by line position
     (`parse()`'s item/body split, `unparsed_headings()`'s line numbers) depend on that too.
-    An unclosed fence (an odd number of markers in the file) is treated as fenced to EOF:
-    fail toward ignoring suspect text, never toward inventing structure from it.
     """
-    out = []
-    in_fence = False
-    for ln in lines:
-        if _FENCE_RE.match(ln):
-            in_fence = not in_fence
-            out.append(ln)                             # the fence marker itself never
-            continue                                    # matches a heading/marker pattern
-        out.append(" " * len(ln) if in_fence else ln)
-    return out
+    in_fence, _unclosed_at = fence_scan.mask(lines)
+    return [(" " * len(ln)) if fenced else ln for ln, fenced in zip(lines, in_fence)]
 
 
 def path(root: Path) -> Path:

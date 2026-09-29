@@ -5,21 +5,18 @@ WHY THIS EXISTS
 ---------------
 Three places each cared whether a line sits inside a ``` or ~~~ fenced code block, and
 before this file existed each had re-derived the answer on its own: `backlog_file.py`'s
-`_strip_fences()` (B85, the mature original -- unaffected by this change, still its own
-copy, since it is outside this lane's ownership), `tools/fence_check.py`'s own report
-loop, and -- until B15 -- neither `wrap_receipt._inbox_bullets()` nor
-`session_orientation._inbox_items()` tracked fences AT ALL. Both counted `- `/`* ` bullet
+`_strip_fences()` (B85), `tools/fence_check.py`'s own report loop, and -- until B15 --
+neither `wrap_receipt._inbox_bullets()` nor `session_orientation._inbox_items()` tracked
+fences AT ALL. `_strip_fences()` is now a wrapper around `mask()`; it still fences an
+unclosed block to EOF and ignores the reported line. Both counted `- `/`* ` bullet
 lines by raw line-start regex, fence or no fence, so an INBOX.md intake contract that
 carried four EXAMPLE bullets inside a fenced code block was read as 5 un-triaged items
 instead of the 1 real one (B15's live incident).
 
-This module is now the one place the RULE is defined -- what a fence is, and what a
-bullet is -- for the three files this lane owns (`fence_check.py`, `wrap_receipt.py`,
-`session_orientation.py`). It is a deliberately small, dependency-free sibling of
-`backlog_file._strip_fences()` rather than a replacement for it: `backlog_file.py` is
-owned by another lane, importing a leading-underscore name across that boundary would
-couple two lanes' releases together, and this module's callers need a fact
-`_strip_fences()` does not hand back at all -- see `mask()` below.
+This module is the one place the RULE is defined -- what a fence is, and what a
+bullet is -- for `fence_check.py`, `wrap_receipt.py`, `session_orientation.py`, and
+`backlog_file._strip_fences()`. Callers that need the unclosed-fence line use `mask()`'s
+second return value. `_strip_fences()` does not.
 
 WHY AN UNCLOSED FENCE IS REPORTED, NOT JUST HANDLED
 ----------------------------------------------------
@@ -52,7 +49,7 @@ from __future__ import annotations
 import re
 
 # A ``` or ~~~ fence delimiter, line-start (allowing leading whitespace, same as a real
-# markdown renderer, and the same pattern `backlog_file._strip_fences()` uses).
+# markdown renderer). `backlog_file._strip_fences()` uses `mask()`, not a second copy.
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 
 # A markdown bullet line with actual content after the marker. Matches `-` and `*` (the
