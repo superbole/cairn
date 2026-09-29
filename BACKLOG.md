@@ -1329,3 +1329,24 @@ Cleanup done by hand: #217/#218 closed as duplicates, B177/B178 removed.
 ## B93. Purge personal schedule detail from public history
 `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-29` · issue `#100` · queued
 Brief: [briefs/purge-public-history.md](briefs/purge-public-history.md). Was W8. W7 wrapped 2026-09-29, so the trigger has fired. The window closes 2026-10-01. Commits `5d2cd6a`–`cfec2f7` are still on `origin/main`. The working tree is already the stub. Issue #68 is closed and its current body does not carry the schedule detail; the edit history is separate. This is a history rewrite. Stop and warn before any force-push of `main`. Row: `docs/decisions.md` D37.
+
+## B94. Map Claude family and effort onto Cursor and Grok model slugs
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-29`
+**Triaged from INBOX.md at the 2026-09-29 wrap; nothing decided yet.** Captured verbatim below. It needs his
+call on whether a non-Anthropic row may stand in for a family (D45 says off-scale: name it and ask) or only
+records effort, and whether the preamble should name slugs at all (D47: the label is the family). Stops at the plan.
+
+**Map Claude family and effort onto Cursor and Grok.** Captured 2026-09-29. Not decided. D45 still says Cursor `Auto` and any non-Anthropic model (Grok, Composer, GPT) is off the scale: name it and ask, do not call it above or below. D47 says the label is the family, Haiku < Sonnet < Opus < Fable, and effort is separate. The preamble says `high` is that model's thinking or Max variant and `medium` is the standard one, and to pick the current model of the family. It names no slug. The slugs below are the ones this session's subagent list offered on 2026-09-29. The picker may have more. A blank cell means it was not in that list, not that Cursor lacks it. Two Sonnet highs were both listed, so "current of the family" is not one slug.
+
+| Claude label | effort | Cursor slug, Claude | Cursor slug, Grok |
+|---|---|---|---|
+| Haiku | high | `claude-4.5-haiku-thinking` | `grok-4.7-high` |
+| Haiku | medium | | `cursor-grok-4.6-medium` |
+| Sonnet | high | `claude-sonnet-5-5-high` and `claude-4.5-sonnet-thinking` | `grok-4.7-high` |
+| Sonnet | medium | | `cursor-grok-4.6-medium` |
+| Opus | high | `claude-opus-5-thinking-high` | `grok-4.7-high` |
+| Opus | medium | `claude-opus-5-5-medium` | `cursor-grok-4.6-medium` |
+| Fable | high | `claude-fable-5-1-thinking-high` | `grok-4.7-high` |
+| Fable | medium | | `cursor-grok-4.6-medium` |
+
+This chat ran as `grok-4.7-high`. The Grok column is the same two slugs on every row: effort only, not a family. Also in that list and also off the scale: `composer-2.5-fast`, `gemini-3.8-flash-high`, `gpt-5.6-sol-medium`, `muse-spark-1.3-high`. Triage should say whether the preamble names these slugs, and whether a Grok row is allowed to stand in for a Claude family or only records the effort.
