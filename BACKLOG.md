@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 93 -->
+<!-- next-id: 94 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1331,7 +1331,7 @@ Cleanup done by hand: #217/#218 closed as duplicates, B177/B178 removed.
 Brief: [briefs/purge-public-history.md](briefs/purge-public-history.md). Was W8. W7 wrapped 2026-09-29, so the trigger has fired. The window closes 2026-10-01. Commits `5d2cd6a`–`cfec2f7` are still on `origin/main`. The working tree is already the stub. Issue #68 is closed and its current body does not carry the schedule detail; the edit history is separate. This is a history rewrite. Stop and warn before any force-push of `main`. Row: `docs/decisions.md` D37.
 
 ## B94. Map Claude family and effort onto Cursor and Grok model slugs
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-29`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-29` · issue `#101`
 **Triaged from INBOX.md at the 2026-09-29 wrap; nothing decided yet.** Captured verbatim below. It needs his
 call on whether a non-Anthropic row may stand in for a family (D45 says off-scale: name it and ask) or only
 records effort, and whether the preamble should name slugs at all (D47: the label is the family). Stops at the plan.
