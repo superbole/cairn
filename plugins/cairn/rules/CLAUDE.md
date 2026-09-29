@@ -186,7 +186,7 @@ repo, bump its version, and reinstall.
 ```
 ## Queue      actionable RIGHT NOW. Max 5, numbered 1..5. Each names MODEL, EFFORT
               and ATTENDANCE/MODE, and links to a self-contained brief on disk:
-              1. **Short title** — Opus 5 · high · HITL/Plan  → [brief](briefs/x.md)
+              1. **Short title** — Opus · high · HITL/Plan  → [brief](briefs/x.md)
 ## Decisions  the user's to answer, not an agent's to pick up — no "do Dn". D1, D2,
               ... uncapped. ONE line, no prose body: title, `answer:` field, `added`,
               a link to the full detail (wherever the project keeps its backlog):
@@ -198,7 +198,7 @@ repo, bump its version, and reinstall.
               Flagged past 30 days, same as a stale watch.
 ## Watching   waiting on a trigger. W1, W2, ... uncapped. One shape, fields after the
               bold, `check after` always LAST:
-              **W1. Short title** — `Opus 5` · effort `high` · `AFK/Auto`
+              **W1. Short title** — `Opus` · effort `high` · `AFK/Auto`
                                     · added `2026-08-15` · check after `X`
               X is a YYYY-MM-DD date or a free-text event.
 ```
@@ -382,6 +382,11 @@ the user's own working style, and this list is not.
   *because* they can switch, and it is easy to forget to check; a wrong answer at the cheap tier
   reads like a right one.
   **Check the MODEL, ASK about the EFFORT**: your model is in your context, the effort is not.
+  **The model field names the FAMILY** (`Opus`, `Sonnet`, `Haiku`, `Fable`), not a release; a
+  version after it (`Opus 5.5`) still parses but is never needed. Compare families, never
+  version numbers: **Haiku < Sonnet < Opus < Fable**. Fable is the top tier at over twice
+  Opus's price, so judgement work is labelled `Opus`; write `Fable` only when the brief says
+  why Opus is not enough.
 - **Effort:** `high` when the agent will DECIDE something, `medium` when it will EXECUTE a
   decision already written down. Never `low` — the saving is small and a confident wrong answer
   written into a doc is the costly failure.

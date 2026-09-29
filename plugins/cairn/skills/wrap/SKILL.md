@@ -256,10 +256,11 @@ shell, and bare `python` is missing on stock Linux — so always go through `hoo
    your intended change, nothing else.
 
    `## Queue` — actionable RIGHT NOW. Max **5**, numbered `1.`–`5.`. Each item: bold title,
-   **model, effort AND attendance/mode**, one sentence, and a link to its brief.
+   **model, effort AND attendance/mode**, one sentence, and a link to its brief. The model is the
+   family (`Opus`, `Sonnet`, `Haiku`, `Fable`), never a release number.
 
    ```
-   1. **Short title** — Opus 5 · high · HITL/Plan
+   1. **Short title** — Opus · high · HITL/Plan
       Brief: [briefs/slug.md](briefs/slug.md)
       One sentence on what this is.
    ```
@@ -344,7 +345,7 @@ shell, and bare `python` is missing on stock Linux — so always go through `hoo
    `## Watching` — waiting on a trigger. `W1`, `W2`, … uncapped. One shape, every time:
 
    ```
-   **W1. Short title** — `Opus 5` · effort `high` · `AFK/Auto` · added `2026-08-15` · check after `X`
+   **W1. Short title** — `Opus` · effort `high` · `AFK/Auto` · added `2026-08-15` · check after `X`
    ```
 
    The hook parses these fields, so all five are required and the order matters:
@@ -610,7 +611,7 @@ shell, and bare `python` is missing on stock Linux — so always go through `hoo
    one short line and it is the only part of the close they can check.
 
    - **What's next, with model, effort AND attendance/mode.** *"Next: item 1 — move the remaining
-     repos. Sonnet 5, effort medium, AFK in Auto mode."* Never the model alone — and if the next
+     repos. Sonnet, effort medium, AFK in Auto mode."* Never the model alone — and if the next
      item is `HITL`, say where it will stop, so they can judge whether they have the attention for it
      today.
    - **The session's name** (step 8b) — one short line.

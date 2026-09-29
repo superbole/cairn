@@ -61,13 +61,13 @@ Do not renumber.
    doesn't, so everything below may be stale. **Offer the pull; never run it unasked.**
 
 2. **Relay the Queue as a LIST, never as prose.** One line per item, the file's own numbers, each
-   carrying **model, effort AND attendance/mode** (`Opus 5 · high · HITL/Plan`, not just `Opus 5`)
+   carrying **model, effort AND attendance/mode** (`Opus · high · HITL/Plan`, not just `Opus`)
    and ending with the brief as a markdown link, path copied from `NEXT.md`'s own link — never
    invented:
 
    ```
-   1. The illness brief asks four gates you can't answer — Opus 5 · high · HITL/Plan — [brief](briefs/illness-gates.md)
-   2. Set the staging box up to deploy — Sonnet 5 · medium · AFK/Auto — [brief](briefs/staging-deploy.md)
+   1. The illness brief asks four gates you can't answer — Opus · high · HITL/Plan — [brief](briefs/illness-gates.md)
+   2. Set the staging box up to deploy — Sonnet · medium · AFK/Auto — [brief](briefs/staging-deploy.md)
    ```
 
    They pick by NUMBER. Never summarise the list into a sentence and never drop the numbers, models,
@@ -149,12 +149,16 @@ Do not renumber.
    diagnosis task on the cheap tier or hit a permission prompt on an item they walked away from.
 
    **The DIRECTION of a mismatch decides what you do.** Running ABOVE the item — Opus on a
-   `Sonnet 5` item, `high` on a `medium` one — is a cost, not a defect: **name the cheaper tier in
+   `Sonnet` item, `high` on a `medium` one — is a cost, not a defect: **name the cheaper tier in
    one line and wait for them to switch**, unless the whole item is one reply or one small edit —
-   then say so and carry on. Running BELOW it — Sonnet on an `Opus 5` item, `medium` on a `high`
+   then say so and carry on. Running BELOW it — Sonnet on an `Opus` item, `medium` on a `high`
    one — is a **HARD STOP. Do not start.** Name what to switch to and wait for them. A model that
    is not on this scale at all (Cursor's `Auto`, a non-Anthropic model) is neither: say which
    model is running and ask. Do not rank it yourself.
+
+   **The scale compares FAMILIES, never versions: Haiku < Sonnet < Opus < Fable.** Opus 5 on an
+   `Opus 5.5` item is the same tier, not below it. Fable on an `Opus` item is above; Opus on a
+   `Fable` item is below, so it stops.
 
    They forget to set the tier; that is the entire reason the item names it. Over-tier spends more
    money and the work is no worse — which is why it waits only when the item is big enough for the

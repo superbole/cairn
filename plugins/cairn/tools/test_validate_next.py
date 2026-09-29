@@ -382,5 +382,49 @@ print("\n20. B81 -- with nothing to compare (both zero), no git is even invoked"
 hazard20 = vn.so._numbering_hazard_files(Path(r"C:\definitely\not\a\real\path"), "main", 0, 0)
 check("behind=ahead=0 short-circuits to empty set", hazard20, set())
 
+print("\n21. B76 -- model labels are the FAMILY, optional version; junk and prose are refused")
+FAMILY = """# NEXT — fixture
+
+## Queue
+
+1. **Newer Opus release** — Opus 5.5 · high · AFK/Auto
+2. **Top tier** — Fable 5.1 · high · HITL/Auto
+3. **Family only** — Opus · high · HITL/Plan
+4. **Old style still fine** — Sonnet 5 · medium · AFK/Auto
+5. **Haiku item** — Haiku · medium · AFK/Auto
+
+## Watching
+
+**W1. Backticked family** — `Fable` · effort `high` · `AFK/Auto` · added `2026-08-01` · check after `2026-09-01`
+**W2. Backticked version** — `Opus 5.5` · effort `high` · `AFK/Auto` · added `2026-08-01` · check after `2026-09-01`
+"""
+ok, lines, counts = vn.validate(write(FAMILY))
+check("every family / family+version label passes", ok, True)
+check("no problems at all", problems_only(lines), [])
+
+JUNK = """# NEXT — fixture
+
+## Queue
+
+1. **Unknown family** — Gemini 3 · high · AFK/Auto
+2. **Three-part version** — Opus 5.5.5 · high · AFK/Auto
+3. **Ask about Opus pricing** — high · AFK/Auto
+4. **No space** — Opus5 · high · AFK/Auto
+
+## Watching
+
+**W1. Unknown backticked** — `GPT 5` · effort `high` · `AFK/Auto` · added `2026-08-01` · check after `2026-09-01`
+"""
+ok, lines, counts = vn.validate(write(JUNK))
+problems = problems_only(lines)
+for n, why in ((1, "an unknown family"), (2, "`Opus 5.5.5`"),
+               (3, "a family word in the TITLE, with no model field"), (4, "`Opus5`")):
+    check(f"queue item {n}: {why} reads as missing model",
+          any(f"Queue item {n}" in p and "missing model" in p for p in problems), True)
+check("watch with an unknown backticked family reads as missing model",
+      any("Watch W1" in p and "missing model" in p for p in problems), True)
+check("the model check does not bleed into effort (every item has one)",
+      any("missing effort" in p for p in problems), False)
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)

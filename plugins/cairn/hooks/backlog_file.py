@@ -75,7 +75,18 @@ _EFFORT_RE = re.compile(r"effort\s+`?(high|medium|low)`?", re.I)
 # file they read. Bare means "the mode is still unknown"; the wrap fills it in when the item
 # is pulled onto the Queue.
 _ATTEND_RE = re.compile(r"`?(AFK|HITL)(?:\s*/\s*([A-Za-z ]+?))?`?(?:\s*·|\s*$)")
-_MODEL_RE = re.compile(r"`(Opus 5|Sonnet 5|Haiku 4\.5|Fable 5)`", re.I)
+# A model label names the FAMILY, i.e. the tier (B76): `Opus`, `Sonnet`, `Haiku`, `Fable`, with
+# an OPTIONAL `<major>` or `<major>.<minor>` version after it. Before B76 this was a fixed list of
+# version strings (`Opus 5|Sonnet 5|Haiku 4.5|Fable 5`), so `Opus 5.5` read as NO model at all --
+# and because `fields_line()` re-renders the fields line from the parse, a write() then silently
+# DROPPED the label from the file. Every model release would have needed a plugin release.
+# Group 1 is the whole label exactly as written (`Opus 5.5`, or bare `Opus`), so a round-trip
+# keeps it byte-for-byte. The closing backtick is what refuses `Opus 5.5.5` and `Opus5` here;
+# `validate_next.py`'s backtick-optional copy needs its own field anchor for the same job.
+# Tier ORDER (for the mismatch check, which is prose in `skills/next/SKILL.md` and
+# `rules/CLAUDE.md`, not code): Haiku < Sonnet < Opus < Fable.
+_MODEL_LABEL = r"(?:Opus|Sonnet|Haiku|Fable)(?:\s+\d+(?:\.\d+)?)?"
+_MODEL_RE = re.compile(rf"`({_MODEL_LABEL})`", re.I)
 _BRIEF_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 
 # B75/B80's floor marker: `<!-- next-id: 84 -->`. See `read_next_id_marker()` / `write()`.

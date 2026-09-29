@@ -27,7 +27,7 @@ Cursor rules cannot import it the way the Claude Code copy does with its `@` lin
 | `archive_session(session_id: "self")` | Cursor has no archive tool. At the point the wrap would archive, rename the chat to **`Done · <project> · <subject>`** instead — only when the receipt does **not** read `CAIRN OPEN`, the same condition the Claude archive guard enforces. An `AFK` item stopped before its push reads `OPEN`, so it never gets the prefix. |
 | `list_sessions` / the junk-title sweep | skip it. |
 | `CAIRN UNKNOWN` from `wrap_receipt.py` | expected under Cursor for now: the receipt keys its baseline by a session id that Cursor does not give the shell. Relay it exactly as the rules say — never as `OPEN`, never upgraded to `SET`. |
-| model tier (`Opus 5`, `Sonnet 5`) | pick the same Anthropic model in Cursor's model picker. `Auto` or a non-Anthropic model (Grok, Composer, GPT, …) is **not on the scale**: do not call it above or below; name it and ask before starting. |
+| model tier (`Opus`, `Sonnet`) | pick the current model of that family in Cursor's model picker. `Auto` or a non-Anthropic model (Grok, Composer, GPT, …) is **not on the scale**: do not call it above or below; name it and ask before starting. |
 | effort `high` / `medium` | `high` = that model's thinking or Max variant; `medium` = the standard one. |
 | permission mode (Shift+Tab: `Auto`, `Plan`, …) | Cursor's own modes: `Plan` ↔ Plan, everything else ↔ Agent. The user sets it, as in Claude Code. |
 | an `AFK` item | runs in **Claude Code**, not here: the unattended safeguards (scheduled runs, allow/deny rules, the held push) exist only there. If one is started in Cursor, say so in one line before starting. |

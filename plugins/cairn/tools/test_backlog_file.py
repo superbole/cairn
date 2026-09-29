@@ -594,5 +594,38 @@ _fence_pat = _re.compile(r"^#{2,4}\s+.*?\d{4}-\d{2}-\d{2}\b")
 check("...and it actually matches the atlas-style embedded-date heading",
       bool(_fence_pat.match("### rev 264 — 2026-09-05 — eight decisions answered")), True)
 
+print("\n15. B76 -- a model label is the FAMILY with an optional version, and it round-trips")
+# Before B76, `_MODEL_RE` was the fixed list `Opus 5|Sonnet 5|Haiku 4.5|Fable 5`: `Opus 5.5`
+# parsed as model=None, and because `render()` rebuilds the fields line from the parse, a
+# `write()` then deleted the label from the file. So the cases go through the real file
+# round-trip, not the regex alone: the loss was in the write, not the read.
+fx15 = fixture("model-family")
+labels = {1: "Opus 5.5", 2: "Fable 5.1", 3: "Opus", 4: "Sonnet 5", 5: "Haiku 4.5", 6: "Sonnet"}
+raw15 = "# BACKLOG — T\n<!-- next-id: 9 -->\n\n"
+for n, lab in labels.items():
+    raw15 += (f"## B{n}. Item {n}\n`{lab}` · effort `high` · `AFK/Auto` · added `2026-09-01`"
+              f"\n\nbody {n}\n\n")
+# Refused: an unknown family, a three-part version, and a missing space (with the family word
+# also appearing in prose on the same fields line, which must not count either).
+refused = {7: "`Gemini 3` · effort `high`", 8: "`Opus 5.5.5` · effort `high`",
+           9: "`Opus5` · effort `high` · mentions Opus in prose"}
+for n, f in refused.items():
+    raw15 += f"## B{n}. Item {n}\n{f} · `AFK/Auto` · added `2026-09-01`\n\nbody {n}\n\n"
+(fx15 / "BACKLOG.md").write_text(raw15, encoding="utf-8")
+got15 = {it["n"]: it["model"] for it in backlog_file.parse(fx15)}
+for n, lab in labels.items():
+    check(f"`{lab}` parses as the model, exactly as written", got15.get(n), lab)
+check("an unknown family (`Gemini 3`) is still refused", got15.get(7), None)
+check("a three-part version (`Opus 5.5.5`) is refused, not truncated to `Opus 5.5`",
+      got15.get(8), None)
+check("`Opus5` (no space) is refused, and a bare family word in prose is not a label",
+      got15.get(9), None)
+backlog_file.write(fx15, backlog_file.parse(fx15), "T")
+after15 = {it["n"]: it["model"] for it in backlog_file.parse(fx15)}
+check("write() keeps every family/version label (the pre-B76 write dropped `Opus 5.5`)",
+      {n: after15.get(n) for n in labels}, labels)
+check("...and the rewritten file still carries `Fable 5.1` verbatim",
+      "`Fable 5.1` · effort `high`" in (fx15 / "BACKLOG.md").read_text(encoding="utf-8"), True)
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)

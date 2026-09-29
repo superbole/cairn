@@ -105,7 +105,13 @@ _CONTRADICTION_RE = re.compile(r"\b(AFK)\s*/\s*(Plan)\b|\b(HITL)\s*/\s*(Bypass)\
 # pattern is built from the imported regex's own `.pattern` string, adjusted where the real
 # portfolio proved the original assumption wrong, rather than re-typing the model list or the
 # effort/attendance vocabulary a third time.
-_MODEL_RE = re.compile(bf._MODEL_RE.pattern.replace("`", "`?"), re.IGNORECASE)
+# B76: the family list and version shape come from `bf._MODEL_LABEL`, never re-typed. Making the
+# backticks optional takes away the closing backtick that refuses junk in BACKLOG.md, and a bare
+# family word is now a valid label, so a title like "Ask about Opus pricing" would count as
+# having a model. So this copy is anchored as a FIELD, the same way `_EFFORT_RE` below is: a word
+# boundary before it, and after it only a `·` separator, an em-dash, or end of line. That
+# refuses `Opus 5.5.5`, `Opus5` and a family word in prose, and accepts every real shape.
+_MODEL_RE = re.compile(rf"`?\b({bf._MODEL_LABEL})`?(?=\s*(?:·|—|$))", re.IGNORECASE)
 # The lookahead anchors "high"/"medium"/"low" to being a FIELD (immediately followed by the `·`
 # separator or end of line) rather than any occurrence of the word in prose -- a queue item's
 # title text could otherwise contain "a high priority" and be counted as having an effort field.
