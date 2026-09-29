@@ -56,10 +56,57 @@ condition -- every leaked directory is real damage to real state that has alread
 time this prints, so warning-only would let the plugin's own test suite keep corrupting the thing
 `check_exits.py` depends on, silently, forever. See `docs/review/isolation.md` (B74) for the
 measurement and the list of files this caught.
+
+A LEAK MUST BE ATTRIBUTED, NOT JUST DETECTED (B75, 2026-09-27). The before/after diff above
+cannot tell "a test wrote here" apart from "someone else wrote here while the test was running".
+Every worktree lane (and every other concurrent Claude Code session, anywhere on the machine) has
+its OWN `SessionStart`/`Stop` hooks writing into this exact directory the whole time this runner
+is also polling it, so a plain diff blames whichever test file happened to be running when a
+totally unrelated session's hook created or touched its own state dir. Reproduced twice: once as
+`agent-<id>-<hash>` (a `SessionStart` firing mid-run for an unrelated agent-worktree session,
+2026-09-26) and once as `afk-02-<hash>` (this orchestrator's OWN cwd switching into a sibling
+worktree lane created that lane's EMPTY state dir mid-run, 2026-09-27) -- neither has anything to
+do with the test file blamed for it, and both failed a fully passing suite.
+
+The fix does not relax the diff (a real leak must still fail the run -- see above) or drop the
+global diff for a per-file `CLAUDE_CONFIG_DIR` (rejected: that would silently sandbox a test that
+forgot to override it itself, hiding the exact bug B74 exists to catch, one level up). Instead,
+every NEW name is attributed before it is allowed to fail anything:
+
+  - It KEYS TO A REAL, EXISTING project or worktree (its slug, reproduced with the same
+    derivation `reentry_state.state_dir` uses, matches a currently-live git worktree of this repo
+    or a project this machine has previously recorded a session ending in) -- IGNORED. This is
+    what both reproductions above look like: a real path, still on disk, that this suite never
+    touched.
+  - Otherwise, it KEYS TO A DIRECTORY THIS RUN ITSELF JUST CREATED under the system temp dir (the
+    shape of a test fixture that forgot to override `CLAUDE_CONFIG_DIR`) -- BLAMED. This is the
+    genuine B74 case and still fails the run.
+  - Otherwise (matches neither) -- BLAMED. An unrecognised new name is not proof of innocence;
+    silently letting it through would be the exact blindness this whole detector exists to avoid
+    (its own B74 docstring, two paragraphs up).
+
+`_slug_for` duplicates `state_dir`'s slug math rather than importing it, same reasoning as
+`_real_state_base` below: it must be applied to CANDIDATE paths without the side effect
+`state_dir()` itself has (it creates the directory it returns), and it must keep working even if
+`hooks/reentry_state.py` is mid-edit in a sibling lane.
+
+REAL ROOTS CAN APPEAR MID-RUN TOO (B75 round 2, 2026-09-27). The candidate list above was
+computed ONCE at suite start on the assumption that worktrees don't change while the suite runs.
+False, and it is exactly the same concurrent-lane shape this whole fix exists for: a full run
+reported `afk-05-<hash>` and `afk-06-<hash>` as unrecognised leaks from `test_check_credentials.py`
+-- both were live worktrees (`.claude/worktrees/afk-05`, `afk-06`) `git worktree add`ed WHILE the
+suite was already running, so the cached list built at suite start could never have matched them.
+`_classify_with_refresh` is the fix: when the cached list still leaves a name blamed, recompute
+`_real_roots` fresh -- once -- and re-classify before accepting the blame, then keep the fresh
+list as the cache for every test file after this one. The normal (nothing blamed) path never
+pays for the recompute at all.
 """
+import hashlib
+import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -135,6 +182,160 @@ def _snapshot_state_dir() -> set:
         return set()
 
 
+def _slug_for(root: Path) -> str:
+    """Reproduce `reentry_state.state_dir`'s slug for ROOT (B75). Deliberately NOT imported --
+    `state_dir()` creates the directory it names as a side effect (`mkdir(parents=True,
+    exist_ok=True)`), which is exactly wrong to do just to test whether a NAME matches a
+    candidate path; and this must keep working even if the hook is mid-edit in a sibling lane,
+    same reasoning as `_real_state_base` above. Kept in sync by hand -- see that function's
+    docstring for what "in sync" means here."""
+    name = "".join(c if c.isalnum() or c in "-_" else "-" for c in root.name)[:32] or "project"
+    digest = hashlib.sha1(str(root.resolve()).lower().encode("utf-8")).hexdigest()[:10]
+    return "%s-%s" % (name, digest)
+
+
+def _git_worktree_roots(cwd: Path) -> list:
+    """Every worktree of the repo containing CWD -- main checkout plus every lane -- via
+    `git worktree list --porcelain`. Real, currently-live project roots a concurrent session
+    could be running in; this is exactly the shape of both B75 reproductions (a sibling lane's
+    own hook writing its own state dir mid-run). Best-effort: no git, no repo, or a parse miss
+    just yields nothing -- never raises, never slows the suite down over this."""
+    try:
+        proc = subprocess.run(
+            ("git", "worktree", "list", "--porcelain"),
+            cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+            timeout=10,
+        )
+    except OSError:
+        return []
+    if proc.returncode != 0:
+        return []
+    roots = []
+    for line in proc.stdout.splitlines():
+        if line.startswith("worktree "):
+            roots.append(Path(line[len("worktree "):].strip()))
+    return roots
+
+
+def _recorded_project_roots(state_base: Path) -> list:
+    """Project roots this machine has recorded a SESSION ENDING in -- read from `last_exit.json`
+    (written by `dirty_tree_warning.py`'s SessionEnd branch), same source `check_repos.py`'s
+    `known_roots()` reads. Reimplemented here rather than imported: this runner must never import
+    a sibling tool it does not own, so a half-written sibling file can never break the ability to
+    run the suite at all. Read-only, no side effects; a missing/unreadable/malformed record is
+    silently skipped, never raises."""
+    found = []
+    try:
+        entries = sorted(state_base.glob("*/last_exit.json"))
+    except OSError:
+        return []
+    for statefile in entries:
+        try:
+            root = json.loads(statefile.read_text(encoding="utf-8")).get("root")
+        except Exception:
+            continue
+        if root:
+            found.append(Path(root))
+    return found
+
+
+def _real_roots(state_base: Path) -> list:
+    """Candidate real, existing project/worktree roots, deduped case-insensitively (Windows).
+    Computed once per suite run, not once per test file: worktrees and recorded projects do not
+    change mid-run, and re-shelling to git per test file would be needless cost for no extra
+    signal."""
+    candidates = _git_worktree_roots(ROOT) + _recorded_project_roots(state_base)
+    seen, unique = set(), []
+    for p in candidates:
+        key = str(p).lower()
+        if key not in seen:
+            seen.add(key)
+            unique.append(p)
+    return unique
+
+
+def _snapshot_temp_dir() -> set:
+    """Top-level entry names under the system temp dir right now. Same shallow-snapshot shape as
+    `_snapshot_state_dir` -- cheap enough before and after every test file -- used only to
+    recognise a fixture directory THIS test just created (see `_classify_new_entries`); it is
+    never itself reported as a leak."""
+    try:
+        return {p.name for p in Path(tempfile.gettempdir()).iterdir()}
+    except OSError:
+        return set()
+
+
+def _classify_new_entries(names, new_temp_names, real_roots):
+    """Split newly-appeared state-dir NAMES into (blamed, ignored) (B75).
+
+    ignored: an (name, real_root) pair -- the name's slug matches a REAL, currently-existing
+    project or worktree (see `_real_roots`). Created by that project's own concurrent session,
+    not by anything this suite did; never counted as a leak. Checked FIRST: a real, on-disk
+    project is the stronger signal, and (by construction) cannot also be a fixture this run just
+    created in temp.
+
+    blamed: every other name. Two cases, both reported the same way (the run-time distinction is
+    not worth a third bucket): its slug matches a directory THIS test just created under the
+    system temp dir -- NEW_TEMP_NAMES, from `_snapshot_temp_dir()` before/after -- which is the
+    exact shape of a fixture that forgot to override `CLAUDE_CONFIG_DIR` (a genuine B74 leak); or
+    it matches neither list, which is deliberate -- an unrecognised new name is not proof of
+    innocence, and treating it as harmless would reintroduce the exact blindness this detector
+    exists to prevent, one level up.
+    """
+    real_slugs = {}
+    for root in real_roots:
+        try:
+            if root.is_dir():
+                real_slugs[_slug_for(root)] = root
+        except OSError:
+            continue
+
+    temp_base = Path(tempfile.gettempdir())
+    temp_slugs = set()
+    for entry_name in new_temp_names:
+        try:
+            temp_slugs.add(_slug_for(temp_base / entry_name))
+        except OSError:
+            continue
+
+    blamed, ignored = [], []
+    for name in names:
+        if name in real_slugs:
+            ignored.append((name, real_slugs[name]))
+        else:
+            blamed.append((name, "matches this run's own temp fixture" if name in temp_slugs
+                           else "unrecognised"))
+    return blamed, ignored
+
+
+def _classify_with_refresh(names, new_temp_names, real_roots, state_base):
+    """`_classify_new_entries`, but recomputes REAL_ROOTS -- once -- if the cached list still
+    leaves something blamed (B75, round 2).
+
+    `_real_roots` is normally computed ONCE at suite start (see `main()`) because worktrees don't
+    usually change mid-run. They can: `git worktree add` for a NEW lane (afk-05, afk-06) ran
+    WHILE a full suite was in progress, and that lane's own hook stamped its state dir before this
+    runner's next snapshot -- the same concurrent-lane shape B75 exists for, just for a worktree
+    that did not exist yet when the cache was built, so the cached list could never have matched
+    it. A wrong-way fix would be to shell out to `git worktree list` before every single test
+    file "just in case"; that pays the cost on every run, including the overwhelming majority
+    where nothing is blamed. Instead: try the cheap cached list first, and only pay for a fresh
+    `git worktree list` + re-read of every `last_exit.json` when something would otherwise be
+    blamed -- at most once per test file, and never on the normal (nothing blamed) path.
+
+    Returns (blamed, ignored, real_roots) -- REAL_ROOTS is the input list unchanged when nothing
+    needed refreshing, or the freshly computed one when it did; the caller should keep using
+    whichever comes back as its cache for the NEXT test file, so a single refresh benefits every
+    file after it too, not just the one that triggered it.
+    """
+    blamed, ignored = _classify_new_entries(names, new_temp_names, real_roots)
+    if not blamed:
+        return blamed, ignored, real_roots
+    fresh_roots = _real_roots(state_base)
+    blamed, ignored = _classify_new_entries(names, new_temp_names, fresh_roots)
+    return blamed, ignored, fresh_roots
+
+
 def run_one(path):
     """Run a single test file as a subprocess; never let it raise out of here.
 
@@ -169,16 +370,27 @@ def main(argv):
         print("no test_*.py files found under %s" % TOOLS)
         return 1
 
+    real_roots = _real_roots(_real_state_base())
+
     results = []
-    leaked = {}                            # test filename -> sorted list of new dir names
+    leaked = {}                            # test filename -> sorted list of (name, reason)
+    ignored_total = []                     # (name, real_root) attributed away, informational only
     suite_start = time.perf_counter()
     for path in tests:
         before = _snapshot_state_dir()
+        temp_before = _snapshot_temp_dir()
         status, output, elapsed = run_one(path)
         after = _snapshot_state_dir()
+        temp_after = _snapshot_temp_dir()
         new_entries = sorted(after - before)
+        blamed, ignored = ([], [])
         if new_entries:
-            leaked[path.name] = new_entries
+            blamed, ignored, real_roots = _classify_with_refresh(
+                new_entries, sorted(temp_after - temp_before), real_roots, _real_state_base())
+        if blamed:
+            leaked[path.name] = blamed
+        if ignored:
+            ignored_total.extend(ignored)
         results.append((path.name, status))
         label = {"ok": "ok  ", "FAIL": "FAIL", "TIMEOUT": "TIME"}[status]
         print("%s  %s  (%.1fs)" % (label, path.name, elapsed))
@@ -187,12 +399,19 @@ def main(argv):
             for line in output.rstrip("\n").splitlines():
                 _say("  " + line)
             print("  --- end %s ---" % path.name)
-        if new_entries:
-            plural = "y" if len(new_entries) == 1 else "ies"
+        if blamed:
+            plural = "y" if len(blamed) == 1 else "ies"
             print("  !!! LEAK: %s wrote %d new director%s into the REAL %s:"
-                  % (path.name, len(new_entries), plural, _real_state_base()))
-            for name in new_entries:
-                print("      %s" % name)
+                  % (path.name, len(blamed), plural, _real_state_base()))
+            for name, reason in blamed:
+                print("      %s  (%s)" % (name, reason))
+        if ignored:
+            plural = "y" if len(ignored) == 1 else "ies"
+            print("  (ignored %d new director%s while %s ran -- keys to a real, still-existing "
+                  "project/worktree, not this test:" % (len(ignored), plural, path.name))
+            for name, real_root in ignored:
+                print("      %s  -> %s" % (name, real_root))
+            print("  )")
     wall = time.perf_counter() - suite_start
 
     failed = [name for name, status in results if status == "FAIL"]
@@ -214,12 +433,20 @@ def main(argv):
         plural = "y" if total == 1 else "ies"
         print("\nLEAKED %d new director%s into %s from %d file(s): %s"
               % (total, plural, _real_state_base(), len(leaked), sorted(leaked)))
-        print("This is real operator state, not a sandbox -- FAILS the run (see run_tests.py's "
-              "B74 docstring for why fail, not warn). Fix: set a throwaway CLAUDE_CONFIG_DIR "
-              "before the FIRST call that can touch state_dir(), including direct library calls, "
-              "not only CLI subprocess env.")
+        print("None of these matched a real, still-existing project or worktree (the reason on "
+              "each row above says whether it matched this run's own temp fixtures -- a "
+              "confirmed leak -- or matched neither list -- unrecognised, still treated as a "
+              "leak; see run_tests.py's B75 docstring for why). Real operator state, not a "
+              "sandbox, and FAILS the run (see the B74 docstring for why fail, not warn). Fix: "
+              "set a throwaway CLAUDE_CONFIG_DIR before the FIRST call that can touch "
+              "state_dir(), including direct library calls, not only CLI subprocess env.")
     else:
         print("\nno leak into the real state dir")
+    if ignored_total:
+        print("(%d new director%s attributed away this run -- keyed to a real, still-existing "
+              "project or worktree, not counted as a leak: %s)"
+              % (len(ignored_total), "y" if len(ignored_total) == 1 else "ies",
+                 sorted(name for name, _ in ignored_total)))
 
     return 1 if (failed or timed_out or leaked) else 0
 
