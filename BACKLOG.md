@@ -1451,7 +1451,7 @@ which model scans (cost against the allowance), and how a rejected finding stops
 **Related:** B84, B74 (the reset and how much AFK work is runnable), B31.
 
 ## B90. Auto-mode approvals pile up as one-off exact-command rules, and cairn's command shapes cause most
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-29`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-29` · issue `#97`
 **Asked 2026-09-28:** why a Windows session in a hub kept stopping for approval on read-only commands
 in Auto mode. **Measured in that checkout on NB5, 2026-09-29:** `.claude/settings.local.json` held 23
 allow rules, 8 of them one-off compound strings like `Bash(cd "<plugin cache>/1.58.0" && grep -rn ...)`.
