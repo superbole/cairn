@@ -96,6 +96,31 @@ version and a commit SHA** in `~/.claude/plugins/installed_plugins.json`, and st
 pinned `installPath` without ever contacting GitHub. A restart re-reads the *old* files,
 faithfully, forever.
 
+### Turn on auto-update — it is OFF by default for this marketplace
+
+Claude Code auto-updates plugins only from marketplaces that have auto-update on, and it is **off
+by default for every marketplace that isn't Anthropic's**, `superbole` included. A marketplace
+owner cannot turn it on for you, so without this step an install stays on its first version.
+Turn it on once per machine, either way:
+
+- `/plugin` → **Marketplaces** → `superbole` → **Enable auto-update**, or
+- `"autoUpdate": true` on the `superbole` entry under `extraKnownMarketplaces` in
+  `~/.claude/settings.json`.
+
+Then, after a session's first message, Claude Code waits up to about ten minutes, fetches the new
+version, and says `Plugin updated: cairn · Run /reload-plugins to apply`. The next session loads it
+either way.
+
+**An environment variable can switch it off even when the toggle is on.** `DISABLE_UPDATES=1`,
+`DISABLE_AUTOUPDATER=1` and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` each turn off the whole
+pass and hide the toggle, unless `FORCE_AUTOUPDATE_PLUGINS=1` is also set. Sessions in the Claude
+desktop app have been seen carrying `DISABLE_AUTOUPDATER=1` with nothing in the user's own env or
+settings setting it, so on the desktop app the toggle alone may do nothing.
+`FORCE_AUTOUPDATE_PLUGINS=1` affects every plugin you have, so whether to set it is your call; the
+manual commands below are the fallback.
+
+### Update by hand
+
 ```bash
 claude plugin marketplace update superbole    # 1. fetch the marketplace clone
 claude plugin update cairn@superbole        # 2. repin to the new version
@@ -108,6 +133,12 @@ pick it up" was given as advice, followed twice, and did nothing:
 ```bash
 python -c "import json,pathlib;d=json.loads((pathlib.Path.home()/'.claude/plugins/installed_plugins.json').read_text());print(d['plugins']['cairn@superbole'][0]['version'])"
 ```
+
+**cairn cannot tell you a newer version exists.** The `⚠ … installed cairn plugin is vX, but this
+repo's plugin.json is vY` line appears only inside a checkout of this repo, where it means the
+source is ahead of this machine's install. The `rules block is vX` line appears anywhere and means
+the plugin updated but this session started before the rules were rewritten: restart. Neither one
+checks GitHub, so auto-update is the only thing that keeps a stranger's install current.
 
 Contributing a change? The maintainer half of this — pushing the source and bumping the version —
 is in [the guide](docs/guide.md#shipping-a-change-maintainers).
