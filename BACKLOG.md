@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 91 -->
+<!-- next-id: 92 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -77,38 +77,6 @@ lost" have identical file signatures and the drop is only safe for the first. Ma
 open issues before dropping, or refuse and say so. **Also:** the orphan-pointer check exempts lines
 carrying `closed|shipped|dropped`, and the lines it flagged said **`fixed`** — a closing word it does
 not know (same narrow-vocabulary shape as B15).
-
-## B14. `fence_check.py` with no arguments checks nothing and prints a clean pass
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09` · issue `#12` · closed `2026-09-29`
-Was `agent-reentry` B138 (migrated 2026-09-23). `fence_check.py` is `for path in sys.argv[1:]` with
-**no default file set**. With no arguments it prints `fence check: 0 line(s) inside a fence that a
-parser would read as structure` and **exits 0 having read no files** — byte-identical to a pass.
-It shipped inside a brief's verification one-liner for two versions, so that pre-publication check
-was vacuous every time it ran. (This repo's own brief passes explicit paths and is correct.)
-
-**The fix is a default set, not a docs change.** With no arguments, check `NEXT.md`, `BACKLOG.md`,
-`CHANGELOG.md`, and `INBOX.md` when present, and say which; with arguments, keep today's behaviour.
-**It must print the file count it actually read** — that line is what makes a vacuous run visible.
-Measured: run properly on the four parsed files it is clean; run across public docs it reports 9
-hits, all deliberate format examples in `README.md`, `docs/guide.md`, `docs/file-formats.md` which no
-line-start parser reads — **so the default set must NOT include docs**, or it cries wolf.
-
-## B15. Bullet counters and `fence_check.py` don't know a bullet inside a fence isn't a bullet
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-09` · issue `#13` · closed `2026-09-29`
-Was `agent-reentry` B132 (migrated 2026-09-23). **Live incident:** an `INBOX.md` intake contract
-carried four example bullets inside a fenced code block, and the file was read as **5 un-triaged
-items instead of 1**. `wrap_receipt.py:_inbox_bullets()` uses `_BULLET_RE = ^\s*[-*]\s+\S` per line
-(it matches `*` too, so "use asterisks" is no workaround). **And `fence_check.py` reported `0
-line(s)`** on the broken file — it looks for heading- and `**Dn.`/`**Wn.`-shaped lines only. It is
-not wrong about what it checks; it has no idea a bullet is structure to somebody. A check that
-reports a clean zero on a broken file is worse than none — it retires the suspicion.
-
-**Fix, preferred order:** (2) make the counters skip fenced regions — fixes every future file at
-once, with the same fence tracking `fence_check.py` already has; (1) give `fence_check.py` the bullet
-rule, with the list of "structures" defined in one place. Doing (1) without (2) only warns about the
-trap. **Do not fix this by telling authors not to write examples** — an intake file with no example
-is how the convention gets guessed wrong. (The affected repo worked around it with a table; revisit
-when this lands. That repo's own PowerShell scanner has the same shape and is tracked there.)
 
 ## B16. A malformed decision id is INVISIBLE, and nothing warns
 `Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-08` · issue `#14`
@@ -941,61 +909,6 @@ project from the session and ignores the cwd, and it has no `--root` flag. Setti
 `CLAUDE_PROJECT_DIR=$PWD` works around it. That run wrote nothing, but only because nothing had
 changed in bsr-tools.
 
-## B58. The sibling "behind origin" banner still names a repo whose directory is gone
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-24` · issue `#58` · closed `2026-09-29`
-Seen 2026-09-24 in `workspace` on DeepThought. `agent-reentry` had been archived and deleted from
-`~/Projects` that day, yet the next SessionStart printed *"1 sibling repo is behind origin:
-agent-reentry (5 behind)"*. The agent relayed that and offered a pull, and the user had to correct
-it (*"I thought agent-reentry had just been moved to the recycle bin?"*). The directory really is
-gone: `ls ~/Projects` has no `agent-reentry`.
-
-**Cause:** `hooks/repo_sweep.py` works as designed. `summary_line()` reads the JSON cache that the
-PREVIOUS session's detached `--refresh` wrote, and never re-checks it. The repo existed when that
-cache was written, so the deletion won't show up until one more session has passed.
-
-**Fix:** in `summary_line()`, drop any cached name whose `root.parent / name` no longer exists.
-That is one `Path.exists()` per named repo (at most `MAX_NAMED`). It adds no subprocess or network
-call, so the "effectively free at session start" contract holds. Add a case to the test that
-covers `repo_sweep`.
-**Rejected:** refreshing inline at session start. The module docstring says why that can never be
-inline: the hook must not do network I/O.
-**Why it matters:** a warning about a repo that is not there costs a round trip and trust in the
-banner. It is also the one line the agent is told to lead with.
-**Second occurrence, 2026-09-25, on a work laptop — and the scope is wider than a gone directory.**
-The same banner named the deleted repo AND two siblings that exist, as 1 and 7 behind; a live
-`git fetch` + `rev-list` showed both 0/0 (one had been pushed from that machine an hour earlier).
-The user called it "the second time today this information is stale." So `exists()` alone is not
-enough. Also: (a) print the cache's age on the line (`as of 14:02` / `from last session`), since
-the JSON already holds `at`; (b) for each named repo, re-count `HEAD..@{u}` against the LOCAL
-remote-tracking ref (one `git rev-list`, no fetch, no network) and drop it when it reads 0. That
-keeps the no-network contract and catches the "already pulled/pushed since" case.
-
-## B61. The README never says how to turn on auto-update, and it is off by default for this marketplace
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-25` · issue `#61` · closed `2026-09-29`
-Brief: [briefs/readme-auto-update.md](briefs/readme-auto-update.md). Pulled to refill the Queue at B70's wrap, 2026-09-26.
-**Found 2026-09-25** when NB1 was still on v1.60.0 hours after v1.62.0 was pushed. The official docs
-(fetched that day: `code.claude.com/docs/en/plugins/install.md` and `…/plugins/loading.md`) say:
-- **Plugin auto-update is OFF by default for every non-Anthropic marketplace**, `superbole` included.
-  A marketplace owner cannot turn it on for its users. Each user enables it with `/plugin` →
-  **Marketplaces** → the marketplace → **Enable auto-update**, or `"autoUpdate": true` on the
-  marketplace's `extraKnownMarketplaces` entry in `settings.json`.
-- **`DISABLE_AUTOUPDATER=1` / `DISABLE_UPDATES=1` / `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` block
-  it even when it is on**, and `FORCE_AUTOUPDATE_PLUGINS=1` overrides them. Measured on NB1: desktop-app
-  sessions carry `DISABLE_AUTOUPDATER=1` with nothing in the user's env or settings setting it, so the
-  app is the likely source. That is inferred, not confirmed. So a desktop-app user who flips the
-  toggle may still get no updates.
-- The check runs up to about 10 minutes after a session's first message. An update loads at the next
-  session or on `/reload-plugins`. **Only a `plugin.json` version bump propagates**, and every
-  release here already bumps it.
-
-**Fix:** a short "Staying up to date" paragraph in `README.md`'s install section with the toggle,
-the `FORCE_AUTOUPDATE_PLUGINS` caveat for the desktop app, and what `version_drift.py`'s stale warning
-means. **Ruled out:** having the plugin write these keys (the `settings_drift.py` docstring rejects
-any settings.json write from a plugin), and adding them to `settings_drift.REQUIRED`
-(`FORCE_AUTOUPDATE_PLUGINS` affects every plugin a stranger has, which is theirs to decide). Serves
-the aim line directly: a stranger who never updates is a stranger on a stale install. Per-machine
-application on this user's own machines is `workspace` W6/W7/W10.
-
 ## B62. A machine inbox: show the GitHub issues labelled for THIS machine at session start
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-25` · issue `#62`
 **Asked for 2026-09-25**, the durable half of `workspace` D8. One user can have several hubs that no
@@ -1029,26 +942,6 @@ twin (`run.ps1`) plus a way to pick it. `hooks.json` has no per-platform branch,
 field is per hook, not per OS, so that "way" is the whole problem. Or exec-form `args`, if a
 future Claude Code adds per-platform commands. Rejected already (D31): a sh/PowerShell polyglot
 command string, because of CommandNotFound noise on every PowerShell hook call.
-
-## B66. After B63, two messages still give the wrong remedy for a rules block NEWER than the plugin
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#64` · closed `2026-09-29`
-Found by lane A of the 2026-09-26 overnight batch (dossier `docs/review/lane-a-2026-09-26.md`, "Chose
-not to do"). Since v1.63.0 `install_rules` KEEPS a newer block instead of rolling it back (D33), so
-"restart and it resyncs" is false in that direction. Two places still say it or half-say it:
-- **`hooks/version_drift.py` `_rules_drift`** still prints "this session is running NEW code against
-  OLD rules. Restart to let `install_rules` resync" when the rules block is newer than
-  `installed_plugins.json`. Both halves are backwards: the plugin is the old side, and a restart will
-  not resync. Fix: a `compare_versions(rules_version, installed_version) == 1` branch worded like
-  `check_install.py`'s new STALE branch. `tools/test_version_drift.py`'s "real hook: warns when they
-  diverge" case stages installed `0.0.1` against the live rules and asserts `"OLD rules"`, so that one
-  assertion changes with it.
-- **The B63 refusal line in `hooks/install_rules.py`** tells the user to run `claude plugin update
-  cairn@superbole`, but `check_install.py`'s matching message says `claude plugin marketplace update
-  superbole` first. A stale marketplace cache answers "already at the latest version", so the refusal's
-  remedy can fail. Make both say the same two commands (and `test_install_rules.py`'s "names the
-  remedy" check still passes, since it matches a substring).
-**Ruled out:** leaving it for B26's wording pass; B26 closed in the same release without touching
-`version_drift.py`, which was outside its lane.
 
 ## B67. The `next-id` marker has two readings, and the parser and the people disagree
 `Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#65`
@@ -1188,55 +1081,6 @@ install is unchanged.
 **Where:** `hooks/session_orientation.py` (the line), the reader (MACHINES.md or the profile, which
 has to be decided), `docs/file-formats.md`, and the README's opt-in list. **Ruled out:** hard-coding
 this user's reset times anywhere in the plugin, since they are personal and the plugin is public.
-
-## B75. `run_tests.py`'s leak detector blames a test for a state dir another session created
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#76` · closed `2026-09-29`
-**Seen 2026-09-26** during B70's planning session. It ran three worktree lanes and a doc-fix agent at
-once. The doc agent's `run_tests.py --timeout=300` reported `33/33 test files passed … ALL PASS` and then
-`LEAKED 1 new directory into ~/.claude/reentry-state from 1 file(s): ['test_archive_guard.py']`, exiting 1.
-The same suite, on the same code, passed with "no leak" twice earlier that session. The new directory was
-`agent-a6db28e7f11a73453-fa7b1dd562`, stamped 12:37. That is the state dir of a **worktree lane
-started at about 12:25 in a separate agent session**: its own SessionStart hook wrote it in the middle of the
-doc agent's run. The detector diffs the real state dir before and after the run, and blames whichever test
-file was running. So any concurrent Claude session (a lane, or a second window) produces a false leak and a
-failed run.
-**Also noticed:** every worktree lane leaves a `reentry-state/agent-<id>-<hash>` dir behind after its
-worktree is gone. There are three from this session alone. Nothing cleans them up.
-**Fix:** attribute a new dir only if its name matches a fixture the tests create, or if it keys to a
-path under the run's temp dirs, and ignore dirs whose key resolves to a real, existing project or worktree.
-Alternatively, run each test file with its own `CLAUDE_CONFIG_DIR` and drop the global diff. Also decide
-whether the orientation hook should skip stamping for `.claude/worktrees/*` cwds, or whether a sweep should
-prune dirs whose project path no longer exists. **Ruled out:** relaxing the detector to warn instead of
-fail, because the B74 docstring in `run_tests.py` explains why a real leak must fail the run.
-
-## B76. Model labels are pinned to version strings, so a new release (Opus 5.5) reads as "no model"
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#77` · closed `2026-09-29`
-Brief: [briefs/model-labels-by-family.md](briefs/model-labels-by-family.md). Pulled to refill the Queue at B70's wrap, 2026-09-26.
-**Asked 2026-09-26:** *"how does Cairn handle this?"*, on Opus 5.5 being released. **It doesn't.**
-Cairn has no model discovery at all. An agent writes the model label into each item when it files or
-refills it, choosing by the tiering rule (the stronger model for deciding, the cheaper one for
-executing; see `rules/CLAUDE.md` "How work gets done" and the profile). The agent checks for a
-mismatch by comparing that label with the model named in its own context. The list of models comes
-from the harness's system context, never from cairn.
-**The defect:** `hooks/backlog_file.py:78`,
-`_MODEL_RE = re.compile(r"`(Opus 5|Sonnet 5|Haiku 4\.5|Fable 5)`", re.I)`, is a fixed list of version
-strings. `validate_next.py` and the orientation reuse it. So an item labelled `` `Opus 5.5` `` (or
-`` `Fable 5.1` `` or `` `Sonnet 5.5` ``) doesn't match, and reads as **missing its model**. Every model
-release would need a plugin release, and "Opus 5" has quietly come to mean "the Opus tier". This
-session (Opus 5.5) ran items labelled `Opus 5` and judged "above or equal" by family, which is right,
-but nothing in the code knows that.
-**Fix to decide:** (a) labels name the FAMILY, meaning the tier (`Opus`, `Sonnet`, `Haiku`, `Fable`), and
-the regex accepts an optional version (`(Opus|Sonnet|Haiku|Fable)(\s+\d+(\.\d+)?)?`). The mismatch check
-compares families by a tier order (Haiku < Sonnet < Opus, with Fable's place stated explicitly), not by
-version. (b) keep versions and widen the regex only. **(a) is recommended:** a queued item's brief
-outlives releases, and the question at pick time is "am I on the tier this item needs?", not "am I
-on this exact version?". The `Agent` tool already takes `model: opus|sonnet`, which resolves to the
-current release, so lanes launched today ran on the newest Opus with no change. Update
-`rules/CLAUDE.md`'s queue template, both skills' examples, the profile's tiering line (it lives in the
-private store), and the tests that pin `Opus 5`. Existing `Opus 5` labels keep parsing, since the
-version is optional.
-**Where Fable fits** has to be written down, not assumed: whether it sits above Opus for judgement
-work, and at what cost.
 
 ## B77. Guard `main` against unattended pushes with something stronger than permission patterns
 `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · issue `#78`
@@ -1469,5 +1313,15 @@ rules. **Check B77 first:** any allowlist here must not widen what can push to `
 The per-checkout cleanup is `SBole/workspace` B69.
 
 ## B91. The leak detector ignores a new state dir for the suite checkout's own slug
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-29`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-29` · issue `#99`
 Accepted with #88 (B75), not queued. A test that writes the checkout the suite is running in is ignored, because that checkout is a real worktree. Refusing to ignore that slug fails the suite whenever it runs inside a live worktree, which is how a batch re-runs its own lanes. An unrecognised name still fails the run. Do not close this by blaming every real worktree.
+
+## B92. sync_backlog: an interrupted run re-files items it already created, and pull then re-imports the duplicates
+added `2026-09-29` · issue `#98`
+**Found 2026-09-29 in `ai-coach`.** `tools/sync_backlog.py` was started from the Bash tool. That shell's sandbox made network calls slow, so the call hit its 180s timeout and was stopped. By then it had already created GitHub issues #217 and #218 for B174/B175, but it never wrote `issue #N` back into `BACKLOG.md`. The next run, from PowerShell, saw two items with no issue and filed them again as #219/#220. On a later sync, the pull step imported #217/#218 as new items B177/B178, duplicating both.
+
+**Why it matters:** an interrupted sync duplicates work, and the next wrap re-imports the duplicates as inbound items. Those look like someone else filed them.
+
+**Fix shape:** before filing an item that has no `issue`, search the open issues for an exact title match, or a `Synced from BACKLOG.md (item Bn)` footer, and adopt the match instead of creating a new one. Or write each issue number back to the file right after its create, not in one batch at the end.
+
+Cleanup done by hand: #217/#218 closed as duplicates, B177/B178 removed.
