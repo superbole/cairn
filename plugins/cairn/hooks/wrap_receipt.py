@@ -137,6 +137,10 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+try:                                    # fence-aware bullet counting (B15); a missing
+    import fence_scan                  # sibling must never cost a wrap receipt.
+except Exception:
+    fence_scan = None                  # type: ignore[assignment]
 from reentry_state import (WRAP_MARKER_REL, dirty_paths, git,  # noqa: E402
                            project_root, state_dir)
 
@@ -219,7 +223,10 @@ NO_BASELINE_REASON = ("no session-start baseline for this session here, so wheth
                       "owed, and whether it ran, cannot be measured")
 
 _LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+\.md)\)")
-_BULLET_RE = re.compile(r"^\s*[-*]\s+\S")
+# B15: the shared definition lives in fence_scan.py now (fence_check.py and
+# session_orientation.py's INBOX counter use the exact same pattern). Kept as a fallback
+# only so a missing sibling degrades to the old fence-blind behaviour, never a crash.
+_BULLET_RE = fence_scan.BULLET_RE if fence_scan else re.compile(r"^\s*[-*]\s+\S")
 
 
 # --------------------------------------------------------------------------- baseline
@@ -614,8 +621,15 @@ def _queue_briefs(root: Path) -> tuple[int, list[str]]:
     return checked, missing
 
 
-def _inbox_bullets(root: Path) -> int | None:
-    """Un-triaged bullets left in INBOX.md. None when the project has no INBOX.md."""
+def _inbox_bullets(root: Path) -> tuple[int, int | None] | None:
+    """(un-triaged bullet count, unclosed-fence line or None). None if there's no INBOX.md.
+
+    B15: a bullet inside a fenced code block (an intake contract's own example bullets,
+    say) is not a real un-triaged item, so fenced lines are excluded before counting. An
+    unclosed fence is reported back rather than silently blanked to EOF -- see
+    fence_scan.py's docstring for why an INBOX.md count treats that risk the opposite way
+    BACKLOG.md/CHANGELOG.md parsing does.
+    """
     path = root / "INBOX.md"
     if not path.is_file():
         return None
@@ -623,7 +637,12 @@ def _inbox_bullets(root: Path) -> int | None:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
         return None
-    return sum(1 for ln in lines if _BULLET_RE.match(ln) and not ln.lstrip().startswith("<!--"))
+    if fence_scan:
+        scan_lines, unclosed_at = fence_scan.strip_bullets_in_fences(lines)
+    else:
+        scan_lines, unclosed_at = lines, None
+    count = sum(1 for ln in scan_lines if _BULLET_RE.match(ln) and not ln.lstrip().startswith("<!--"))
+    return count, unclosed_at
 
 
 def _rationale_record(root: Path) -> Path | None:
@@ -744,12 +763,22 @@ def steps(root: Path, base: dict | None, attrib: dict | None = None) -> dict:
         put("briefs", "ran", f"{checked} brief link(s) resolve")
 
     # --- step 8: INBOX drained -----------------------------------------------------------
-    bullets = _inbox_bullets(root)
-    if bullets is None:
+    inbox_result = _inbox_bullets(root)
+    if inbox_result is None:
         put("inbox", "n/a", "no INBOX.md in this project")
     else:
-        put("inbox", "ran" if bullets == 0 else "skipped",
-            "INBOX.md is empty" if bullets == 0 else f"{bullets} un-triaged bullet(s) remain")
+        bullets, unclosed_at = inbox_result
+        if unclosed_at is not None:
+            # An unclosed fence means bullets past that point were NOT counted, so this
+            # step cannot be certified `ran` no matter what the (incomplete) count reads —
+            # doing so would be exactly B15's bug one level up: a silently wrong "drained".
+            put("inbox", "skipped",
+                f"INBOX.md has an unclosed fence starting at line {unclosed_at} — bullets "
+                "after it were not counted, so this cannot be measured as drained; "
+                "check the file by hand")
+        else:
+            put("inbox", "ran" if bullets == 0 else "skipped",
+                "INBOX.md is empty" if bullets == 0 else f"{bullets} un-triaged bullet(s) remain")
 
     # --- step 5b: the wrap marker --------------------------------------------------------
     try:

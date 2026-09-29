@@ -718,5 +718,42 @@ for label, base in (("None", None), ("{}", {}), ("hollow", hollow),
     check(f"base={label}: every required step forged `ran` still reads UNKNOWN", got, "UNKNOWN")
 
 
+print("\n13. B15 — the INBOX step is fence-aware, not fooled by an intake contract's own"
+      "\n    example bullets, and never certifies `ran` past an unclosed fence")
+FENCED_EXAMPLES_ONLY = (
+    "# INBOX\n\nIntake contract:\n\n```\n- example one\n* example two\n```\n")
+r13a = new_repo("b15-fenced-examples-only", inbox=FENCED_EXAMPLES_ONLY)
+st13a = wrap_receipt.steps(r13a, {"schema": 2, "at": 1.0, "head": head_of(r13a)})
+check("bullets that only exist inside a fence do not count as un-triaged",
+      st13a["inbox"]["state"], "ran")
+check("and the reason says the file is empty", "empty" in st13a["inbox"]["detail"])
+
+FENCED_PLUS_ONE_REAL = (
+    "# INBOX\n\nIntake contract:\n\n```\n- example one\n* example two\n```\n\n"
+    "- a real un-triaged thing\n")
+r13b = new_repo("b15-fenced-plus-real", inbox=FENCED_PLUS_ONE_REAL)
+st13b = wrap_receipt.steps(r13b, {"schema": 2, "at": 1.0, "head": head_of(r13b)})
+check("the one bullet OUTSIDE the fence still counts", st13b["inbox"]["state"], "skipped")
+check("and only it is counted (not the two fenced examples too)",
+      "1 un-triaged bullet(s)" in st13b["inbox"]["detail"])
+
+UNCLOSED_FENCE = "# INBOX\n\n```\n- fenced example\n- a real item after the break\n"
+r13c = new_repo("b15-unclosed-fence", inbox=UNCLOSED_FENCE)
+st13c = wrap_receipt.steps(r13c, {"schema": 2, "at": 1.0, "head": head_of(r13c)})
+check("an unclosed fence is NEVER certified `ran`, even though the visible count is 0 —"
+      " that would be B15's own bug recurring one level up",
+      st13c["inbox"]["state"], "skipped")
+check("the reason names the unclosed fence rather than claiming the file is empty",
+      "unclosed fence" in st13c["inbox"]["detail"])
+check("and does not claim the file is empty", "is empty" in st13c["inbox"]["detail"], False)
+
+TILDE_FENCE = "# INBOX\n\n~~~\n- example\n~~~\n\n- a real thing\n"
+r13d = new_repo("b15-tilde-fence", inbox=TILDE_FENCE)
+st13d = wrap_receipt.steps(r13d, {"schema": 2, "at": 1.0, "head": head_of(r13d)})
+check("a ~~~ fence is recognised the same as ```", st13d["inbox"]["state"], "skipped")
+check("with only the one real bullet counted",
+      "1 un-triaged bullet(s)" in st13d["inbox"]["detail"])
+
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)

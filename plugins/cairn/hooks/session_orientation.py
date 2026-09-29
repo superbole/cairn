@@ -111,6 +111,11 @@ try:                                    # the MACHINE layer — see machine_iden
 except Exception:
     machine_identity = None             # type: ignore[assignment]
 
+try:                                    # fence-aware bullet counting (B15) — see its docstring
+    import fence_scan
+except Exception:
+    fence_scan = None                   # type: ignore[assignment]
+
 try:                                    # the SETTINGS layer — B23; see settings_drift.py
     import settings_drift
 except Exception:
@@ -508,10 +513,23 @@ def _sort_watches(watches: list[list[str]], host: str = "") -> tuple[list, list,
 
 
 def _inbox_items(root: Path):
-    """Un-triaged ad-hoc captures: bullet lines only, so prose in the file is ignored."""
-    items = [ln.strip() for ln in _read(root, "INBOX.md")
-             if ln.strip().startswith(("- ", "* "))]
-    return items[:MAX_INBOX_ITEMS], len(items)
+    """Un-triaged ad-hoc captures: bullet lines only, so prose in the file is ignored.
+
+    Returns (shown, total, unclosed_at). B15: a bullet inside a fenced code block (an
+    intake contract's own example bullets, say) is not a real un-triaged item, so fenced
+    lines are excluded before matching. An unclosed fence is reported back rather than
+    silently blanked to EOF, which would drop every real bullet after it with no signal —
+    see fence_scan.py's docstring.
+    """
+    lines = _read(root, "INBOX.md")
+    if fence_scan:
+        scan_lines, unclosed_at = fence_scan.strip_bullets_in_fences(lines)
+        bullet_ok = lambda ln: bool(fence_scan.BULLET_RE.match(ln))          # noqa: E731
+    else:
+        scan_lines, unclosed_at = lines, None
+        bullet_ok = lambda ln: ln.strip().startswith(("- ", "* "))           # noqa: E731
+    items = [ln.strip() for ln in scan_lines if bullet_ok(ln)]
+    return items[:MAX_INBOX_ITEMS], len(items), unclosed_at
 
 
 # B81 (2026-09-05). `_divergence_warning` below already fires on plain divergence -- ahead/behind
@@ -1049,7 +1067,7 @@ def main() -> None:
     except Exception:
         _sched_alerts = []        # never fail an orientation over a breadcrumb
 
-    items, total = _inbox_items(root)
+    items, total, inbox_unclosed_at = _inbox_items(root)
     try:                             # B28 — a `run on <machine>` annotation that isn't this one
         _machine_mismatch = machine_identity.mismatch_warning(nxt) if machine_identity else None
     except Exception:
@@ -1486,6 +1504,10 @@ def main() -> None:
             print(f"   … {total - len(items)} more — open INBOX.md")
         print()
         print("  These are UNPROCESSED. Ask me to triage them into NEXT.md or the backlog.")
+    if inbox_unclosed_at is not None:
+        print()
+        print(f"  WARNING: INBOX.md has an unclosed fence starting at line {inbox_unclosed_at} — "
+              "bullets after it were not counted. Check the file by hand.")
     print()
 
 
