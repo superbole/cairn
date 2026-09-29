@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 89 -->
+<!-- next-id: 91 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1419,6 +1419,15 @@ beat grep on 0 of 3 questions, and it maps code inside one repo, not who owns wh
 **Would ponytail have helped? No:** github.com/dietrichgebert/ponytail (read 2026-09-28) is a YAGNI
 guide that steers an agent toward writing less code, and it works inside one project. It doesn't search
 across repos or record who owns what. **Related:** B31 (cross-project roll-up), B36.
+**More evidence, 2026-09-29 (NB5).** A Windows desktop session in the `SBole/workspace` hub was used
+to change the WSL-homed `bsr-tools`. Read/Edit refused the path (`blockReadsOutsideWorkingDirectories`),
+so it edited scratchpad copies and `wsl cp`'d them back: whole-file overwrites, no reviewed diff, and a
+CRLF risk. The SOP needs a rule for that moment: **stop and name the session to open; never work
+around the boundary.** The hub now says so in its `AGENTS.md` (its `docs/decisions.md`, 2026-09-29).
+**One unknown decides the SOP's WSL line.** The desktop-app WSL docs (code.claude.com/docs/en/desktop-wsl,
+read 2026-09-29) list plugins as not working there yet. If so, cairn is silent in every desktop WSL
+session, and WSL repos should go to `claude` in a WSL terminal instead. Being tested on NB5
+(`SBole/workspace` W7, brief section dated 2026-09-29); the result gets written here.
 
 ## B89. An issue-finding scan: a scheduled AFK run that files findings into each project's `INBOX.md`
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · issue `#96`
@@ -1440,3 +1449,21 @@ against `BACKLOG.md`, `NEXT.md` and `INBOX.md`, or the inbox becomes noise he le
 **Open for the plan:** reaching WSL projects from a Windows task (B36), the cap per project per run,
 which model scans (cost against the allowance), and how a rejected finding stops being re-filed.
 **Related:** B84, B74 (the reset and how much AFK work is runnable), B31.
+
+## B90. Auto-mode approvals pile up as one-off exact-command rules, and cairn's command shapes cause most
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-29`
+**Asked 2026-09-28:** why a Windows session in a hub kept stopping for approval on read-only commands
+in Auto mode. **Measured in that checkout on NB5, 2026-09-29:** `.claude/settings.local.json` held 23
+allow rules, 8 of them one-off compound strings like `Bash(cd "<plugin cache>/1.58.0" && grep -rn ...)`.
+Each approval is saved as that exact string, never matches again, and so never reduces a future prompt.
+**The shapes that prompted are the ones cairn leads an agent to write:** `cd` into the plugin cache to
+read hooks, `git -C` on sibling repos, `git fetch` (writes `.git`, a protected path that still prompts
+in Auto mode per code.claude.com/docs/en/permission-modes), `wsl.exe` hops, and `&&`/`;` chains that
+mix a fetch with reads. One prompt, `sed -n '/^## Queue/,/^## Decisions/p' NEXT.md | grep ...`, has no
+documented cause; the guess (unchecked) is that `sed` can write, so it isn't classed read-only.
+**Fix directions for the plan:** (1) rules text: one command per call, absolute paths, no `cd`
+outside the working folder, fetch in its own call; (2) a vetted set of pattern allow rules for
+cairn's own read-only calls (`git -C * status|log|rev-list|diff`, the `--check` tools) that
+`check_settings.py` offers to add; (3) say so when `settings.local.json` is full of one-off compound
+rules. **Check B77 first:** any allowlist here must not widen what can push to `main`.
+The per-checkout cleanup is `SBole/workspace` B69.

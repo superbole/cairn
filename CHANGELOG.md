@@ -3,6 +3,14 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-29 — Two findings from an NB5 hub session: B88 evidence, B90 filed (no version)
+
+Asked from a Windows session in the `SBole/workspace` hub. **B88** gets the evidence: a session there
+edited WSL-homed `bsr-tools` through scratchpad copies and `wsl cp` because Read/Edit refused the
+path, and the desktop-app WSL docs say plugins don't load there, which decides the SOP's WSL line
+(being tested on NB5). Filed **B90**: Auto-mode approvals are saved as one-off exact-command rules,
+23 in one checkout, and the command shapes that prompt are the ones cairn leads agents to write.
+
 ## 2026-09-28 — Backlog triage from NB5: Claude Code team install replaces B81 on the Queue (no version)
 
 Pulled 50 commits (fast-forward). The orientation had printed a stale local queue under the "behind"
