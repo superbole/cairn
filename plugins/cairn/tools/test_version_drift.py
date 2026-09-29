@@ -101,6 +101,32 @@ def main() -> int:
             contains("installed > rules -> names both", vd._rules_drift("1.32.0"), "v1.31.0")
             contains("...and says NEW code, OLD rules", vd._rules_drift("1.32.0"), "OLD rules")
 
+            print("\nB66: rules NEWER than installed -- the plugin is the old side, a restart will")
+            print("     NOT resync (D33/B63 keep-newer). Opposite wording from the case just above.")
+            stage(tmp / "e2", "1.31.0", BLOCK.format(v="1.32.0"))
+            newer_msg = vd._rules_drift("1.31.0")
+            contains("names both versions", newer_msg, "v1.32.0")
+            contains("names both versions", newer_msg, "v1.31.0")
+            contains("says NEWER than the installed plugin", newer_msg, "NEWER than the installed")
+            contains("says a restart will NOT resync", newer_msg, "will NOT resync")
+            contains("names the marketplace-then-plugin remedy",
+                     newer_msg, "claude plugin marketplace update superbole")
+            contains("names the plugin-update remedy", newer_msg, "claude plugin update cairn@superbole")
+            check("does NOT use the other direction's wording (OLD rules)",
+                  "OLD rules" in newer_msg, False)
+
+            print("\nB66: an installed version that does not parse is NO EVIDENCE of direction --")
+            print("     must fall through to the older, direction-agnostic wording, never the NEWER")
+            print("     branch on a guess.")
+            stage(tmp / "e3", None, BLOCK.format(v="1.32.0"))
+            unparseable_msg = vd._rules_drift("weird-1.2.3")
+            contains("falls through to the OLD-rules default wording", unparseable_msg, "OLD rules")
+            check("does NOT land in the NEWER branch", "NEWER than the installed" in unparseable_msg, False)
+
+            print("\nB66: equal versions stay silent (unchanged by the new branch)")
+            stage(tmp / "e4", "1.32.0", BLOCK.format(v="1.32.0"))
+            silent("installed == rules -> still silent", vd._rules_drift("1.32.0"))
+
             print("\nan absent record must not read as a satisfied one (B30/B35/B37 family)")
             stage(tmp / "f", "1.32.0", "no block here\n")
             contains("no marker -> warns", vd._rules_drift("1.32.0"), "never installed")
@@ -147,8 +173,12 @@ def main() -> int:
             check("real hook: silent when installed matches what installs",
                   "OLD rules" in run_hook(), False)
 
+            # install_rules runs FIRST and upgrades the staged v0.0.1 block to `live` (0.0.1 is
+            # older, so that is an ordinary write, not the B63 keep-newer refusal) -- so by the time
+            # version_drift looks, the staged installed_plugins.json is still "0.0.1" but the rules
+            # block it reads is now `live`. That is the RULES-NEWER shape (B66), not "OLD rules".
             stage(tmp / "l", "0.0.1", BLOCK.format(v="0.0.1"))
-            contains("real hook: warns when they diverge", run_hook(), "OLD rules")
+            contains("real hook: warns when they diverge", run_hook(), "NEWER than the installed")
     finally:
         if original is None:
             os.environ.pop("CLAUDE_CONFIG_DIR", None)

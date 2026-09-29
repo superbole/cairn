@@ -355,8 +355,10 @@ def _install_block() -> tuple[str | None, bool]:
         return _refusal(target, f"it is v{installed}, NEWER than this plugin's v{version}, so "
                                 f"writing would roll it back",
                         "the newer block was kept. This session is running an OLDER copy of the "
-                        "plugin; tell the user to run `claude plugin update cairn@superbole`, then "
-                        "restart."), True
+                        "plugin; tell the user to run `claude plugin marketplace update "
+                        "superbole`, then `claude plugin update cairn@superbole`, restart. (A "
+                        "stale marketplace cache can otherwise answer \"already latest\" — see "
+                        "`tools/check_install.py`'s matching remedy.)"), True
 
     try:
         _back_up(target, installed, existing)

@@ -171,6 +171,16 @@ def _rules_drift(installed_version: str | None) -> str | None:
         return (f"⚠ the cairn plugin is v{installed_version} but {where} has no "
                 f"`reentry:begin` block — the rules have never installed on this machine. Not the "
                 f"same as up to date.")
+    if compare_versions(rules_version, installed_version) == 1:
+        # B66: the rules block is NEWER than the installed plugin. Since v1.63.0 (D33) `install_rules`
+        # KEEPS a newer block rather than roll it back, so the generic wording below -- "restart to
+        # resync" -- is backwards in this direction: the PLUGIN is the old side, and restarting will
+        # not touch it. Worded like `check_install.py`'s matching STALE branch.
+        return (f"⚠ {where}'s rules block is v{rules_version}, NEWER than the installed cairn "
+                f"plugin v{installed_version}. `install_rules` keeps a newer block rather than roll "
+                f"it back (B63), so a restart will NOT resync this — the plugin is the old side. "
+                f"Update it: `claude plugin marketplace update superbole`, then `claude plugin "
+                f"update cairn@superbole`, restart.")
     return (f"⚠ the cairn plugin is v{installed_version} but {where}'s rules block is "
             f"v{rules_version} — this session is running NEW code against OLD rules. Restart to "
             f"let `install_rules` resync; if it survives a restart, the install is failing "
