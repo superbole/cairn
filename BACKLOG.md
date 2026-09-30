@@ -1272,6 +1272,11 @@ around the boundary.** The hub now says so in its `AGENTS.md` (its `docs/decisio
 read 2026-09-29) list plugins as not working there yet. If so, cairn is silent in every desktop WSL
 session, and WSL repos should go to `claude` in a WSL terminal instead. Being tested on NB5
 (`SBole/workspace` W7, brief section dated 2026-09-29); the result gets written here.
+**RESULT, 2026-09-30 (NB5): PASS.** A new desktop-app session with the WSL environment in `bsr-tools`
+printed cairn's orientation and queue on "hi" (newest cairn cached in WSL is 1.60.0). Plugins
+DO load there, so the docs page is stale or wrong for cairn. The SOP's WSL line is the desktop app's WSL
+environment, same as a `claude` terminal in WSL. Not measured: whether the staged-review guard and the wrap
+receipt fire there too; only the SessionStart hook was seen.
 
 ## B89. An issue-finding scan: a scheduled AFK run that files findings into each project's `INBOX.md`
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · issue `#96`
