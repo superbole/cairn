@@ -306,9 +306,23 @@ def _is_here(machine_id: str, host: str) -> bool:
     substring (`ORG-LAPTOP1` contains `LAPTOP1`, `WORKSTATION` is its own). Comparing exactly would
     silently stop matching the day someone writes "check after `next session on LAPTOP1`" while
     the hostname is `ORG-LAPTOP1`, which is the normal case, not the edge case.
+
+    B18: `~/.claude/MACHINES.md` is consulted FIRST, because an id need not be a fragment of
+    its hostname (`BD` for a host named `BigDesk` is not), and the table is what maps one to
+    the other. It decides only when it knows both sides (`machine_identity.table_says_here`);
+    otherwise -- no table, this host not in it, an id it has never heard of -- the substring
+    match above still answers, since the table is filled in on some machines and not others.
+    Exact match was rejected for the reason in the first paragraph.
     """
     if not machine_id or not host:
         return False
+    if machine_identity is not None:
+        try:
+            verdict = machine_identity.table_says_here(machine_id, host)
+        except Exception:
+            verdict = None
+        if verdict is not None:
+            return verdict
     return machine_id.strip().lower() in host.strip().lower()
 
 
