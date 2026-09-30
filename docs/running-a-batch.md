@@ -213,8 +213,8 @@ run the backlog sync, touch no shared file"*.
   firing died on its first model call (`ECONNREFUSED`): that machine reaches the API only through
   a VPN, and the VPN had dropped overnight. The batch did nothing, and nobody knew until morning.
   **Preflight, before scheduling:** connect the VPN or proxy by hand just before the firing.
-  A profile that asks for a code on reconnect will not hold itself (NB1's OpenVPN asks for a
-  TOTP). Sleep and hibernate are off for the window, and the app stays open. **A failed firing is
+  A profile that asks for a code on reconnect will not hold itself (that machine's OpenVPN
+  asks for a TOTP). Sleep and hibernate are off for the window, and the app stays open. **A failed firing is
   visible only in the task's or routine's Runs list** — no notification, no commit, no dossier. So
   the first thing to read in the morning is the Runs list, not `git log`: an empty log after a
   failed firing looks exactly like a quiet night.
