@@ -36,21 +36,15 @@ The real dogfooding test, and no current machine can run it — every one has ha
 all could pass while a stranger fails. When it fires, check: does the orientation print, does
 `install_rules` write the managed block, and does the plugin stay silent in a project with no `NEXT.md`.
 
-**W5. The first unattended cairn firing (F1, on NB5) ran as specified** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-09-30`
-F1 is NB5's local scheduled task, 2026-09-29 20:00 (B70's plan, in the private store). Cloud routines are
-unavailable on this account, because its GitHub access is blocked. Check: the task's Runs list shows
-success, with no stall on a permission prompt; each item became one `afk/<date>-<nn>-<Bnn>-<slug>` PR off
-`origin/main` that touches no shared file; the PR notification reached the phone; and nothing reached
-`main`. Also read the usage page against Monday's dry-run delta, and adjust the firings per week if needed.
-The first real `afk/` run (NB1, 2026-09-27, reviewed as W7) showed: a firing can stall for hours on a
-permission prompt (B84); a README-only item is its own PR; the leak detector false-failed three PRs until
-B75 merged; bookkeeping stays in the attended session.
-
 **W6. Review and merge the unattended `afk/` PRs, then catch the bookkeeping up** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-10-20`
 Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier against its diff
 (`docs/running-a-batch.md`, "The review surface"), merge or close each one, then do one bookkeeping pass
 (CHANGELOG, version bump, `BACKLOG.md` closes, the Queue) and run `tools/sync_backlog.py`. Any lane-0
 bookkeeping PRs already merged cover part of this, so read `git log` first.
+Firings run Sun/Wed/Fri 17:00 (`cairn-afk-firing`, Scheduled sidebar on NB5); each posts its summary to Discord.
+**The summary's "Permission prompts: none" line is not reliable** (2026-09-30 said none after two). PRs #103,
+#104 and #105 (B16, B17, B18) all touch `validate_next.py` `validate()`: the second and third to merge need a
+small rebase, and B16's rules-text half plus the version bump are left for the attended pass (see #103).
 
 ---
 

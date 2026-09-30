@@ -3,6 +3,16 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-09-30 — W5 closed: NB5's first firings run, four afk/ PRs open (no version)
+
+NB5's local `cairn-afk-firing` task (Sun/Wed/Fri 17:00, mode Auto, up to 3 AFK items) replaces the missed F1.
+The dry run did B13, but `test_payload_clean` failed on `main` because `docs/running-a-batch.md` named a
+machine. Fixed in `648ac2b`, rebased, opened as #102. The first scheduled run (17:06) opened #103 (B16), #104
+(B17) and #105 (B18), all 38/38. It stalled on `cd .claude/worktrees/<Bnn>` (the card only offers "Allow
+once"), so the task prompt now works on branches in the main checkout, with no `cd`, `git -C` or worktrees.
+Its summary also said no prompts were hit, which was wrong. Dry run cost 3% of the weekly allowance (37 → 40%).
+Runs post to Discord through a webhook, allowed in the user settings. PR review is W6.
+
 ## 2026-09-29 — the burn: scheduling notes, B84 and B94 filed (no version)
 
 The NB1 session that scheduled the 2026-09-27 03:00 firing (`cairn-lane-batch-2026-09-27-0300`) as a
