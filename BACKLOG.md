@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 102 -->
+<!-- next-id: 103 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1428,7 +1428,7 @@ hook can print `NEXT.md:<line of the heading>`, computed at print time.
 (2026-09-30, from a workspace session on NB5) **`sync_backlog.py` drops unknown fields from an item's metadata line when it writes the issue number back.** workspace B72's line was `… · added `2026-09-30` · **run on NB1**`; after filing #71 it read `… · added `2026-09-30` · issue `#71``, and the machine marker was gone. Harmless there (the title says NB1), but a machine gate living only in that field would be lost silently. Fix: append ` · issue `#n`` to the line as it is, rather than regenerating it from parsed fields; add a test with an unknown trailing field.
 
 ## B103. After a history rewrite on origin, the divergence banner invites the pull that undoes it
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-01`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-01` · issue `#114`
 **Triaged from INBOX.md at the 2026-10-01 wrap.** Sibling of B87 (orient from origin when behind). NB1 application: `SBole/workspace` W25. Captured verbatim:
 
 (2026-10-01, NB5 session) **After the B93 purge, every other clone still holds the purged history, and nothing stops it being pushed back.** NB5's `main` showed "49 ahead, 57 behind". `git log --cherry-mark main...origin/main` showed every local commit had a same-subject twin on origin, and `git diff main aff0839` was only the 6 purged lines ("France trip", `plans/2026-10-trip.md`). Fixed on NB5 by `git reset --hard origin/main`; he ran it, because the agent's `reset --hard` is denied. **Per machine:** NB1 and DeepThought must each run the same reset before ANY push from their cairn clone, unless that clone did the purge itself (the B93 CHANGELOG entry doesn't say which machine did). A `git pull` there merges the old history back in, and the next push republishes it. File one watch per hub (NB1 → `SBole/workspace`, DeepThought → `superbole/workspace`); this session couldn't, because reads outside `cairn` are blocked. **Mechanism gap (this repo):** the divergence banner says "sort out git", which reads as "pull". It should spot a history rewrite on origin (local-only commits that all have patch-equivalent or same-subject twins on origin) and say "origin was rewritten: reset to origin/main, do not pull or push", never offer a merge. Related: B87.
