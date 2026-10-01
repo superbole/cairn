@@ -350,6 +350,12 @@ spent, the user wanted to ask cairn *"what should I spend this on?"* across ever
 than an agent reasoning it out ad hoc. The ad-hoc answer needed: each project's Queue, due watches,
 a risk signal (an item marked as a production/outage hazard outranks a feature), and the time and
 token budget available. The last two are new inputs beyond the per-project top-2 decided above.
+**Asked for again 2026-10-01**, as a morning act or on a command: look across every project, raise
+the next priority, and flag deadlines. Today's example: a queue item in a sibling repo whose window
+closed that same day was seen only because the agent happened to open that repo's `BACKLOG.md` to
+file something else. The session-start sweep reported the repo as 3 behind and nothing more. That
+is the "date-forced watches" half of the decision above, and it needs to cover queue items with a
+stated deadline, not just watches. Related: B95 (the roll-up should print briefs as links).
 
 ## B32. A finding about ANOTHER project has nowhere to go — make `INBOX.md` the cross-project mailbox
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#30`
