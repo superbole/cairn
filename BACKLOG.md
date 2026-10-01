@@ -1393,7 +1393,7 @@ hook can print `NEXT.md:<line of the heading>`, computed at print time.
 
 ## B96. Finish the purge on GitHub: delete issue #68, ask Support to drop the old commits
 `Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-10-01` · issue `#107` · queued
-Brief: [briefs/purge-github-residue.md](briefs/purge-github-residue.md). Follows B93. Issue #68's public title-change event still shows the old title, and the closed PRs #84–#90 keep refs to the pre-rewrite commits. Both removals are his: `gh issue delete 68` and a GitHub Support request (drafted in the brief). Row: `docs/decisions.md` D48.
+Brief: [briefs/purge-github-residue.md](briefs/purge-github-residue.md). Follows B93. Issue #68's public title-change event still shows the old title, and the closed PRs #84–#90 keep refs to the pre-rewrite commits. Both removals are his. #68 was deleted 2026-10-01; the GitHub Support request (drafted in the brief) is what is left. Row: `docs/decisions.md` D48.
 
 ## B97. `installed_plugins.json` is never compared against the latest PUBLISHED version
 `Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30` · issue `#108`

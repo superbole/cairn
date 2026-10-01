@@ -15,7 +15,7 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 1. **Finish the purge on GitHub: delete issue #68, ask Support to drop the old commits** — Sonnet 5 · medium · HITL/Auto
    Brief: [briefs/purge-github-residue.md](briefs/purge-github-residue.md)
-   Two of his own actions, a few minutes: `gh issue delete 68` and a drafted Support request. It stops at both; the agent only verifies. First because the old pages stay public until it is done. Backlog B96.
+   Issue #68 is deleted (2026-10-01, confirmed not found). Left: he sends the Support request drafted in the brief; the agent only verifies. First because the old pages stay public until it is done. Backlog B96.
 
 2. **Team install for colleagues who use Claude Code only** — Opus 5 · high · HITL/Plan
    Brief: [briefs/claude-team-install.md](briefs/claude-team-install.md)

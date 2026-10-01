@@ -18,7 +18,7 @@ ticket in his name. Decided in `docs/decisions.md` D48.
 
 ## Steps
 
-1. **He runs** (permanent, admin only):
+1. **Done 2026-10-01** (he ran it; `gh issue view 68` now returns not found). He runs (permanent, admin only):
    ```bash
    gh issue delete 68 -R superbole/cairn --yes
    ```
