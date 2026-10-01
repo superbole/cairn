@@ -1392,7 +1392,7 @@ hook can print `NEXT.md:<line of the heading>`, computed at print time.
 **Ruled out:** asking agents to write links by hand. That is the rule that failed here.
 
 ## B96. Finish the purge on GitHub: delete issue #68, ask Support to drop the old commits
-`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-10-01` · issue `#107` · queued
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-10-01` · issue `#107` · closed `2026-10-01`
 Brief: [briefs/purge-github-residue.md](briefs/purge-github-residue.md). Follows B93. Issue #68's public title-change event still shows the old title, and the closed PRs #84–#90 keep refs to the pre-rewrite commits. Both removals are his. #68 was deleted 2026-10-01; the GitHub Support request (drafted in the brief) is what is left. Row: `docs/decisions.md` D48.
 
 ## B97. `installed_plugins.json` is never compared against the latest PUBLISHED version
@@ -1402,7 +1402,7 @@ Brief: [briefs/purge-github-residue.md](briefs/purge-github-residue.md). Follows
 (2026-09-30, from a workspace session on NB1) `version_drift.py` never compares the installed plugin against the latest PUBLISHED version: only installed vs this repo's `plugin.json` (cairn repo only) and installed vs the rules block. So a machine with auto-update silently off stays silent. Sheldon wants it added only if it succeeds silently. Proposed, offline, no network in the hook: compare `installed_plugins.json` with `~/.claude/plugins/marketplaces/superbole/plugins/cairn/.claude-plugin/plugin.json`, and flag if the marketplace clone's last fetch (FETCH_HEAD mtime / last commit) is older than a few days. Print nothing when both are fine. On NB1 today both read 1.66.0, clone fetched 2026-09-29 23:03. Auto-update itself proven working on NB1 (workspace W10, closed 2026-09-30). Also see workspace B71 / #69 (sync_backlog.py targets the session's project, not the cwd), which belongs here.
 
 ## B98. `sync_backlog.py` run from a sibling repo silently syncs the SESSION's project
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30` · issue `#109`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30` · issue `#109` · queued
 **Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
 
 (2026-09-30, moved from workspace B71 / workspace issue #69, where it was wrongly parked) **`sync_backlog.py` run from a sibling repo silently syncs the SESSION's project.** From a workspace session, `cd ~/Projects/inflow && sh <root>/hooks/run.sh tools/sync_backlog.py --dry-run` printed `DRY RUN against SBole/workspace`: `main()` uses `reentry_state.project_root()`, which prefers `CLAUDE_PROJECT_DIR`, then the session stamp (B72), and only then the cwd. A real run would have synced workspace's 70-item backlog while the agent believed it was syncing inflow's; the one output line naming the target is easy to skim past. **Worse:** the workaround `CLAUDE_PROJECT_DIR=<repo>` RE-STAMPS the session root (`_resolve_project_root` calls `_stamp_session_root`), so every later cairn tool in the session (`check_repos.py`, `wrap_receipt.py`) resolves to the sibling unless the var is passed again. **Same family:** `staged_review_guard.py` did not count `git -C <repo> diff --cached` as reading the staged diff; only `cd <repo> && git diff --cached` cleared it. Not a glab/GitLab issue: with the var set, the sync targeted and filed correctly. Fix direction: repo-acting tools take the git toplevel of the cwd when it differs from the stamped root (or refuse and name both); an env override must not overwrite the stamp.

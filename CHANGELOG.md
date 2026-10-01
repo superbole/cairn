@@ -3,6 +3,14 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-01 — B96 closed: issue #68 deleted, GitHub Support ticket sent (no version)
+
+He deleted issue #68 (`gh issue view 68` now returns not found) and filed the Support ticket for the cached
+commit pages and the closed PRs #84–#90 refs; the confirmation email arrived. The portal has no
+sensitive-data option: the path is Repositories, Repository features, Branches, and never "Deletes", which
+leads to a whole-repository purge. W9 checks on 2026-10-15 whether the old pages are gone. The Queue
+refilled with B98 (repo-acting tools act on the session's project, not the cwd).
+
 ## 2026-10-01 — B93 closed: personal schedule detail purged from public history (no version)
 
 History was rewritten in two passes and force-pushed (`main` `37d3e66` → `f0e288b`, plus the five live
