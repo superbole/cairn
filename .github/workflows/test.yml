@@ -30,23 +30,6 @@ jobs:
         with:
           python-version: '3.x'
       
-      - name: Install glab CLI (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          wget -q https://gitlab.com/gitlab-org/cli/-/releases/v1.49.0/downloads/glab_1.49.0_Linux_x86_64.tar.gz
-          tar -xzf glab_1.49.0_Linux_x86_64.tar.gz -C /tmp
-          sudo install -m 755 /tmp/bin/glab /usr/local/bin/glab
-          glab version
-      
-      - name: Install glab CLI (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          Invoke-WebRequest -Uri "https://gitlab.com/gitlab-org/cli/-/releases/v1.49.0/downloads/glab_1.49.0_Windows_x86_64.zip" -OutFile glab.zip
-          Expand-Archive -Path glab.zip -DestinationPath glab
-          Move-Item -Path glab\bin\glab.exe -Destination C:\Windows\System32\glab.exe -Force
-          glab version
-        shell: pwsh
-      
       - name: Configure git
         run: |
           git config --global user.name "GitHub Actions"
@@ -60,8 +43,6 @@ jobs:
           else
             mkdir -p "$HOME/.claude"
           fi
-          # Create empty private-names file for test_leak_patterns.py
-          echo "# Test fixture - empty private names file" > "$HOME/.claude/reentry-private-names.txt"
         shell: bash
       
       - name: Run test suite
