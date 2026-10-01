@@ -30,20 +30,22 @@ jobs:
         with:
           python-version: '3.x'
       
-      - name: Install glab CLI
+      - name: Install glab CLI (Linux)
+        if: runner.os == 'Linux'
         run: |
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            # Use the official GitLab CLI Debian package
-            curl -fsSL https://gitlab.com/gitlab-org/cli/-/raw/main/scripts/install.sh | sudo sh
-            glab version
-          elif [ "$RUNNER_OS" == "Windows" ]; then
-            # Download Windows binary directly
-            curl -L -o glab.zip "https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/releases/permalink/latest/downloads/glab_Windows_x86_64.zip"
-            7z x glab.zip -o/tmp
-            mv /tmp/bin/glab.exe /c/Windows/System32/
-            glab version
-          fi
-        shell: bash
+          wget -q https://gitlab.com/gitlab-org/cli/-/releases/v1.49.0/downloads/glab_1.49.0_Linux_x86_64.tar.gz
+          tar -xzf glab_1.49.0_Linux_x86_64.tar.gz -C /tmp
+          sudo install -m 755 /tmp/bin/glab /usr/local/bin/glab
+          glab version
+      
+      - name: Install glab CLI (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          Invoke-WebRequest -Uri "https://gitlab.com/gitlab-org/cli/-/releases/v1.49.0/downloads/glab_1.49.0_Windows_x86_64.zip" -OutFile glab.zip
+          Expand-Archive -Path glab.zip -DestinationPath glab
+          Move-Item -Path glab\bin\glab.exe -Destination C:\Windows\System32\glab.exe -Force
+          glab version
+        shell: pwsh
       
       - name: Configure git
         run: |
