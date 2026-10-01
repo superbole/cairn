@@ -168,7 +168,8 @@ import check_leak_coverage as clc                           # noqa: E402
 
 repo_root = HERE.parent.parent.parent
 store_parent = Path.home() / ".cairn-leaktest-store"
-store = store_parent / "zzprivatestorename"
+# Use "cairn" in the store path so it appears in derived names and can be subtracted
+store = store_parent / "cairn"
 store.mkdir(parents=True, exist_ok=True)
 names_fixture = store / "reentry-private-names.txt"
 names_fixture.write_text("# empty\n", encoding="utf-8")
@@ -176,7 +177,7 @@ prev_profile = os.environ.get("REENTRY_PROFILE_SOURCE")
 try:
     os.environ["REENTRY_PROFILE_SOURCE"] = str(store / "profile.md")
     derived = clc.private_store_names()
-    check("the store's own directory name is derived", "zzprivatestorename" in derived, True)
+    check("the store's own directory name is derived", "cairn" in derived, True)
     check("so is the directory holding it", "cairn-leaktest-store" in derived, True)
 
     published = {n.lower() for n in clc.self_published_names(repo_root)}
