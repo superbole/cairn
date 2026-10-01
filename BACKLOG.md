@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 94 -->
+<!-- next-id: 95 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1355,3 +1355,31 @@ records effort, and whether the preamble should name slugs at all (D47: the labe
 | Fable | medium | | `cursor-grok-4.6-medium` |
 
 This chat ran as `grok-4.7-high`. The Grok column is the same two slugs on every row: effort only, not a family. Also in that list and also off the scale: `composer-2.5-fast`, `gemini-3.8-flash-high`, `gpt-5.6-sol-medium`, `muse-spark-1.3-high`. Triage should say whether the preamble names these slugs, and whether a Grok row is allowed to stand in for a Claude family or only records the effort.
+
+## B95. Briefs are not clickable in the orientation relay, and a watch has no brief link at all
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-01`
+**Found 2026-10-01** at a session start in the operator's work portfolio hub. He went to click a due
+watch's brief to follow its steps and found no link anywhere in the relay. Three separate gaps:
+
+1. **Queue items reference a brief as a code span, not a link.** The hub's `NEXT.md` writes
+   `` brief: `BACKLOG.md` B39 ``. `session_orientation.py` echoes the line as written, so the
+   orientation shows a code span. The `[to the agent]` line (line 1329) does ask for
+   `[brief](link)`, but the agent copied the path as written instead of turning it into a link. That
+   is the expected way for it to go wrong, because the rule says "path copied from `NEXT.md`".
+   `validate_next.py` accepts the code span, so nothing catches it.
+2. **A brief that is a BACKLOG section has no address of its own.** "B39" inside `BACKLOG.md` is a
+   heading, not a file. A link to `BACKLOG.md` opens at the top of a long file. A
+   `BACKLOG.md:<line>` link works in the desktop app, but a line number written into `NEXT.md`
+   goes stale as soon as the file changes. Whether heading anchors (`#b39-…`) work in the app's
+   file pane has not been tested.
+3. **The watch shape has no brief field.** A watch's steps live inline in `NEXT.md`. The hook prints a
+   due watch in full, but the agent shortens it in the relay, and nothing links to the watch's own
+   `NEXT.md:<line>`, so the full steps are not one click away. Some watches name a brief file in
+   their prose (`docs/briefs/x.md`), also as a code span.
+
+**Fix shape, not decided:** (a) have the hook render any brief path it can resolve as a markdown
+link, with a line suffix for a BACKLOG item or a watch, computed at print time so it never goes
+stale; (b) let `validate_next.py` warn on a code-span brief reference; (c) add an optional
+`→ [brief](path)` to the watch shape, or have the relay always link a due watch to its own
+`NEXT.md` line. (a) alone covers most of it, because nobody has to edit a file to get the links.
+**Ruled out:** asking agents to write links by hand. That is the rule that failed here.
