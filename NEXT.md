@@ -13,13 +13,13 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Queue
 
-1. **Team install for colleagues who use Claude Code only** — Opus 5 · high · HITL/Plan
-   Brief: [briefs/claude-team-install.md](briefs/claude-team-install.md)
-   He knows several Claude-Code-only colleagues and no Cursor-only ones (2026-09-28), so this replaced B81, which stays in the backlog. Stops at the plan. Backlog B86. Stays first: it is the item that serves the aim.
+1. **Finish the purge on GitHub: delete issue #68, ask Support to drop the old commits** — Sonnet 5 · medium · HITL/Auto
+   Brief: [briefs/purge-github-residue.md](briefs/purge-github-residue.md)
+   Two of his own actions, a few minutes: `gh issue delete 68` and a drafted Support request. It stops at both; the agent only verifies. First because the old pages stay public until it is done. Backlog B96.
 
-2. **Purge personal schedule detail from public history** — Opus 5 · high · HITL/Auto
-   Brief: [briefs/purge-public-history.md](briefs/purge-public-history.md)
-   Was W8. The window closes 2026-10-01. Stop and warn before the force-push of `main`. Backlog B93.
+2. **Team install for colleagues who use Claude Code only** — Opus 5 · high · HITL/Plan
+   Brief: [briefs/claude-team-install.md](briefs/claude-team-install.md)
+   He knows several Claude-Code-only colleagues and no Cursor-only ones (2026-09-28), so this replaced B81, which stays in the backlog. Stops at the plan. Backlog B86. The item that serves the aim.
 
 3. **When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base** — Opus 5 · high · HITL/Plan
    Brief: `BACKLOG.md` B87

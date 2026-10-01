@@ -3,11 +3,25 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-01 — B93 closed: personal schedule detail purged from public history (no version)
+
+History was rewritten in two passes and force-pushed (`main` `37d3e66` → `f0e288b`, plus the five live
+`afk/` branches; PRs #102–#105 kept identical diffs).
+- **Pass 1, D37's scope:** the B70 text in `BACKLOG.md`, `NEXT.md` and the brief now reads as the stub in
+  every commit that carried it. That was five commits, not four: the B71 pull sat between `cfec2f7` and the
+  stub and still held the old wording. Two commits became empty and were dropped, two subjects were
+  reworded, and the first brief's employer host name went with them.
+- **Pass 2 (D48):** later wording that pointed back at the same detail was neutralised across history too.
+- Every later SHA changed. Citations in this file and one review dossier were remapped; the purged SHAs
+  in D37 and the B93 brief stay as names of what was removed.
+- **Left for him (B96, queued):** delete issue #68 and send GitHub Support the request drafted in the brief.
+- INBOX triaged: six captures became B97–B102.
+
 ## 2026-09-30 — W5 closed: NB5's first firings run, four afk/ PRs open (no version)
 
 NB5's local `cairn-afk-firing` task (Sun/Wed/Fri 17:00, mode Auto, up to 3 AFK items) replaces the missed F1.
 The dry run did B13, but `test_payload_clean` failed on `main` because `docs/running-a-batch.md` named a
-machine. Fixed in `648ac2b`, rebased, opened as #102. The first scheduled run (17:06) opened #103 (B16), #104
+machine. Fixed in `677afcb`, rebased, opened as #102. The first scheduled run (17:06) opened #103 (B16), #104
 (B17) and #105 (B18), all 38/38. It stalled on `cd .claude/worktrees/<Bnn>` (the card only offers "Allow
 once"), so the task prompt now works on branches in the main checkout, with no `cd`, `git -C` or worktrees.
 Its summary also said no prompts were hit, which was wrong. Dry run cost 3% of the weekly allowance (37 → 40%).
@@ -17,15 +31,15 @@ Runs post to Discord through a webhook, allowed in the user settings. PR review 
 
 The NB1 session that scheduled the 2026-09-27 03:00 firing (`cairn-lane-batch-2026-09-27-0300`) as a
 worktree-per-item afk/ run. Its W7 notes recorded that the NB1 VPN drops because the OpenVPN profile asks
-for a TOTP code on reconnect, so the fix is a manual reconnect just before a firing (`148b92d`). The firing
+for a TOTP code on reconnect, so the fix is a manual reconnect just before a firing (`ecfd8e2`). The firing
 fired, then stalled in Manual from 03:01 to 09:44 on a `sed` with a `> "$TEMP/…"` redirect, which is
-outside the allow list. Filed B84 (`3a6b408`): reuse one persistent task so approvals and mode carry over,
+outside the allow list. Filed B84 (`2b1dfea`): reuse one persistent task so approvals and mode carry over,
 forbid off-list command shapes in the prompt, and name it "the burn" (`/cairn:burn`). At this wrap, the
 un-triaged inbox note on mapping families to Cursor/Grok slugs became B94 (HITL/Plan, undecided).
 
 ## 2026-09-29 — W7 closed (no version)
 
-The 2026-09-27 review is finished. #84–#89 are on `main`, handover #90 is closed, and v1.66.0 is pushed. `_strip_fences()` calls `fence_scan.mask()` and still blanks an unclosed fence through EOF (`09ac881`). Inbox counters still report that unclosed line. The batch guide now says to connect the VPN by hand just before a firing. W7 is closed. W8 is queued as B93: the history purge stops and warns before any force-push of `main`. It is not done.
+The 2026-09-27 review is finished. #84–#89 are on `main`, handover #90 is closed, and v1.66.0 is pushed. `_strip_fences()` calls `fence_scan.mask()` and still blanks an unclosed fence through EOF (`36a2be0`). Inbox counters still report that unclosed line. The batch guide now says to connect the VPN by hand just before a firing. W7 is closed. W8 is queued as B93: the history purge stops and warns before any force-push of `main`. It is not done.
 
 ## 2026-09-29 — v1.66.0: the 2026-09-27 afk batch, reviewed and merged
 

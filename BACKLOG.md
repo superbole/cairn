@@ -1338,7 +1338,7 @@ added `2026-09-29` · issue `#98`
 Cleanup done by hand: #217/#218 closed as duplicates, B177/B178 removed.
 
 ## B93. Purge personal schedule detail from public history
-`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-29` · issue `#100` · queued
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-29` · issue `#100` · closed `2026-10-01`
 Brief: [briefs/purge-public-history.md](briefs/purge-public-history.md). Was W8. W7 wrapped 2026-09-29, so the trigger has fired. The window closes 2026-10-01. Commits `5d2cd6a`–`cfec2f7` are still on `origin/main`. The working tree is already the stub. Issue #68 is closed and its current body does not carry the schedule detail; the edit history is separate. This is a history rewrite. Stop and warn before any force-push of `main`. Row: `docs/decisions.md` D37.
 
 ## B94. Map Claude family and effort onto Cursor and Grok model slugs
@@ -1394,3 +1394,43 @@ One link per section instead of one per item, and it works without a per-watch b
 whether a `#watching` anchor opens at the heading in the desktop app's file pane. If it doesn't, the
 hook can print `NEXT.md:<line of the heading>`, computed at print time.
 **Ruled out:** asking agents to write links by hand. That is the rule that failed here.
+
+## B96. Finish the purge on GitHub: delete issue #68, ask Support to drop the old commits
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-10-01` · queued
+Brief: [briefs/purge-github-residue.md](briefs/purge-github-residue.md). Follows B93. Issue #68's public title-change event still shows the old title, and the closed PRs #84–#90 keep refs to the pre-rewrite commits. Both removals are his: `gh issue delete 68` and a GitHub Support request (drafted in the brief). Row: `docs/decisions.md` D48.
+
+## B97. `installed_plugins.json` is never compared against the latest PUBLISHED version
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, from a workspace session on NB1) `version_drift.py` never compares the installed plugin against the latest PUBLISHED version: only installed vs this repo's `plugin.json` (cairn repo only) and installed vs the rules block. So a machine with auto-update silently off stays silent. Sheldon wants it added only if it succeeds silently. Proposed, offline, no network in the hook: compare `installed_plugins.json` with `~/.claude/plugins/marketplaces/superbole/plugins/cairn/.claude-plugin/plugin.json`, and flag if the marketplace clone's last fetch (FETCH_HEAD mtime / last commit) is older than a few days. Print nothing when both are fine. On NB1 today both read 1.66.0, clone fetched 2026-09-29 23:03. Auto-update itself proven working on NB1 (workspace W10, closed 2026-09-30). Also see workspace B71 / #69 (sync_backlog.py targets the session's project, not the cwd), which belongs here.
+
+## B98. `sync_backlog.py` run from a sibling repo silently syncs the SESSION's project
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, moved from workspace B71 / workspace issue #69, where it was wrongly parked) **`sync_backlog.py` run from a sibling repo silently syncs the SESSION's project.** From a workspace session, `cd ~/Projects/inflow && sh <root>/hooks/run.sh tools/sync_backlog.py --dry-run` printed `DRY RUN against SBole/workspace`: `main()` uses `reentry_state.project_root()`, which prefers `CLAUDE_PROJECT_DIR`, then the session stamp (B72), and only then the cwd. A real run would have synced workspace's 70-item backlog while the agent believed it was syncing inflow's; the one output line naming the target is easy to skim past. **Worse:** the workaround `CLAUDE_PROJECT_DIR=<repo>` RE-STAMPS the session root (`_resolve_project_root` calls `_stamp_session_root`), so every later cairn tool in the session (`check_repos.py`, `wrap_receipt.py`) resolves to the sibling unless the var is passed again. **Same family:** `staged_review_guard.py` did not count `git -C <repo> diff --cached` as reading the staged diff; only `cd <repo> && git diff --cached` cleared it. Not a glab/GitLab issue: with the var set, the sync targeted and filed correctly. Fix direction: repo-acting tools take the git toplevel of the cwd when it differs from the stamped root (or refuse and name both); an env override must not overwrite the stamp.
+
+## B99. Rule gap: nothing says where a finding for ANOTHER repo goes
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, Sheldon agreed) **Rule gap: nothing says where a finding for ANOTHER repo goes.** `rules/CLAUDE.md` says no project is tracked from a hub on another's behalf, but not how to file a cross-repo finding, so the item above got parked in workspace's own backlog. Proposed rule for `rules/CLAUDE.md` (mechanism, not profile: identical on every machine): a finding that belongs to another repo goes into THAT repo's `INBOX.md` (commit + push there, explicit pathspec), never the current repo's backlog. The profile's machine-gated rule (watch goes to the machine's workspace hub) stays as the one exception. Prefer INBOX over filing an issue directly, because INBOX gets triaged into a full item; see next bullet.
+
+## B100. An issue the OWNER files directly is never triaged
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-30`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, Sheldon asked) **An issue the OWNER files directly is never triaged.** `sync_backlog.py --pull` appends any unseen open issue as a bare BACKLOG item (no model/effort/attendance, no brief), and the orientation flags it only when `inbound` (author != owner). Issues he files himself, from his phone say, land silently as unjudged items. They should get INBOX treatment: surfaced at session start as un-triaged captures and triaged into a full item (fields, brief, or a Queue/Watching/Decisions slot), same as an INBOX bullet. Options: pull them into `INBOX.md` instead of BACKLOG, or mark pulled items `untriaged` and have the orientation list them with the inbox.
+
+## B101. Unattended runs: three command shapes the allow list misses, and approvals don't carry over
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-30`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, from a workspace session on NB5) **Unattended runs: three command shapes the allow list misses, and approving them doesn't carry over.** In `cairn-afk-firing` runs, `cd .claude/worktrees/<Bnn>`, `git -C <worktree> …` (with pipes to `head`/`wc`) and a `W=…;` compound all prompted. The card offered only "Allow once", with no always option, so a tool approval is NOT stored on the scheduled task for Bash, despite the tool docs, and each unattended run would stall there. Worked around in the task prompt: one branch at a time in the main checkout (`git switch -c afk/… origin/main`), no worktrees. Durable fix for `running-a-batch.md` / `.claude/settings.json` (B84/B90 family): either allow the worktree shapes, or drop worktrees from the unattended section. Also: **a run's own "permission prompts: none" line was wrong** (it hit two), so the summary can't be the detector for stalls; B49's heartbeat is the right half. And **the scheduler's `nextRunAt` already shows the NEXT slot while today's is inside its jitter window** (17:00 + 322 s showed Friday at 17:02), which looks like a skipped run and isn't.
+
+## B102. `sync_backlog.py` drops unknown fields from an item's metadata line on issue write-back
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-30`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, from a workspace session on NB5) **`sync_backlog.py` drops unknown fields from an item's metadata line when it writes the issue number back.** workspace B72's line was `… · added `2026-09-30` · **run on NB1**`; after filing #71 it read `… · added `2026-09-30` · issue `#71``, and the machine marker was gone. Harmless there (the title says NB1), but a machine gate living only in that field would be lost silently. Fix: append ` · issue `#n`` to the line as it is, rather than regenerating it from parsed fields; add a test with an unknown trailing field.
