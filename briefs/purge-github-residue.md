@@ -22,14 +22,22 @@ ticket in his name. Decided in `docs/decisions.md` D48.
    ```bash
    gh issue delete 68 -R superbole/cairn --yes
    ```
-2. **He sends** a request at <https://support.github.com/request>, choosing the sensitive-data
-   removal option. Draft, plain enough to send as is:
+2. **He sends** a request at <https://support.github.com/request>. The portal has no sensitive-data
+   option: choose Repositories, then **Repository features**. **Never "Deletes"**: it leads to a
+   whole-repository purge confirmation. GitHub's guide ("Removing sensitive data from a repository",
+   "Fully removing the data from GitHub") asks for the repo, the number of affected PRs and the
+   first changed commit. Draft, plain enough to send as is:
 
-   > I rewrote the history of superbole/cairn on 2026-10-01 to remove personal information, and
-   > force-pushed every branch. Please remove the cached views of the commits that are no longer
-   > reachable from any branch, and dereference or remove the pull request refs for PRs #84 to #90,
-   > which still point at the old commits. One of the affected commits is 5d2cd6a. No forks need
-   > cleaning as far as I know. Thank you.
+   > I rewrote the history of superbole/cairn on 2026-10-01 to remove personal information about
+   > me, and force-pushed every branch. No branch still references the old commits, and the
+   > repository has no forks.
+   >
+   > Affected pull requests: 7 (#84 to #90, all closed). Their refs still point at the old history.
+   > First changed commit: 5d2cd6a
+   >
+   > Please dereference those pull requests, run a garbage collection, and remove the cached views
+   > of the old commits. The data is personal rather than a credential, so it can't be rotated.
+   > Thank you.
 
    Do not paste or describe the removed text in the ticket, an issue or the chat. The SHA is enough.
 3. **The agent checks**, after he has done both: `gh issue view 68 -R superbole/cairn` should fail
