@@ -1388,4 +1388,9 @@ link, with a line suffix for a BACKLOG item or a watch, computed at print time s
 stale; (b) let `validate_next.py` warn on a code-span brief reference; (c) add an optional
 `→ [brief](path)` to the watch shape, or have the relay always link a due watch to its own
 `NEXT.md` line. (a) alone covers most of it, because nobody has to edit a file to get the links.
+(d), the operator's suggestion 2026-10-01 and the simplest: make the section labels themselves links.
+"DUE NOW" and "Also watching" link to `NEXT.md`'s `## Watching`, "WHERE YOU LEFT OFF" to `## Queue`.
+One link per section instead of one per item, and it works without a per-watch brief field. Untested:
+whether a `#watching` anchor opens at the heading in the desktop app's file pane. If it doesn't, the
+hook can print `NEXT.md:<line of the heading>`, computed at print time.
 **Ruled out:** asking agents to write links by hand. That is the rule that failed here.
