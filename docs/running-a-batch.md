@@ -231,12 +231,12 @@ run the backlog sync, touch no shared file"*.
 - **Size each firing to about 3 lanes, and space firings by the 5-hour window**, not by wall clock.
   Roughly two firings across a night; a third is usually the one that dies mid-flight.
 - **Nothing is reviewed overnight. Do not talk yourself into thinking otherwise.** The mechanical
-  guards — a green suite, the leak detector failing the run — are a **gate against obviously broken
-  code**, not a reviewer. They cannot catch a fix that is coherent, tested, and wrong: on
-  2026-09-05 two separate fixes each reproduced, one level up, the exact defect family they were
-  fixing, and **both were caught by a human reading the dossier, neither by a test.** So an
-  overnight run produces *unreviewed work that compiles*. That is a fine thing to wake up to and a
-  terrible thing to push unread.
+  guards — GitHub Actions CI running the test suite, the leak detector failing the run — are a
+  **gate against obviously broken code**, not a reviewer. They cannot catch a fix that is coherent,
+  tested, and wrong: on 2026-09-05 two separate fixes each reproduced, one level up, the exact
+  defect family they were fixing, and **both were caught by a human reading the dossier, neither by
+  a test.** So an overnight run produces *unreviewed work that compiles*. That is a fine thing to
+  wake up to and a terrible thing to push unread.
 - **It self-limits, and that is a feature.** Only the AFK backlog is eligible, so the night runs out
   of safe work rather than inventing some.
 
