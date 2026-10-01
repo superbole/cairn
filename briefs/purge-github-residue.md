@@ -23,7 +23,8 @@ ticket in his name. Decided in `docs/decisions.md` D48.
    gh issue delete 68 -R superbole/cairn --yes
    ```
 2. **He sends** a request at <https://support.github.com/request>. The portal has no sensitive-data
-   option: choose Repositories, then **Repository features**. **Never "Deletes"**: it leads to a
+   option: choose Repositories, then **Repository features**, then **Branches**, with URL
+   `https://github.com/superbole/cairn`. **Never "Deletes"**: it leads to a
    whole-repository purge confirmation. GitHub's guide ("Removing sensitive data from a repository",
    "Fully removing the data from GitHub") asks for the repo, the number of affected PRs and the
    first changed commit. Draft, plain enough to send as is:
