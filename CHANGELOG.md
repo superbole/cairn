@@ -3,6 +3,15 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-01 — NB5's clone reset onto the purged `main`; other clones are B103 (no version)
+
+NB5's `main` showed 49 ahead, 57 behind. That was the pre-purge history, not unpushed work: every local
+commit had a same-subject twin on origin, and the trees differed only by the 6 purged lines. Nothing was
+uncommitted or stashed, and there were no other branches. He ran `git reset --hard origin/main`, since the
+agent's `reset --hard` is denied; now 0/0. NB1 and DeepThought may still hold the old history, and a pull
+there merges it back. Filed `SBole/workspace` W25 for NB1, which also files DeepThought's copy, because
+NB5's GitHub token gets a 403 on `superbole/workspace`. The banner's "sort out git" invites that pull: B103.
+
 ## 2026-10-01 — B96 closed: issue #68 deleted, GitHub Support ticket sent (no version)
 
 He deleted issue #68 (`gh issue view 68` now returns not found) and filed the Support ticket for the cached
