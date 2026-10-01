@@ -168,16 +168,22 @@ import check_leak_coverage as clc                           # noqa: E402
 
 repo_root = HERE.parent.parent.parent
 store_parent = Path.home() / ".cairn-leaktest-store"
-# Use "cairn" in the store path so it appears in derived names and can be subtracted
-store = store_parent / "cairn"
+store = store_parent / "zzprivatestorename"
 store.mkdir(parents=True, exist_ok=True)
 names_fixture = store / "reentry-private-names.txt"
 names_fixture.write_text("# empty\n", encoding="utf-8")
+# Initialize the store as a git repo with a remote that includes "cairn" in the URL
+# This simulates the real scenario: the store is a git repo whose remote URL includes the
+# plugin's own name (from publisher/repo), so "cairn" gets derived from the remote.
+import subprocess                                          # noqa: E402
+subprocess.run(["git", "init", "-q", str(store)], check=True, capture_output=True)
+subprocess.run(["git", "-C", str(store), "remote", "add", "origin",
+                "https://github.com/testuser/cairn.git"], check=True, capture_output=True)
 prev_profile = os.environ.get("REENTRY_PROFILE_SOURCE")
 try:
     os.environ["REENTRY_PROFILE_SOURCE"] = str(store / "profile.md")
     derived = clc.private_store_names()
-    check("the store's own directory name is derived", "cairn" in derived, True)
+    check("the store's own directory name is derived", "zzprivatestorename" in derived, True)
     check("so is the directory holding it", "cairn-leaktest-store" in derived, True)
 
     published = {n.lower() for n in clc.self_published_names(repo_root)}
