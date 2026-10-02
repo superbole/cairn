@@ -275,5 +275,50 @@ check("an unrelated session does NOT inherit b72-session's stamp (the empty-reco
 check("...it hits the same honest empty-record branch as 12a, never someone else's answer",
       "No record" in other_session.stdout, True)
 
+print("\n13. B19 -- two repos with the same basename never print identically")
+sys.path.insert(0, str(TOOLS))
+import check_repos as cr                                                # noqa: E402
+
+def rec19(name, path, ok=True):
+    return {"name": name, "path": path, "ok": ok, "toplevel": path, "dirty": 0,
+            "unpushed": 0 if ok else 2, "note": None, "paths": []}
+
+out19 = cr.render([rec19("cairn", "/p/Projects/cairn"),
+                   rec19("Cairn", "/p/.private/cairn"),
+                   rec19("workspace", "/p/Projects/workspace")])
+check("the first `cairn` row carries its path",
+      "[ok] cairn (/p/Projects/cairn) -- clean" in out19, True)
+check("the second (case differs only) carries ITS path",
+      "[ok] Cairn (/p/.private/cairn) -- clean" in out19, True)
+check("a name nobody else shares stays a bare name",
+      "[ok] workspace -- clean, nothing unpushed" in out19, True)
+out19b = cr.render([rec19("cairn", "/p/Projects/cairn", ok=False),
+                    rec19("cairn", "/p/.private/cairn")])
+check("an [!!] row collides with an [ok] row: both still disambiguated",
+      "[!!] cairn (/p/Projects/cairn) --" in out19b
+      and "[ok] cairn (/p/.private/cairn) --" in out19b, True)
+check("a single row is never decorated",
+      cr.render([rec19("cairn", "/p/Projects/cairn")]).startswith("  [ok] cairn -- "), True)
+
+print("  13a. a named path that is ALSO in the record is said to be folded, not silently lost")
+fire(sibling / "b19.txt", session="s19")          # after the step-7 wrap, so in the window
+both19 = subprocess.run((sys.executable, str(TOOLS / "check_repos.py"), str(sibling)),
+                        cwd=str(root), capture_output=True, text=True,
+                        env={**os.environ, "PYTHONIOENCODING": "utf-8"}, **NW)
+check("the header says one named path was also recorded",
+      "1 named path(s) also in the record, checked once" in both19.stdout, True)
+check("and the sibling is listed once, not twice",
+      sum(1 for ln in both19.stdout.splitlines()
+          if ln.startswith(("  [!!] sibling --", "  [ok] sibling --"))), 1)
+named19 = base / "named19"
+named19.mkdir()
+subprocess.run(("git", "init", "-q"), cwd=named19, capture_output=True, **NW)
+only19 = subprocess.run((sys.executable, str(TOOLS / "check_repos.py"), str(named19)),
+                        cwd=str(root), capture_output=True, text=True,
+                        env={**os.environ, "PYTHONIOENCODING": "utf-8"}, **NW)
+check("a named path NOT in the record adds no such note",
+      "also in the record" in only19.stdout, False)
+check("...and is still checked", "named19" in only19.stdout, True)
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
