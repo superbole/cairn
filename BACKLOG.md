@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 103 -->
+<!-- next-id: 105 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,36 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B104. A wrap where NEXT.md needs no edit can never reach `CAIRN SET`, and `archive_guard` then blocks archiving
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-02` · issue `#117`
+**Found live 2026-10-02 in `workspace` on SBOLE-NB5.** The session started 1 behind, pulled
+(`pull --ff-only`, `f4213033`, which added W25 to `NEXT.md`), then did backlog-only work: rewrote one
+`BACKLOG.md` item (B73) that is not on the Queue, wrote `CHANGELOG.md`, committed, pushed, stamped
+`.last_wrap`. Nothing in `NEXT.md` needed to change: B73 is not queued, and the user turned down adding a
+new Decision. `wrap_receipt.py --record` gave `CAIRN OPEN · 8210ac0787fe` with exactly one `!` line:
+`next_rewrite: NEXT.md changed since session start, but the change arrived by pull --ff-only`. Then
+`archive_guard.py` blocked `archive_session("self")` on that OPEN, after the user had said yes to archiving.
+**Why it happens.** `tracked_step("next_rewrite", ...)` in `hooks/wrap_receipt.py` has three outcomes:
+`ran` (this session changed it, per the D21 reflog provenance), `skipped` (pull-arrived change, the B122
+branch) and `skipped` (byte-identical). `next_rewrite` is in `REQUIRED`. So "nothing in NEXT.md needs to
+change" has no honest route to SET. The only ways out are an empty edit made to satisfy the tool, which
+is the impersonation D4/B87 exist to stop, or archiving by hand from the sidebar, which the guard's own
+message points to.
+**Not the B122 false green coming back.** D21 is right that a pull must not tick `ran`. The gap is the
+other side: the receipt can't tell "the wrap reviewed NEXT.md and it was already right" from "the wrap
+never looked."
+**Ruled out:** an empty or cosmetic `NEXT.md` edit (gaming the receipt). Treating byte-identical as `n/a`
+(it is the exact state of a wrap that skipped step 7, which is what the step exists to catch).
+**Candidates to design with him:**
+(1) An explicit, receipt-recorded `--next-unchanged` declaration that marks the step `declared`, not
+`ran`, so the table shows it as a claim. It passes `REQUIRED` but is never quietly upgraded.
+(2) Derive "nothing to change" from facts: no Queue item's backlog entry was touched, the Queue still
+has 3 or more items, no `INBOX.md` bullets were triaged and no watch is due. Only then count `next_rewrite`
+as `n/a`.
+(3) Let `archive_guard` treat an OPEN whose only `!` line is `next_rewrite` differently (it's weaker).
+Whatever lands, the receipt must still go OPEN for a wrap that never opened `NEXT.md` when it had a
+reason to (the B87 case). Read D4, D21 and `skills/wrap/references/incidents.md` (B87, B122) first.
 
 ## B11. A baseline keyed only by session id does not survive a crash-and-resume
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06` · issue `#9`
@@ -1432,3 +1462,19 @@ hook can print `NEXT.md:<line of the heading>`, computed at print time.
 **Triaged from INBOX.md at the 2026-10-01 wrap.** Sibling of B87 (orient from origin when behind). NB1 application: `SBole/workspace` W25. Captured verbatim:
 
 (2026-10-01, NB5 session) **After the B93 purge, every other clone still holds the purged history, and nothing stops it being pushed back.** NB5's `main` showed "49 ahead, 57 behind". `git log --cherry-mark main...origin/main` showed every local commit had a same-subject twin on origin, and `git diff main aff0839` was only the 6 purged lines ("France trip", `plans/2026-10-trip.md`). Fixed on NB5 by `git reset --hard origin/main`; he ran it, because the agent's `reset --hard` is denied. **Per machine:** NB1 and DeepThought must each run the same reset before ANY push from their cairn clone, unless that clone did the purge itself (the B93 CHANGELOG entry doesn't say which machine did). A `git pull` there merges the old history back in, and the next push republishes it. File one watch per hub (NB1 → `SBole/workspace`, DeepThought → `superbole/workspace`); this session couldn't, because reads outside `cairn` are blocked. **Mechanism gap (this repo):** the divergence banner says "sort out git", which reads as "pull". It should spot a history rewrite on origin (local-only commits that all have patch-equivalent or same-subject twins on origin) and say "origin was rewritten: reset to origin/main, do not pull or push", never offer a merge. Related: B87.
+
+## B105. Remove work email from commit history and prevent it in future commits
+added `2026-10-02` · issue `#116`
+Every commit on `main` and on the `afk/` branches is authored with a non-noreply organisational email address. Nothing scrubs commit metadata: `test_payload_clean` covers only tracked files.
+
+**Prevent (do now, on every machine)**
+- [ ] GitHub → Settings → Emails: enable **Keep my email addresses private** and **Block command line pushes that expose my email**.
+- [ ] `git config --global user.email "10409989+superbole@users.noreply.github.com"` on NB5 and every other machine that pushes here, including the machine the scheduled AFK firing runs on.
+- [ ] If the work address is still needed for the work git host, scope it with `includeIf "gitdir:<work path>/"` so it applies only there.
+- [ ] Optional: add a check (a hook or a test) that refuses commits whose author or committer email isn't the noreply address.
+
+**Clean up history (after leave, once #102–#105 and later afk PRs are merged or closed)**
+- [ ] Rewrite the author and committer emails with `git filter-repo --mailmap`, then force-push `main` and delete or re-push the remaining branches. Note: this changes every SHA and breaks open PRs.
+- [ ] Re-clone or hard-reset every machine that has a copy.
+- [ ] Ask GitHub Support to purge cached commit pages and PR refs, as was done for W9.
+- [ ] Check the other repos for the same address.
