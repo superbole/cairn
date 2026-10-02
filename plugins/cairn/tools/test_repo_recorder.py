@@ -299,6 +299,25 @@ check("an [!!] row collides with an [ok] row: both still disambiguated",
       and "[ok] cairn (/p/.private/cairn) --" in out19b, True)
 check("a single row is never decorated",
       cr.render([rec19("cairn", "/p/Projects/cairn")]).startswith("  [ok] cairn -- "), True)
+check("the INCIDENT shape: one `cairn` row while the session's own project is also `cairn` "
+      "-- the row carries its path",
+      cr.render([rec19("cairn", "/p/.private/cairn")], "cairn")
+      .startswith("  [ok] cairn (/p/.private/cairn) -- "), True)
+check("a project with a different name decorates nothing",
+      cr.render([rec19("cairn", "/p/.private/cairn")], "workspace")
+      .startswith("  [ok] cairn -- "), True)
+
+print("  13b. end to end: naming a repo whose basename is the session's own project's")
+twin19 = base / "elsewhere" / root.name
+twin19.mkdir(parents=True)
+subprocess.run(("git", "init", "-q"), cwd=twin19, capture_output=True, **NW)
+twin_out = subprocess.run((sys.executable, str(TOOLS / "check_repos.py"), "--no-recorded",
+                           str(twin19)),
+                          cwd=str(root), capture_output=True, text=True,
+                          env={**os.environ, "PYTHONIOENCODING": "utf-8"}, **NW)
+check("the twin's row names its full path, so it cannot be read as the session's project",
+      any(ln.startswith("  [") and (" %s (" % root.name) in ln and "elsewhere" in ln
+          for ln in twin_out.stdout.splitlines()), True)
 
 print("  13a. a named path that is ALSO in the record is said to be folded, not silently lost")
 fire(sibling / "b19.txt", session="s19")          # after the step-7 wrap, so in the window
@@ -318,7 +337,9 @@ only19 = subprocess.run((sys.executable, str(TOOLS / "check_repos.py"), str(name
                         env={**os.environ, "PYTHONIOENCODING": "utf-8"}, **NW)
 check("a named path NOT in the record adds no such note",
       "also in the record" in only19.stdout, False)
-check("...and is still checked", "named19" in only19.stdout, True)
+check("...and is still checked, as a row of its own",
+      any(ln.startswith(("  [!!] named19 --", "  [ok] named19 --"))
+          for ln in only19.stdout.splitlines()), True)
 
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
