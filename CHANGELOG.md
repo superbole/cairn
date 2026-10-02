@@ -3,6 +3,18 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-02 — `cairn-afk-firing` prompt replaced: one item, review first (no version)
+
+The NB5 scheduled task's prompt was replaced with his rewrite plus issue #1 on `cairn-private` (D49).
+Each firing now takes at most one new AFK item, and first reviews up to 2 open `afk/` PRs with a
+fresh subagent. It posts the review as a PR comment and pushes small fixes to the existing `afk/`
+branch. It self-reviews and scrubs its own dossier before opening a PR, aborts on a dirty tree or
+outside the checkout, and stops after 2026-10-20. The Discord post via `notify-discord.ps1` is kept.
+The schedule is unchanged (Sun/Wed/Fri 17:00). `.claude/settings.json` gained `gh pr comment` and
+`gh pr checks` (`51813a3`), pushed so that `afk/` branches cut from `origin/main` carry them.
+The new prompt has not run yet: W10 checks its first firing. Also covered by this entry, from an
+unwrapped session: the CI workflow (#115), and backlog notes B104, B105 and B67.
+
 ## 2026-10-01 — NB5's clone reset onto the purged `main`; other clones are B103 (no version)
 
 NB5's `main` showed 49 ahead, 57 behind. That was the pre-purge history, not unpushed work: every local

@@ -46,9 +46,16 @@ Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier agains
 (CHANGELOG, version bump, `BACKLOG.md` closes, the Queue) and run `tools/sync_backlog.py`. Any lane-0
 bookkeeping PRs already merged cover part of this, so read `git log` first.
 Firings run Sun/Wed/Fri 17:00 (`cairn-afk-firing`, Scheduled sidebar on NB5); each posts its summary to Discord.
-**The summary's "Permission prompts: none" line is not reliable** (2026-09-30 said none after two). PRs #103,
+Since 2026-10-02 (D49) a firing takes one new item and first reviews up to 2 open PRs, leaving a
+`Scheduled review` comment on each: start from those. It stops itself after 2026-10-20; disable it then. PRs #103,
 #104 and #105 (B16, B17, B18) all touch `validate_next.py` `validate()`: the second and third to merge need a
 small rebase, and B16's rules-text half plus the version bump are left for the attended pass (see #103).
+
+**W10. The first firing on the rewritten `cairn-afk-firing` prompt ran cleanly** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-10-02` · check after `2026-10-03`
+Its first run was 2026-10-02 17:00. Read that firing's Discord post, and on `superbole/cairn` check
+for `Scheduled review` comments on open `afk/` PRs and at most one new PR. A missing post, or a run that
+never finished, means it stalled on a permission prompt: find which command, then fix
+`.claude/settings.json` or the prompt (D49, CHANGELOG 2026-10-02).
 
 ---
 
