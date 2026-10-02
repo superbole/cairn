@@ -992,6 +992,16 @@ could lower the floor by one. **Decide:** keep the code's semantics and say so w
 rename the marker (`<!-- last-id: N -->`, reading the old spelling on the way in). Either way the
 parser keeps accepting the old marker. B65 was never filed; nothing needs renumbering.
 
+**It has now COLLIDED (2026-10-02, SBOLE-NB5), so "the safe direction" no longer holds.** A `workspace`
+session filing a cairn item read `next-id: 103` as "next free" and wrote `## B103.`. But B103 already
+existed (#114, hand-written in `0bb6347`; the sync in `f5b608e` raised the marker 102 → 103 to match).
+It was only caught because a `--dry-run` listed "B103" against both #114 and a new issue, and was
+renumbered by hand to B104 (#117). **And the sync did not refuse:** with two `## B103.` headings in the
+file, both the dry run and the real run went ahead and filed an issue for the second. B79's
+`duplicates()` only feeds `summary_lines()` at session start, so a duplicate made mid-session goes out to
+the host before anything flags it. **Add to the fix:** `sync_backlog.py` refuses, the same way it refuses
+unparseable headings, when `duplicates()` is non-empty, before any host call.
+
 ## B68. The old `python "$CLAUDE_PLUGIN_ROOT/…"` command form survives outside the skills
 `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#66`
 B59 (v1.63.0, D35) rewrote every call site in `skills/*/SKILL.md` and `rules/CLAUDE.md`, and
