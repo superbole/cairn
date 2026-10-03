@@ -13,6 +13,8 @@ unattended). Second, the `gh issue … -R superbole/claude-inbox` allow rules ge
 because PowerShell is NB5's main shell. He added those rules to `.claude/settings.json` himself. Replied
 on #3 and closed it. W11 checks the first runs: whether they stall, and whether quiet runs set off the
 false "last session did not finish cleanly" warning.
+The first run (15:31) stalled on a read of the AFK prompt for #2, and W11 records that. It then prepared
+#2's diff without installing it, and that install is now Queue item 1, due before Sunday's firing.
 
 ## 2026-10-02 — `cairn-afk-firing` prompt replaced: one item, review first (no version)
 

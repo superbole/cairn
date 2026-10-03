@@ -13,15 +13,19 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Queue
 
-1. **Team install for colleagues who use Claude Code only** — Opus 5 · high · HITL/Plan
+1. **Install `body` in the `cairn-afk-firing` prompt's `gh pr view` fields (claude-inbox #2)** — Sonnet · medium · HITL/Auto
+   Brief: [briefs/afk-prompt-pr-body.md](briefs/afk-prompt-pr-body.md)
+   Top because it has a deadline: it must be in before the Sunday 2026-10-04 17:00 firing. He OK'd it. A three-line edit, with the diff already on #2.
+
+2. **Team install for colleagues who use Claude Code only** — Opus 5 · high · HITL/Plan
    Brief: [briefs/claude-team-install.md](briefs/claude-team-install.md)
    He knows several Claude-Code-only colleagues and no Cursor-only ones (2026-09-28), so this replaced B81, which stays in the backlog. Stops at the plan. Backlog B86. The item that serves the aim.
 
-2. **When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base** — Opus 5 · high · HITL/Plan
+3. **When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base** — Opus 5 · high · HITL/Plan
    Brief: `BACKLOG.md` B87
    Found 2026-09-28: 50 behind, and the orientation printed a stale queue under the warning. Agreed in chat. An item that exists only on origin is declined until he pulls (D46). Do B103 in the same plan: when origin was rewritten, the banner must say reset, not pull.
 
-3. **Repo-acting tools must act on the repo they are run in, not the session's stamped project** — Opus 5 · high · AFK/Auto
+4. **Repo-acting tools must act on the repo they are run in, not the session's stamped project** — Opus 5 · high · AFK/Auto
    Brief: [briefs/sync-backlog-target-repo.md](briefs/sync-backlog-target-repo.md)
    Pulled at the 2026-10-01 wrap to refill the Queue: run from a sibling repo, `sync_backlog.py` silently syncs the wrong backlog. Commits locally and stops before the push. Backlog B98.
 
