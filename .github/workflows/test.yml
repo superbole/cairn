@@ -1,0 +1,127 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Run test suite
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      
+      - name: Configure git
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+      
+      - name: Set up test environment
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            mkdir -p "$RUNNER_TEMP/home/.claude"
+            echo "HOME=$RUNNER_TEMP/home" >> $GITHUB_ENV
+          else
+            mkdir -p "$HOME/.claude"
+          fi
+        shell: bash
+      
+      - name: Run test suite
+        run: python plugins/cairn/tools/run_tests.py --timeout=300
+        continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
+  
+  afk-conflict-check:
+    name: Check afk/* PR conflicts
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check afk/* branch conflicts
+        run: |
+          echo "## afk/* Branch Conflict Matrix" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Find all open afk/* PRs by listing remote branches
+          # Use grep -E for proper whitespace handling
+          afk_branches=$(git branch -r | grep -E 'origin/afk/' | sed 's|^[[:space:]]*origin/||' | grep -v HEAD | sort)
+          
+          if [ -z "$afk_branches" ]; then
+            echo "No afk/* branches found" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          
+          echo "Found afk/* branches:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "$afk_branches" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check each pair for merge conflicts
+          echo "### Pairwise Conflict Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch A | Branch B | Status | Conflicting Files |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|----------|--------|-------------------|" >> $GITHUB_STEP_SUMMARY
+          
+          conflict_count=0
+          clean_count=0
+          
+          IFS=$'\n'
+          branches_array=($afk_branches)
+          
+          for ((i=0; i<${#branches_array[@]}; i++)); do
+            for ((j=i+1; j<${#branches_array[@]}; j++)); do
+              branch_a="${branches_array[$i]}"
+              branch_b="${branches_array[$j]}"
+              
+              # Use git merge-tree to check for conflicts
+              # Check if branches exist first
+              if ! git rev-parse "origin/$branch_a" >/dev/null 2>&1 || ! git rev-parse "origin/$branch_b" >/dev/null 2>&1; then
+                echo "| \`$branch_a\` | \`$branch_b\` | ⚠️ **SKIP** | Branch not found |" >> $GITHUB_STEP_SUMMARY
+                continue
+              fi
+              
+              merge_base=$(git merge-base origin/main "origin/$branch_a" 2>&1)
+              if [ $? -ne 0 ]; then
+                echo "| \`$branch_a\` | \`$branch_b\` | ⚠️ **SKIP** | No merge base |" >> $GITHUB_STEP_SUMMARY
+                continue
+              fi
+              
+              merge_result=$(git merge-tree "$merge_base" "origin/$branch_a" "origin/$branch_b" 2>&1)
+              
+              if echo "$merge_result" | grep -q "^<<<<<"; then
+                conflicts=$(echo "$merge_result" | grep -B 5 "^<<<<<" | grep "^+++ " | sed 's|^+++ b/||' | sort -u | tr '\n' ', ' | sed 's/,$//')
+                echo "| \`$branch_a\` | \`$branch_b\` | ⚠️ **CONFLICT** | $conflicts |" >> $GITHUB_STEP_SUMMARY
+                conflict_count=$((conflict_count + 1))
+              else
+                echo "| \`$branch_a\` | \`$branch_b\` | ✅ Clean | - |" >> $GITHUB_STEP_SUMMARY
+                clean_count=$((clean_count + 1))
+              fi
+            done
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "_This check does not fail the build. It provides information about which afk/* PRs conflict with each other. ($conflict_count conflicts, $clean_count clean)_" >> $GITHUB_STEP_SUMMARY

@@ -3,19 +3,72 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-02 — `cairn-afk-firing` prompt replaced: one item, review first (no version)
+
+The NB5 scheduled task's prompt was replaced with his rewrite plus issue #1 on `cairn-private` (D49).
+Each firing now takes at most one new AFK item, and first reviews up to 2 open `afk/` PRs with a
+fresh subagent. It posts the review as a PR comment and pushes small fixes to the existing `afk/`
+branch. It self-reviews and scrubs its own dossier before opening a PR, aborts on a dirty tree or
+outside the checkout, and stops after 2026-10-20. The Discord post via `notify-discord.ps1` is kept.
+The schedule is unchanged (Sun/Wed/Fri 17:00). `.claude/settings.json` gained `gh pr comment` and
+`gh pr checks` (`51813a3`), pushed so that `afk/` branches cut from `origin/main` carry them.
+The new prompt has not run yet: W10 checks its first firing. Also covered by this entry, from an
+unwrapped session: the CI workflow (#115), and backlog notes B104, B105 and B67.
+
+## 2026-10-01 — NB5's clone reset onto the purged `main`; other clones are B103 (no version)
+
+NB5's `main` showed 49 ahead, 57 behind. That was the pre-purge history, not unpushed work: every local
+commit had a same-subject twin on origin, and the trees differed only by the 6 purged lines. Nothing was
+uncommitted or stashed, and there were no other branches. He ran `git reset --hard origin/main`, since the
+agent's `reset --hard` is denied; now 0/0. NB1 and DeepThought may still hold the old history, and a pull
+there merges it back. Filed `SBole/workspace` W25 for NB1, which also files DeepThought's copy, because
+NB5's GitHub token gets a 403 on `superbole/workspace`. The banner's "sort out git" invites that pull: B103.
+
+## 2026-10-01 — B96 closed: issue #68 deleted, GitHub Support ticket sent (no version)
+
+He deleted issue #68 (`gh issue view 68` now returns not found) and filed the Support ticket for the cached
+commit pages and the closed PRs #84–#90 refs; the confirmation email arrived. The portal has no
+sensitive-data option: the path is Repositories, Repository features, Branches, and never "Deletes", which
+leads to a whole-repository purge. W9 checks on 2026-10-15 whether the old pages are gone. The Queue
+refilled with B98 (repo-acting tools act on the session's project, not the cwd).
+
+## 2026-10-01 — B93 closed: personal schedule detail purged from public history (no version)
+
+History was rewritten in two passes and force-pushed (`main` `37d3e66` → `f0e288b`, plus the five live
+`afk/` branches; PRs #102–#105 kept identical diffs).
+- **Pass 1, D37's scope:** the B70 text in `BACKLOG.md`, `NEXT.md` and the brief now reads as the stub in
+  every commit that carried it. That was five commits, not four: the B71 pull sat between `cfec2f7` and the
+  stub and still held the old wording. Two commits became empty and were dropped, two subjects were
+  reworded, and the first brief's employer host name went with them.
+- **Pass 2 (D48):** later wording that pointed back at the same detail was neutralised across history too.
+- Every later SHA changed. Citations in this file and one review dossier were remapped; the purged SHAs
+  in D37 and the B93 brief stay as names of what was removed.
+- **Left for him (B96, queued):** delete issue #68 and send GitHub Support the request drafted in the brief.
+- INBOX triaged: six captures became B97–B102.
+
+## 2026-09-30 — W5 closed: NB5's first firings run, four afk/ PRs open (no version)
+
+NB5's local `cairn-afk-firing` task (Sun/Wed/Fri 17:00, mode Auto, up to 3 AFK items) replaces the missed F1.
+The dry run did B13, but `test_payload_clean` failed on `main` because `docs/running-a-batch.md` named a
+machine. Fixed in `677afcb`, rebased, opened as #102. The first scheduled run (17:06) opened #103 (B16), #104
+(B17) and #105 (B18), all 38/38. It stalled on `cd .claude/worktrees/<Bnn>` (the card only offers "Allow
+once"), so the task prompt now works on branches in the main checkout, with no `cd`, `git -C` or worktrees.
+Its summary also said no prompts were hit, which was wrong. Dry run cost 3% of the weekly allowance (37 → 40%).
+Runs post to Discord through a webhook, allowed in the user settings. PR review is W6.
+
 ## 2026-09-29 — the burn: scheduling notes, B84 and B94 filed (no version)
 
 The NB1 session that scheduled the 2026-09-27 03:00 firing (`cairn-lane-batch-2026-09-27-0300`) as a
 worktree-per-item afk/ run. Its W7 notes recorded that the NB1 VPN drops because the OpenVPN profile asks
-for a TOTP code on reconnect, so the fix is a manual reconnect just before a firing (`148b92d`). The firing
+for a TOTP code on reconnect, so the fix is a manual reconnect just before a firing (`ecfd8e2`). The firing
 fired, then stalled in Manual from 03:01 to 09:44 on a `sed` with a `> "$TEMP/…"` redirect, which is
-outside the allow list. Filed B84 (`3a6b408`): reuse one persistent task so approvals and mode carry over,
+outside the allow list. Filed B84 (`2b1dfea`): reuse one persistent task so approvals and mode carry over,
 forbid off-list command shapes in the prompt, and name it "the burn" (`/cairn:burn`). At this wrap, the
 un-triaged inbox note on mapping families to Cursor/Grok slugs became B94 (HITL/Plan, undecided).
 
 ## 2026-09-29 — W7 closed (no version)
 
-The 2026-09-27 review is finished. #84–#89 are on `main`, handover #90 is closed, and v1.66.0 is pushed. `_strip_fences()` calls `fence_scan.mask()` and still blanks an unclosed fence through EOF (`09ac881`). Inbox counters still report that unclosed line. The batch guide now says to connect the VPN by hand just before a firing. W7 is closed. W8 is queued as B93: the history purge stops and warns before any force-push of `main`. It is not done.
+The 2026-09-27 review is finished. #84–#89 are on `main`, handover #90 is closed, and v1.66.0 is pushed. `_strip_fences()` calls `fence_scan.mask()` and still blanks an unclosed fence through EOF (`36a2be0`). Inbox counters still report that unclosed line. The batch guide now says to connect the VPN by hand just before a firing. W7 is closed. W8 is queued as B93: the history purge stops and warns before any force-push of `main`. It is not done.
 
 ## 2026-09-29 — v1.66.0: the 2026-09-27 afk batch, reviewed and merged
 
