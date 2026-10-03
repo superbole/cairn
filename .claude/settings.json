@@ -27,7 +27,9 @@
       "Bash(git push origin afk/*)",
       "Bash(gh pr create *)",
       "Bash(gh pr list *)",
-      "Bash(gh pr view *)"
+      "Bash(gh pr view *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr checks *)"
     ],
     "ask": [
       "Bash(git push)",

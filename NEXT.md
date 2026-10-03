@@ -15,17 +15,21 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 1. **Team install for colleagues who use Claude Code only** — Opus 5 · high · HITL/Plan
    Brief: [briefs/claude-team-install.md](briefs/claude-team-install.md)
-   He knows several Claude-Code-only colleagues and no Cursor-only ones (2026-09-28), so this replaced B81, which stays in the backlog. Stops at the plan. Backlog B86. Stays first: it is the item that serves the aim.
+   He knows several Claude-Code-only colleagues and no Cursor-only ones (2026-09-28), so this replaced B81, which stays in the backlog. Stops at the plan. Backlog B86. The item that serves the aim.
 
-2. **Purge personal schedule detail from public history** — Opus 5 · high · HITL/Auto
-   Brief: [briefs/purge-public-history.md](briefs/purge-public-history.md)
-   Was W8. The window closes 2026-10-01. Stop and warn before the force-push of `main`. Backlog B93.
-
-3. **When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base** — Opus 5 · high · HITL/Plan
+2. **When the checkout is behind, orient from origin's `NEXT.md`, and never start an item on a stale base** — Opus 5 · high · HITL/Plan
    Brief: `BACKLOG.md` B87
-   Found 2026-09-28: 50 behind, and the orientation printed a stale queue under the warning. Agreed in chat. An item that exists only on origin is declined until he pulls (D46).
+   Found 2026-09-28: 50 behind, and the orientation printed a stale queue under the warning. Agreed in chat. An item that exists only on origin is declined until he pulls (D46). Do B103 in the same plan: when origin was rewritten, the banner must say reset, not pull.
+
+3. **Repo-acting tools must act on the repo they are run in, not the session's stamped project** — Opus 5 · high · AFK/Auto
+   Brief: [briefs/sync-backlog-target-repo.md](briefs/sync-backlog-target-repo.md)
+   Pulled at the 2026-10-01 wrap to refill the Queue: run from a sibling repo, `sync_backlog.py` silently syncs the wrong backlog. Commits locally and stops before the push. Backlog B98.
 
 ## Watching
+
+**W9. GitHub Support has purged the old commit pages and PR refs** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-10-01` · check after `2026-10-15`
+Ticket sent 2026-10-01 (confirmation email received). Check that `https://github.com/superbole/cairn/commit/5d2cd6a` returns 404 and
+`git ls-remote origin 'refs/pull/8*/head' 'refs/pull/90/head'` no longer lists PRs #84 to #90 at old commits. If not, it waits on Support's reply in his email. Brief: [briefs/purge-github-residue.md](briefs/purge-github-residue.md).
 
 **W2. The empty-Queue backlog offer (v1.18.0) fires in a genuinely NEW session** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-08-28` · check after `the next new session in a project whose Queue is empty`
 
@@ -36,21 +40,22 @@ The real dogfooding test, and no current machine can run it — every one has ha
 all could pass while a stranger fails. When it fires, check: does the orientation print, does
 `install_rules` write the managed block, and does the plugin stay silent in a project with no `NEXT.md`.
 
-**W5. The first unattended cairn firing (F1, on NB5) ran as specified** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-09-30`
-F1 is NB5's local scheduled task, 2026-09-29 20:00 (B70's plan, in the private store). Cloud routines are
-unavailable on this account, because its GitHub access is blocked. Check: the task's Runs list shows
-success, with no stall on a permission prompt; each item became one `afk/<date>-<nn>-<Bnn>-<slug>` PR off
-`origin/main` that touches no shared file; the PR notification reached the phone; and nothing reached
-`main`. Also read the usage page against Monday's dry-run delta, and adjust the firings per week if needed.
-The first real `afk/` run (NB1, 2026-09-27, reviewed as W7) showed: a firing can stall for hours on a
-permission prompt (B84); a README-only item is its own PR; the leak detector false-failed three PRs until
-B75 merged; bookkeeping stays in the attended session.
-
 **W6. Review and merge the unattended `afk/` PRs, then catch the bookkeeping up** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-10-20`
 Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier against its diff
 (`docs/running-a-batch.md`, "The review surface"), merge or close each one, then do one bookkeeping pass
 (CHANGELOG, version bump, `BACKLOG.md` closes, the Queue) and run `tools/sync_backlog.py`. Any lane-0
 bookkeeping PRs already merged cover part of this, so read `git log` first.
+Firings run Sun/Wed/Fri 17:00 (`cairn-afk-firing`, Scheduled sidebar on NB5); each posts its summary to Discord.
+Since 2026-10-02 (D49) a firing takes one new item and first reviews up to 2 open PRs, leaving a
+`Scheduled review` comment on each: start from those. It stops itself after 2026-10-20; disable it then. PRs #103,
+#104 and #105 (B16, B17, B18) all touch `validate_next.py` `validate()`: the second and third to merge need a
+small rebase, and B16's rules-text half plus the version bump are left for the attended pass (see #103).
+
+**W10. The first firing on the rewritten `cairn-afk-firing` prompt ran cleanly** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-10-02` · check after `2026-10-03`
+Its first run was 2026-10-02 17:00. Read that firing's Discord post, and on `superbole/cairn` check
+for `Scheduled review` comments on open `afk/` PRs and at most one new PR. A missing post, or a run that
+never finished, means it stalled on a permission prompt: find which command, then fix
+`.claude/settings.json` or the prompt (D49, CHANGELOG 2026-10-02).
 
 ---
 
