@@ -230,11 +230,35 @@ def recorded_roots() -> list[Path]:
         return []
 
 
-def render(records: list[dict]) -> str:
-    lines = []
+def _labels(records: list[dict], project: str | None = None) -> list[str]:
+    """The name each row is printed under, with the path added wherever the bare name could
+    be read as a different repo.
+
+    B19: `record["name"]` is the basename, so a private clone at `~/.claude-private/cairn`
+    and a checkout at `~/Projects/cairn` both printed as `[ok] cairn`. A clean result on the
+    wrong repo then reads exactly like one on the right repo. Two sources of that ambiguity:
+    two ROWS with one name, and a row sharing its name with the session's own PROJECT, which
+    this tool never prints as a row -- the incident's actual shape, where the only `cairn`
+    row was the private clone and the reader took it for the checkout. Only those rows get
+    the path, so the common case stays one short line per repo.
+    """
+    counts: dict[str, int] = {}
     for r in records:
+        key = str(r["name"]).casefold()
+        counts[key] = counts.get(key, 0) + 1
+    if project:
+        key = project.casefold()
+        counts[key] = counts.get(key, 0) + 1
+    return ["%s (%s)" % (r["name"], r["path"]) if counts[str(r["name"]).casefold()] > 1
+            else r["name"] for r in records]
+
+
+def render(records: list[dict], project: str | None = None) -> str:
+    """`project` is the session's own project's basename (never a row), for `_labels`."""
+    lines = []
+    for r, label in zip(records, _labels(records, project)):
         if r["ok"]:
-            lines.append("  [ok] %s -- clean, nothing unpushed" % r["name"])
+            lines.append("  [ok] %s -- clean, nothing unpushed" % label)
             # An `ok` carrying a note is the dangerous case, not the boring one: it is
             # clean, but not clean in the way you assumed. Never swallow it.
             if r["note"]:
@@ -247,7 +271,7 @@ def render(records: list[dict]) -> str:
             bits.append("%d unpushed" % r["unpushed"])
         if r["note"]:
             bits.append(r["note"])
-        lines.append("  [!!] %s -- %s" % (r["name"], ", ".join(bits) or "unknown state"))
+        lines.append("  [!!] %s -- %s" % (label, ", ".join(bits) or "unknown state"))
         lines.append("       %s" % r["path"])
         for p in r["paths"]:
             lines.append("         " + p)
@@ -269,22 +293,36 @@ def main() -> int:
     targets: list[Path] = []
     seen: set[str] = set()
 
-    def add(path: Path) -> None:
-        """Union, first-named-wins. Duplicates would double-report the same repo."""
+    def keyof(path: Path) -> str:
+        """Keyed on the full resolved path, never the basename (B19)."""
         try:
-            key = str(path.expanduser().resolve()).lower()
+            return str(path.expanduser().resolve()).lower()
         except Exception:
-            key = str(path).lower()
+            return str(path).lower()
+
+    def add(path: Path) -> bool:
+        """Union, first-named-wins. Duplicates would double-report the same repo.
+        True if it was new."""
+        key = keyof(path)
         if key not in seen:
             seen.add(key)
             targets.append(path)
+            return True
+        return False
 
     for p in args.paths:
         add(Path(p))
     n_named = len(targets)
+    named_keys = set(seen)
+    n_both = 0                  # B19: recorded repos that were ALSO named, folded into one row
     if args.recorded:
         for root in recorded_roots():
-            add(root)
+            key = keyof(root)
+            # Only a fold into a NAMED path counts: two record lines for one repo are the
+            # record deduping itself, not a named path disappearing.
+            if not add(root) and key in named_keys:
+                n_both += 1
+                named_keys.discard(key)
     n_recorded = len(targets) - n_named
     if args.known:
         for root in known_roots():
@@ -340,8 +378,17 @@ def main() -> int:
         # be visible as such rather than blending into the list.
         if n_recorded:
             header += " (%d found by the recorder, not named)" % n_recorded
+        # B19: "three roots in, two out" was invisible -- the header counted rows, not
+        # inputs. Say when a named path and a recorded one were the same repo, so the count
+        # can be reconciled with what was passed instead of looking like a dropped repo.
+        if n_both:
+            header += " (%d named path(s) also in the record, checked once)" % n_both
         print(header)
-        print(render(records))
+        try:
+            project = project_root().resolve().name or None
+        except Exception:
+            project = None
+        print(render(records, project))
         if bad:
             # The whole point of the check: the entry must not claim what is not true.
             print("\nDo NOT write a CHANGELOG entry saying this work landed until "
