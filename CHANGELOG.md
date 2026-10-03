@@ -3,6 +3,17 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-03 — `claude-inbox-check` scheduled task on NB5 (no version)
+
+Set up from `superbole/claude-inbox` #3, which Cairn (his Grok assistant) wrote. The task runs every 30
+minutes in this checkout. It acts on open issues whose newest message starts `From Cairn` and replies
+`From Claude:`, at most 3 per run. Two changes from Cairn's draft, both agreed with him. First, an issue
+only counts if its author is `superbole` (`SboleWork` is also a collaborator, and the task runs
+unattended). Second, the `gh issue … -R superbole/claude-inbox` allow rules get PowerShell copies,
+because PowerShell is NB5's main shell. He added those rules to `.claude/settings.json` himself. Replied
+on #3 and closed it. W11 checks the first runs: whether they stall, and whether quiet runs set off the
+false "last session did not finish cleanly" warning.
+
 ## 2026-10-02 — `cairn-afk-firing` prompt replaced: one item, review first (no version)
 
 The NB5 scheduled task's prompt was replaced with his rewrite plus issue #1 on `cairn-private` (D49).
