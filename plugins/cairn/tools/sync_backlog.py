@@ -177,9 +177,10 @@ _HISTORICAL_EXACT = ("changelog.md", "docs/decisions.md")
 # done is a citation, not a pointer. Deliberately NOT the primary mechanism (that is the path
 # rule above): this only ever SUPPRESSES a hit inside an already-scanned file, on an exact,
 # checkable token — never the reverse, and never applied to decide which FILES get scanned.
-# Kept to the three words the item explicitly names; guessing at synonyms is exactly the
-# prose-sniffing this file was told not to do.
-_CLOSING_TOKEN_RE = re.compile(r"\b(closed|shipped|dropped)\b", re.IGNORECASE)
+# Kept to words an item has explicitly named; guessing at synonyms is exactly the
+# prose-sniffing this file was told not to do. `fixed` added by B13: the lines it flagged live
+# said "fixed", a closing word the original three did not know.
+_CLOSING_TOKEN_RE = re.compile(r"\b(closed|shipped|dropped|fixed)\b", re.IGNORECASE)
 
 
 # `.../skills/<any-one-segment>/references/incidents.md`, at ANY depth — in THIS repo that is
@@ -341,6 +342,7 @@ def push(host, items: list[dict], root: Path, repo: str,
     """
     log: list[str] = []
     keep: list[dict] = []
+    claimed = {it["issue"] for it in items if it.get("issue")}   # B13's title match skips these
     for it in items:
         if it.get("closed"):
             status = backlog_file.changelog_status(root, it)
@@ -373,6 +375,36 @@ def push(host, items: list[dict], root: Path, repo: str,
                     log.append(f"  · B{it['n']} closed {it['closed']} — this project has no "
                                f"CHANGELOG.md, so the record could NOT be verified (B45). "
                                f"Closing anyway; the item is about to exist nowhere.")
+            if not it.get("issue"):
+                # B13: "never filed" and "filed, number lost" look IDENTICAL in the file — a
+                # closed item with no `issue` field — and the drop is only safe for the first.
+                # Live: #129 was filed, its number never reached the file, the item was
+                # closed, this branch dropped it, and the same run's pull re-imported #129 as a
+                # new item. So ask the open listing first; exactly one unclaimed open issue with
+                # this title means the number was lost, and the item closes it like any other.
+                if remote is None:
+                    log.append(f"  ! kept B{it['n']} — closed with no issue number, and the "
+                               f"host's open issues could not be listed, so 'never filed' "
+                               f"cannot be told from 'filed, number lost' (B13); the next "
+                               f"connected sync decides")
+                    keep.append(it)
+                    continue
+                want = _norm_text(it["title"]).casefold()
+                match = sorted(n for n, r in remote.items()
+                               if n not in claimed
+                               and _norm_text(r.get("title") or "").casefold() == want)
+                if len(match) > 1:
+                    log.append(f"  ! kept B{it['n']} — closed with no issue number, and "
+                               f"{len(match)} open issues carry its title "
+                               f"({', '.join(f'#{n}' for n in match)}); add the right "
+                               f"`issue #N` by hand (B13)")
+                    keep.append(it)
+                    continue
+                if match:
+                    it["issue"] = match[0]
+                    claimed.add(match[0])
+                    log.append(f"  · B{it['n']} had no issue number, but open #{match[0]} "
+                               f"carries its title — treating it as filed, number lost (B13)")
             if it.get("issue"):
                 if dry:
                     log.append(f"  · would close #{it['issue']} — "
