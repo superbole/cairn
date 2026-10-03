@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 94 -->
+<!-- next-id: 105 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,36 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B104. A wrap where NEXT.md needs no edit can never reach `CAIRN SET`, and `archive_guard` then blocks archiving
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-02` · issue `#117`
+**Found live 2026-10-02 in `workspace` on SBOLE-NB5.** The session started 1 behind, pulled
+(`pull --ff-only`, `f4213033`, which added W25 to `NEXT.md`), then did backlog-only work: rewrote one
+`BACKLOG.md` item (B73) that is not on the Queue, wrote `CHANGELOG.md`, committed, pushed, stamped
+`.last_wrap`. Nothing in `NEXT.md` needed to change: B73 is not queued, and the user turned down adding a
+new Decision. `wrap_receipt.py --record` gave `CAIRN OPEN · 8210ac0787fe` with exactly one `!` line:
+`next_rewrite: NEXT.md changed since session start, but the change arrived by pull --ff-only`. Then
+`archive_guard.py` blocked `archive_session("self")` on that OPEN, after the user had said yes to archiving.
+**Why it happens.** `tracked_step("next_rewrite", ...)` in `hooks/wrap_receipt.py` has three outcomes:
+`ran` (this session changed it, per the D21 reflog provenance), `skipped` (pull-arrived change, the B122
+branch) and `skipped` (byte-identical). `next_rewrite` is in `REQUIRED`. So "nothing in NEXT.md needs to
+change" has no honest route to SET. The only ways out are an empty edit made to satisfy the tool, which
+is the impersonation D4/B87 exist to stop, or archiving by hand from the sidebar, which the guard's own
+message points to.
+**Not the B122 false green coming back.** D21 is right that a pull must not tick `ran`. The gap is the
+other side: the receipt can't tell "the wrap reviewed NEXT.md and it was already right" from "the wrap
+never looked."
+**Ruled out:** an empty or cosmetic `NEXT.md` edit (gaming the receipt). Treating byte-identical as `n/a`
+(it is the exact state of a wrap that skipped step 7, which is what the step exists to catch).
+**Candidates to design with him:**
+(1) An explicit, receipt-recorded `--next-unchanged` declaration that marks the step `declared`, not
+`ran`, so the table shows it as a claim. It passes `REQUIRED` but is never quietly upgraded.
+(2) Derive "nothing to change" from facts: no Queue item's backlog entry was touched, the Queue still
+has 3 or more items, no `INBOX.md` bullets were triaged and no watch is due. Only then count `next_rewrite`
+as `n/a`.
+(3) Let `archive_guard` treat an OPEN whose only `!` line is `next_rewrite` differently (it's weaker).
+Whatever lands, the receipt must still go OPEN for a wrap that never opened `NEXT.md` when it had a
+reason to (the B87 case). Read D4, D21 and `skills/wrap/references/incidents.md` (B87, B122) first.
 
 ## B11. A baseline keyed only by session id does not survive a crash-and-resume
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06` · issue `#9`
@@ -350,6 +380,12 @@ spent, the user wanted to ask cairn *"what should I spend this on?"* across ever
 than an agent reasoning it out ad hoc. The ad-hoc answer needed: each project's Queue, due watches,
 a risk signal (an item marked as a production/outage hazard outranks a feature), and the time and
 token budget available. The last two are new inputs beyond the per-project top-2 decided above.
+**Asked for again 2026-10-01**, as a morning act or on a command: look across every project, raise
+the next priority, and flag deadlines. Today's example: a queue item in a sibling repo whose window
+closed that same day was seen only because the agent happened to open that repo's `BACKLOG.md` to
+file something else. The session-start sweep reported the repo as 3 behind and nothing more. That
+is the "date-forced watches" half of the decision above, and it needs to cover queue items with a
+stated deadline, not just watches. Related: B95 (the roll-up should print briefs as links).
 
 ## B32. A finding about ANOTHER project has nowhere to go — make `INBOX.md` the cross-project mailbox
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#30`
@@ -956,6 +992,16 @@ could lower the floor by one. **Decide:** keep the code's semantics and say so w
 rename the marker (`<!-- last-id: N -->`, reading the old spelling on the way in). Either way the
 parser keeps accepting the old marker. B65 was never filed; nothing needs renumbering.
 
+**It has now COLLIDED (2026-10-02, SBOLE-NB5), so "the safe direction" no longer holds.** A `workspace`
+session filing a cairn item read `next-id: 103` as "next free" and wrote `## B103.`. But B103 already
+existed (#114, hand-written in `0bb6347`; the sync in `f5b608e` raised the marker 102 → 103 to match).
+It was only caught because a `--dry-run` listed "B103" against both #114 and a new issue, and was
+renumbered by hand to B104 (#117). **And the sync did not refuse:** with two `## B103.` headings in the
+file, both the dry run and the real run went ahead and filed an issue for the second. B79's
+`duplicates()` only feeds `summary_lines()` at session start, so a duplicate made mid-session goes out to
+the host before anything flags it. **Add to the fix:** `sync_backlog.py` refuses, the same way it refuses
+unparseable headings, when `duplicates()` is non-empty, before any host call.
+
 ## B68. The old `python "$CLAUDE_PLUGIN_ROOT/…"` command form survives outside the skills
 `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#66`
 B59 (v1.63.0, D35) rewrote every call site in `skills/*/SKILL.md` and `rules/CLAUDE.md`, and
@@ -1331,10 +1377,6 @@ added `2026-09-29` · issue `#98`
 
 Cleanup done by hand: #217/#218 closed as duplicates, B177/B178 removed.
 
-## B93. Purge personal schedule detail from public history
-`Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-29` · issue `#100` · queued
-Brief: [briefs/purge-public-history.md](briefs/purge-public-history.md). Was W8. W7 wrapped 2026-09-29, so the trigger has fired. The window closes 2026-10-01. Commits `5d2cd6a`–`cfec2f7` are still on `origin/main`. The working tree is already the stub. Issue #68 is closed and its current body does not carry the schedule detail; the edit history is separate. This is a history rewrite. Stop and warn before any force-push of `main`. Row: `docs/decisions.md` D37.
-
 ## B94. Map Claude family and effort onto Cursor and Grok model slugs
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-29` · issue `#101`
 **Triaged from INBOX.md at the 2026-09-29 wrap; nothing decided yet.** Captured verbatim below. It needs his
@@ -1355,3 +1397,94 @@ records effort, and whether the preamble should name slugs at all (D47: the labe
 | Fable | medium | | `cursor-grok-4.6-medium` |
 
 This chat ran as `grok-4.7-high`. The Grok column is the same two slugs on every row: effort only, not a family. Also in that list and also off the scale: `composer-2.5-fast`, `gemini-3.8-flash-high`, `gpt-5.6-sol-medium`, `muse-spark-1.3-high`. Triage should say whether the preamble names these slugs, and whether a Grok row is allowed to stand in for a Claude family or only records the effort.
+
+## B95. Briefs are not clickable in the orientation relay, and a watch has no brief link at all
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-01` · issue `#106`
+**Found 2026-10-01** at a session start in the operator's work portfolio hub. He went to click a due
+watch's brief to follow its steps and found no link anywhere in the relay. Three separate gaps:
+
+1. **Queue items reference a brief as a code span, not a link.** The hub's `NEXT.md` writes
+   `` brief: `BACKLOG.md` B39 ``. `session_orientation.py` echoes the line as written, so the
+   orientation shows a code span. The `[to the agent]` line (line 1329) does ask for
+   `[brief](link)`, but the agent copied the path as written instead of turning it into a link. That
+   is the expected way for it to go wrong, because the rule says "path copied from `NEXT.md`".
+   `validate_next.py` accepts the code span, so nothing catches it.
+2. **A brief that is a BACKLOG section has no address of its own.** "B39" inside `BACKLOG.md` is a
+   heading, not a file. A link to `BACKLOG.md` opens at the top of a long file. A
+   `BACKLOG.md:<line>` link works in the desktop app, but a line number written into `NEXT.md`
+   goes stale as soon as the file changes. Whether heading anchors (`#b39-…`) work in the app's
+   file pane has not been tested.
+3. **The watch shape has no brief field.** A watch's steps live inline in `NEXT.md`. The hook prints a
+   due watch in full, but the agent shortens it in the relay, and nothing links to the watch's own
+   `NEXT.md:<line>`, so the full steps are not one click away. Some watches name a brief file in
+   their prose (`docs/briefs/x.md`), also as a code span.
+
+**Fix shape, not decided:** (a) have the hook render any brief path it can resolve as a markdown
+link, with a line suffix for a BACKLOG item or a watch, computed at print time so it never goes
+stale; (b) let `validate_next.py` warn on a code-span brief reference; (c) add an optional
+`→ [brief](path)` to the watch shape, or have the relay always link a due watch to its own
+`NEXT.md` line. (a) alone covers most of it, because nobody has to edit a file to get the links.
+(d), the operator's suggestion 2026-10-01 and the simplest: make the section labels themselves links.
+"DUE NOW" and "Also watching" link to `NEXT.md`'s `## Watching`, "WHERE YOU LEFT OFF" to `## Queue`.
+One link per section instead of one per item, and it works without a per-watch brief field. Untested:
+whether a `#watching` anchor opens at the heading in the desktop app's file pane. If it doesn't, the
+hook can print `NEXT.md:<line of the heading>`, computed at print time.
+**Ruled out:** asking agents to write links by hand. That is the rule that failed here.
+
+## B97. `installed_plugins.json` is never compared against the latest PUBLISHED version
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30` · issue `#108`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, from a workspace session on NB1) `version_drift.py` never compares the installed plugin against the latest PUBLISHED version: only installed vs this repo's `plugin.json` (cairn repo only) and installed vs the rules block. So a machine with auto-update silently off stays silent. Sheldon wants it added only if it succeeds silently. Proposed, offline, no network in the hook: compare `installed_plugins.json` with `~/.claude/plugins/marketplaces/superbole/plugins/cairn/.claude-plugin/plugin.json`, and flag if the marketplace clone's last fetch (FETCH_HEAD mtime / last commit) is older than a few days. Print nothing when both are fine. On NB1 today both read 1.66.0, clone fetched 2026-09-29 23:03. Auto-update itself proven working on NB1 (workspace W10, closed 2026-09-30). Also see workspace B71 / #69 (sync_backlog.py targets the session's project, not the cwd), which belongs here.
+
+## B98. `sync_backlog.py` run from a sibling repo silently syncs the SESSION's project
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30` · issue `#109` · queued
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, moved from workspace B71 / workspace issue #69, where it was wrongly parked) **`sync_backlog.py` run from a sibling repo silently syncs the SESSION's project.** From a workspace session, `cd ~/Projects/inflow && sh <root>/hooks/run.sh tools/sync_backlog.py --dry-run` printed `DRY RUN against SBole/workspace`: `main()` uses `reentry_state.project_root()`, which prefers `CLAUDE_PROJECT_DIR`, then the session stamp (B72), and only then the cwd. A real run would have synced workspace's 70-item backlog while the agent believed it was syncing inflow's; the one output line naming the target is easy to skim past. **Worse:** the workaround `CLAUDE_PROJECT_DIR=<repo>` RE-STAMPS the session root (`_resolve_project_root` calls `_stamp_session_root`), so every later cairn tool in the session (`check_repos.py`, `wrap_receipt.py`) resolves to the sibling unless the var is passed again. **Same family:** `staged_review_guard.py` did not count `git -C <repo> diff --cached` as reading the staged diff; only `cd <repo> && git diff --cached` cleared it. Not a glab/GitLab issue: with the var set, the sync targeted and filed correctly. Fix direction: repo-acting tools take the git toplevel of the cwd when it differs from the stamped root (or refuse and name both); an env override must not overwrite the stamp.
+
+## B99. Rule gap: nothing says where a finding for ANOTHER repo goes
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30` · issue `#110`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, Sheldon agreed) **Rule gap: nothing says where a finding for ANOTHER repo goes.** `rules/CLAUDE.md` says no project is tracked from a hub on another's behalf, but not how to file a cross-repo finding, so the item above got parked in workspace's own backlog. Proposed rule for `rules/CLAUDE.md` (mechanism, not profile: identical on every machine): a finding that belongs to another repo goes into THAT repo's `INBOX.md` (commit + push there, explicit pathspec), never the current repo's backlog. The profile's machine-gated rule (watch goes to the machine's workspace hub) stays as the one exception. Prefer INBOX over filing an issue directly, because INBOX gets triaged into a full item; see next bullet.
+
+## B100. An issue the OWNER files directly is never triaged
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-30` · issue `#111`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, Sheldon asked) **An issue the OWNER files directly is never triaged.** `sync_backlog.py --pull` appends any unseen open issue as a bare BACKLOG item (no model/effort/attendance, no brief), and the orientation flags it only when `inbound` (author != owner). Issues he files himself, from his phone say, land silently as unjudged items. They should get INBOX treatment: surfaced at session start as un-triaged captures and triaged into a full item (fields, brief, or a Queue/Watching/Decisions slot), same as an INBOX bullet. Options: pull them into `INBOX.md` instead of BACKLOG, or mark pulled items `untriaged` and have the orientation list them with the inbox.
+
+## B101. Unattended runs: three command shapes the allow list misses, and approvals don't carry over
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-30` · issue `#112`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, from a workspace session on NB5) **Unattended runs: three command shapes the allow list misses, and approving them doesn't carry over.** In `cairn-afk-firing` runs, `cd .claude/worktrees/<Bnn>`, `git -C <worktree> …` (with pipes to `head`/`wc`) and a `W=…;` compound all prompted. The card offered only "Allow once", with no always option, so a tool approval is NOT stored on the scheduled task for Bash, despite the tool docs, and each unattended run would stall there. Worked around in the task prompt: one branch at a time in the main checkout (`git switch -c afk/… origin/main`), no worktrees. Durable fix for `running-a-batch.md` / `.claude/settings.json` (B84/B90 family): either allow the worktree shapes, or drop worktrees from the unattended section. Also: **a run's own "permission prompts: none" line was wrong** (it hit two), so the summary can't be the detector for stalls; B49's heartbeat is the right half. And **the scheduler's `nextRunAt` already shows the NEXT slot while today's is inside its jitter window** (17:00 + 322 s showed Friday at 17:02), which looks like a skipped run and isn't.
+
+## B102. `sync_backlog.py` drops unknown fields from an item's metadata line on issue write-back
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-30` · issue `#113`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
+
+(2026-09-30, from a workspace session on NB5) **`sync_backlog.py` drops unknown fields from an item's metadata line when it writes the issue number back.** workspace B72's line was `… · added `2026-09-30` · **run on NB1**`; after filing #71 it read `… · added `2026-09-30` · issue `#71``, and the machine marker was gone. Harmless there (the title says NB1), but a machine gate living only in that field would be lost silently. Fix: append ` · issue `#n`` to the line as it is, rather than regenerating it from parsed fields; add a test with an unknown trailing field.
+
+## B103. After a history rewrite on origin, the divergence banner invites the pull that undoes it
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-01` · issue `#114`
+**Triaged from INBOX.md at the 2026-10-01 wrap.** Sibling of B87 (orient from origin when behind). NB1 application: `SBole/workspace` W25. Captured verbatim:
+
+(2026-10-01, NB5 session) **After the B93 purge, every other clone still holds the purged history, and nothing stops it being pushed back.** NB5's `main` showed "49 ahead, 57 behind". `git log --cherry-mark main...origin/main` showed every local commit had a same-subject twin on origin, and `git diff main aff0839` was only the 6 purged lines ("France trip", `plans/2026-10-trip.md`). Fixed on NB5 by `git reset --hard origin/main`; he ran it, because the agent's `reset --hard` is denied. **Per machine:** NB1 and DeepThought must each run the same reset before ANY push from their cairn clone, unless that clone did the purge itself (the B93 CHANGELOG entry doesn't say which machine did). A `git pull` there merges the old history back in, and the next push republishes it. File one watch per hub (NB1 → `SBole/workspace`, DeepThought → `superbole/workspace`); this session couldn't, because reads outside `cairn` are blocked. **Mechanism gap (this repo):** the divergence banner says "sort out git", which reads as "pull". It should spot a history rewrite on origin (local-only commits that all have patch-equivalent or same-subject twins on origin) and say "origin was rewritten: reset to origin/main, do not pull or push", never offer a merge. Related: B87.
+
+## B105. Remove work email from commit history and prevent it in future commits
+added `2026-10-02` · issue `#116`
+Every commit on `main` and on the `afk/` branches is authored with a non-noreply organisational email address. Nothing scrubs commit metadata: `test_payload_clean` covers only tracked files.
+
+**Prevent (do now, on every machine)**
+- [ ] GitHub → Settings → Emails: enable **Keep my email addresses private** and **Block command line pushes that expose my email**.
+- [ ] `git config --global user.email "10409989+superbole@users.noreply.github.com"` on NB5 and every other machine that pushes here, including the machine the scheduled AFK firing runs on.
+- [ ] If the work address is still needed for the work git host, scope it with `includeIf "gitdir:<work path>/"` so it applies only there.
+- [ ] Optional: add a check (a hook or a test) that refuses commits whose author or committer email isn't the noreply address.
+
+**Clean up history (after leave, once #102–#105 and later afk PRs are merged or closed)**
+- [ ] Rewrite the author and committer emails with `git filter-repo --mailmap`, then force-push `main` and delete or re-push the remaining branches. Note: this changes every SHA and breaks open PRs.
+- [ ] Re-clone or hard-reset every machine that has a copy.
+- [ ] Ask GitHub Support to purge cached commit pages and PR refs, as was done for W9.
+- [ ] Check the other repos for the same address.
