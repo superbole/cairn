@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run every `test_*.py` in this directory and report one pass/fail/timeout table (no CI exists).
+"""Run every `test_*.py` in this directory and report one pass/fail/timeout table.
 
     python plugins/cairn/tools/run_tests.py
     python plugins/cairn/tools/run_tests.py --timeout=240
