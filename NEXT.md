@@ -64,6 +64,10 @@ newest message starts `From Cairn` (author `superbole`). Two things to check. (1
 `PowerShell` `gh issue … -R superbole/claude-inbox` rules himself. (2) Does each quiet run (a session that
 starts and ends here with no wrap) set off the "last session did not finish cleanly" warning? If it does,
 the real warning gets lost, and that's a cairn hook bug to file in `BACKLOG.md`: scheduled runs should not count.
+Found on the first run (2026-10-03 15:31): it stalled on a `grep` of `~/.claude/scheduled-tasks/cairn-afk-firing/SKILL.md`
+for #2. That path is outside the checkout, so every request about the AFK prompt will prompt. Suggested fix, his to add:
+`Read(//c/Users/SheldonBole/.claude/scheduled-tasks/**)` and `Bash(grep * C:/Users/SheldonBole/.claude/scheduled-tasks/*)`.
+Keep edits there behind a prompt. Check whether he added them.
 
 ---
 
