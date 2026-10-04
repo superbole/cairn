@@ -29,7 +29,23 @@
       "Bash(gh pr list *)",
       "Bash(gh pr view *)",
       "Bash(gh pr comment *)",
-      "Bash(gh pr checks *)"
+      "Bash(gh pr checks *)",
+      "Bash(gh issue list -R superbole/claude-inbox *)",
+      "Bash(gh issue view * -R superbole/claude-inbox *)",
+      "Bash(gh issue comment * -R superbole/claude-inbox *)",
+      "Bash(gh issue close * -R superbole/claude-inbox)",
+      "PowerShell(gh issue list -R superbole/claude-inbox *)",
+      "PowerShell(gh issue view * -R superbole/claude-inbox *)",
+      "PowerShell(gh issue comment * -R superbole/claude-inbox *)",
+      "PowerShell(gh issue close * -R superbole/claude-inbox)",
+      "Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/Users/SheldonBole/.claude/scripts/notify-discord.ps1 -Path .claude/worktrees/summary.md)",
+      "PowerShell(powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:/Users/SheldonBole/.claude/scripts/notify-discord.ps1 -Path .claude/worktrees/summary.md)",
+      "Read(//c/Users/SheldonBole/.claude/scheduled-tasks/**)",
+      "Bash(grep * C:/Users/SheldonBole/.claude/scheduled-tasks/*)",
+      "Bash(grep * ~/.claude/scheduled-tasks/*)"
+    ],
+    "additionalDirectories": [
+      "C:/Users/SheldonBole/.claude/scheduled-tasks"
     ],
     "ask": [
       "Bash(git push)",
