@@ -15,6 +15,11 @@ because the user-level `blockReadsOutsideWorkingDirectories` overrides it. `.cla
 folder in `additionalDirectories`, with `ask` rules on Edit/Write there (D50; `270fa88`, `16ddfba`). It also
 commits the claude-inbox `gh` and Discord allow rules the last session left uncommitted. Not yet seen
 working in a fresh run: W11 carries that.
+Later the same day: a scan of the transcripts by tool-call wait time showed the 2026-10-02 firing sat 838 minutes
+on its Discord post, and the inbox run sat 1198 minutes on its `sed` edit of the prompt, not the `grep`. A
+`PermissionRequest` hook (`.claude/hooks/log_permission_request.py`) now appends every prompt, with the tool's full
+input, to `~/.claude/permission-prompts.jsonl`. It's outside the tree, because the firing aborts on a dirty one. Seen firing
+live in this session. W10 now checks the 2026-10-04 firing against that log.
 
 ## 2026-10-03 — `claude-inbox-check` scheduled task on NB5 (no version)
 
