@@ -146,6 +146,127 @@ def main() -> int:
             contains("rules warning present in a foreign repo", out, "OLD rules")
             check("repo warning absent there", "plugin.json is v" in (out or ""), False)
 
+            print("\nB97: installed vs the marketplace clone on disk (no network)")
+            day = 86400
+            now = 1_800_000_000.0
+
+            def clone(config: Path, version: str | None, fetched_days_ago: float | None = 0,
+                      logs_days_ago: float | None = None, marketplace: str = "superbole",
+                      source: str | None = "./plugins/cairn") -> Path:
+                root = config / "plugins" / "marketplaces" / marketplace
+                (root / ".git" / "logs").mkdir(parents=True, exist_ok=True)
+                if source is not None:
+                    (root / ".claude-plugin").mkdir(parents=True, exist_ok=True)
+                    (root / ".claude-plugin" / "marketplace.json").write_text(json.dumps(
+                        {"name": marketplace, "plugins": [{"name": "cairn", "source": source}]}),
+                        encoding="utf-8")
+                if version is not None:
+                    rel = (source or "./plugins/cairn")
+                    manifest = root / rel / ".claude-plugin" / "plugin.json"
+                    manifest.parent.mkdir(parents=True, exist_ok=True)
+                    manifest.write_text(json.dumps({"name": "cairn", "version": version}),
+                                        encoding="utf-8")
+                for rel, ago in (("FETCH_HEAD", fetched_days_ago), ("logs/HEAD", logs_days_ago)):
+                    if ago is not None:
+                        p = root / ".git" / rel
+                        p.write_text("x\n", encoding="utf-8")
+                        os.utime(p, (now - ago * day, now - ago * day))
+                return root
+
+            cfg = stage(tmp / "m1", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.66.0", fetched_days_ago=1)
+            check("same version, fetched yesterday -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+
+            cfg = stage(tmp / "m2", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.67.0", fetched_days_ago=1)
+            found = vd._marketplace_drift("superbole", "1.66.0", now)
+            check("clone NEWER than installed -> exactly one finding", len(found), 1)
+            contains("...names the installed version", found[0] if found else "", "v1.66.0")
+            contains("...names the published version", found[0] if found else "", "v1.67.0")
+            contains("...names the update command for THAT marketplace", found[0] if found else "",
+                     "claude plugin update cairn@superbole")
+
+            cfg = stage(tmp / "m3", "1.67.0", BLOCK.format(v="1.67.0"))
+            clone(cfg, "1.66.0", fetched_days_ago=1)
+            check("installed NEWER than clone -> silent (a stale clone, the fetch check's job)",
+                  vd._marketplace_drift("superbole", "1.67.0", now), [])
+
+            cfg = stage(tmp / "m4", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.67.0-rc1", fetched_days_ago=1)
+            check("a version that does not parse -> silent, never a guessed direction",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+
+            stage(tmp / "m5", "1.66.0", BLOCK.format(v="1.66.0"))
+            check("no marketplace clone at all -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+            check("no marketplace name -> silent", vd._marketplace_drift(None, "1.66.0", now), [])
+            check("a marketplace name with a path separator -> silent",
+                  vd._marketplace_drift("../x", "1.66.0", now), [])
+            check("no installed version -> silent", vd._marketplace_drift("superbole", None, now), [])
+
+            cfg = stage(tmp / "m6", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.66.0", fetched_days_ago=10)
+            found = vd._marketplace_drift("superbole", "1.66.0", now)
+            check("fetched 10 days ago -> one stale-clone finding", len(found), 1)
+            contains("...says how many days", found[0] if found else "", "10 days ago")
+            contains("...names the marketplace refresh", found[0] if found else "",
+                     "claude plugin marketplace update superbole")
+
+            cfg = stage(tmp / "m7", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.66.0", fetched_days_ago=vd.STALE_FETCH_DAYS - 0.5)
+            check("just under the threshold -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+
+            cfg = stage(tmp / "m8", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.66.0", fetched_days_ago=None, logs_days_ago=2)
+            check("fresh clone with no FETCH_HEAD: reflog mtime counts -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+            cfg = stage(tmp / "m9", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.66.0", fetched_days_ago=30, logs_days_ago=1)
+            check("the NEWER of FETCH_HEAD and the reflog wins -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+            cfg = stage(tmp / "m10", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.66.0", fetched_days_ago=None, logs_days_ago=None)
+            check("neither file -> no fetch time -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+
+            cfg = stage(tmp / "m11", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.67.0", fetched_days_ago=12)
+            check("newer AND stale -> both findings",
+                  len(vd._marketplace_drift("superbole", "1.66.0", now)), 2)
+
+            cfg = stage(tmp / "m12", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.67.0", fetched_days_ago=1, source="./elsewhere/cairn")
+            contains("the plugin path comes from the clone's marketplace.json",
+                     " ".join(vd._marketplace_drift("superbole", "1.66.0", now)), "v1.67.0")
+            cfg = stage(tmp / "m13", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.67.0", fetched_days_ago=1, source=None)
+            contains("no marketplace.json -> falls back to plugins/cairn",
+                     " ".join(vd._marketplace_drift("superbole", "1.66.0", now)), "v1.67.0")
+            cfg = stage(tmp / "m14", "1.66.0", BLOCK.format(v="1.66.0"))
+            outside = cfg / "plugins" / "marketplaces" / "evil-target"
+            (outside / ".claude-plugin").mkdir(parents=True, exist_ok=True)
+            (outside / ".claude-plugin" / "plugin.json").write_text(
+                json.dumps({"version": "9.9.9"}), encoding="utf-8")
+            clone(cfg, None, fetched_days_ago=1, source="../evil-target")
+            check("a source that climbs out of the clone is ignored -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+
+            print("\nB97: the marketplace name is read from the installed `cairn@<name>` key")
+            cfg = stage(tmp / "m15", None, BLOCK.format(v="1.66.0"))
+            (cfg / "plugins" / "installed_plugins.json").write_text(json.dumps(
+                {"plugins": {"cairn@other-mkt": [{"version": "1.66.0"}]}}), encoding="utf-8")
+            check("_installed_entry() -> (marketplace, version)", vd._installed_entry(),
+                  ("other-mkt", "1.66.0"))
+            check("_installed_version() unchanged", vd._installed_version(), "1.66.0")
+            clone(cfg, "1.70.0", fetched_days_ago=0, marketplace="other-mkt")
+            out = vd.check(tmp / "some-other-project")
+            contains("check() reports it OUTSIDE the plugin repo (not scope-guarded)", out,
+                     "cairn@other-mkt")
+            check("...and the rules check stays silent alongside it", "OLD rules" in (out or ""),
+                  False)
+
             print("\nEND-TO-END: a healthy machine stays silent")
             stage(tmp / "j", "1.31.0", BLOCK.format(v="1.31.0"))
             healthy = vd.check(tmp / "some-other-project")

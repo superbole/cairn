@@ -41,10 +41,31 @@ session can; `tools/check_install.py` is the out-of-session answer to that.
 
 Found 2026-09-01, when the user updated LAPTOP1 to v1.31.0, checked, and got a correct "stale" followed
 minutes later by a correct "current", with nothing anywhere explaining either.
+
+THE THIRD CHECK (B97) — installed vs THE MARKETPLACE CLONE
+---------------------------------------------------------
+Neither check above ever looks at what has been PUBLISHED. Outside this plugin's own repo the only
+comparison is installed-vs-rules, and both of those move together when an update lands, so a
+machine whose auto-update is off stays on an old release forever and every check reads clean.
+
+The published version is already on disk, with no network: Claude Code keeps a git clone of each
+marketplace under `<config>/plugins/marketplaces/<name>/`. Two findings come from it:
+
+  - the clone's `plugin.json` is NEWER than the installed version: a release reached this machine
+    and was never installed;
+  - the clone itself has not been fetched for `STALE_FETCH_DAYS`: this machine cannot see a new
+    release at all, so the first finding cannot fire. Last fetch = the newest mtime of
+    `.git/FETCH_HEAD` and `.git/logs/HEAD` (a fresh clone has no FETCH_HEAD yet).
+
+Like the rules check, this is NOT scope-guarded: it needs no repo. It is silent whenever an input is
+missing or a version does not parse -- no clone, no `.git`, no readable manifest -- because a
+warning built from a missing input is the kind that teaches people to ignore the block. An installed
+version NEWER than the clone is silent too: that is a stale clone, which the fetch check reports.
 """
 import json
 import os
 import re
+import time
 from pathlib import Path
 
 # `<!-- reentry:begin v1.62.0 -->` (v1.61.0 and earlier: `… v1.31.0 — managed by …`), written by
@@ -52,6 +73,11 @@ from pathlib import Path
 _MARKER_RE = re.compile(r"reentry:begin\s+v([0-9][0-9.]*)")
 
 SEPARATOR = "\n\n"      # blank line between findings; the call site adds one before
+
+# B97: how old the marketplace clone's last fetch may get before it is reported. Auto-update
+# fetches at session start, so a machine in ordinary use is never near this; a week leaves room for
+# a machine that sits unused over a holiday without the first session back crying wolf.
+STALE_FETCH_DAYS = 7
 
 # THE ONE VERSION PARSER (B63). `install_rules` imports these to decide whether a write would roll
 # the rules block BACK, and `tools/check_install.py` uses them to say which way a mismatch points.
@@ -101,20 +127,94 @@ def _repo_version(root: Path) -> str | None:
         return None
 
 
-def _installed_version() -> str | None:
+def _installed_entry() -> tuple[str | None, str | None]:
+    """(marketplace name, version) of the installed cairn plugin, from its `cairn@<marketplace>`
+    key. Either side None when it cannot be read."""
     path = _config_dir() / "plugins" / "installed_plugins.json"
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
-        return None
+        return None, None
     for key, installs in (data.get("plugins") or {}).items():
-        if key.split("@", 1)[0] != "cairn":
+        name, _, marketplace = key.partition("@")
+        if name != "cairn":
             continue
         for install in installs or []:
             version = install.get("version")
             if version:
-                return str(version)
-    return None
+                return (marketplace or None), str(version)
+    return None, None
+
+
+def _installed_version() -> str | None:
+    return _installed_entry()[1]
+
+
+def _clone_dir(marketplace: str | None) -> Path | None:
+    if not marketplace or "/" in marketplace or "\\" in marketplace or marketplace in (".", ".."):
+        return None
+    clone = _config_dir() / "plugins" / "marketplaces" / marketplace
+    return clone if clone.is_dir() else None
+
+
+def _clone_version(clone: Path) -> str | None:
+    """The cairn version the marketplace clone publishes. Its `marketplace.json` names where the
+    plugin lives (`./plugins/cairn` in this repo); `plugins/cairn` when that cannot be read."""
+    rel = "plugins/cairn"
+    try:
+        data = json.loads((clone / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+        for entry in data.get("plugins") or []:
+            source = entry.get("source") if isinstance(entry, dict) else None
+            if entry.get("name") == "cairn" and isinstance(source, str):
+                rel = source
+                break
+    except Exception:
+        pass
+    manifest = (clone / rel / ".claude-plugin" / "plugin.json").resolve()
+    try:
+        manifest.relative_to(clone.resolve())      # a source that climbs out of the clone is ignored
+        return str(json.loads(manifest.read_text(encoding="utf-8")).get("version") or "") or None
+    except Exception:
+        return None
+
+
+def _last_fetch(clone: Path) -> float | None:
+    """Newest mtime of `.git/FETCH_HEAD` and `.git/logs/HEAD`; None when neither exists."""
+    times = []
+    for rel in ("FETCH_HEAD", "logs/HEAD"):
+        try:
+            times.append((clone / ".git" / rel).stat().st_mtime)
+        except OSError:
+            pass
+    return max(times) if times else None
+
+
+def _marketplace_drift(marketplace: str | None, installed_version: str | None,
+                       now: float | None = None) -> list[str]:
+    """Installed plugin vs the marketplace clone on disk (B97). EVERY project; silent on any
+    missing input."""
+    if installed_version is None:
+        return []
+    clone = _clone_dir(marketplace)
+    if clone is None:
+        return []
+    found = []
+    published = _clone_version(clone)
+    if published and compare_versions(installed_version, published) == -1:
+        found.append(f"⚠ the installed cairn plugin is v{installed_version}, but the {marketplace} "
+                     f"marketplace clone on this machine already has v{published} — a release "
+                     f"arrived and was never installed. Run `claude plugin update "
+                     f"cairn@{marketplace}`, then restart. If this comes back after a restart, "
+                     f"auto-update is off or failing for that marketplace.")
+    fetched = _last_fetch(clone)
+    if fetched is not None:
+        days = int(((time.time() if now is None else now) - fetched) // 86400)
+        if days >= STALE_FETCH_DAYS:
+            found.append(f"⚠ the {marketplace} marketplace clone on this machine was last fetched "
+                         f"{days} days ago, so a newer cairn release would not show up here. "
+                         f"Run `claude plugin marketplace update {marketplace}`; if it goes stale "
+                         f"again, auto-update is off for that marketplace.")
+    return found
 
 
 def rules_state() -> tuple[str, str | None]:
@@ -194,7 +294,8 @@ def check(root: Path) -> str | None:
     never have to assemble them themselves. Order is deliberate: the rules mismatch comes second
     because it is the one they can act on from any project.
     """
-    installed_version = _installed_version()
+    marketplace, installed_version = _installed_entry()
     lines = [line for line in (_repo_drift(root, installed_version),
                                _rules_drift(installed_version)) if line]
+    lines += _marketplace_drift(marketplace, installed_version)
     return SEPARATOR.join(lines) if lines else None
