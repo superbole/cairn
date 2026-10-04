@@ -253,6 +253,29 @@ def main() -> int:
             check("a source that climbs out of the clone is ignored -> silent",
                   vd._marketplace_drift("superbole", "1.66.0", now), [])
 
+            cfg = stage(tmp / "m16", "1.66", BLOCK.format(v="1.66"))
+            clone(cfg, "1.66.0", fetched_days_ago=1)
+            check("`1.66` installed vs `1.66.0` published compare equal -> silent",
+                  vd._marketplace_drift("superbole", "1.66", now), [])
+
+            cfg = stage(tmp / "m17", "1.66.0", BLOCK.format(v="1.66.0"))
+            root17 = clone(cfg, None, fetched_days_ago=1)
+            bom = root17 / "plugins" / "cairn" / ".claude-plugin" / "plugin.json"
+            bom.parent.mkdir(parents=True, exist_ok=True)
+            bom.write_text(json.dumps({"version": "1.67.0"}), encoding="utf-8-sig")
+            contains("a BOM in the clone's plugin.json still reads (PowerShell 5.1 writes one)",
+                     " ".join(vd._marketplace_drift("superbole", "1.66.0", now)), "v1.67.0")
+            (cfg / "plugins" / "installed_plugins.json").write_text(json.dumps(
+                {"plugins": {"cairn@superbole": [{"version": "1.66.0"}]}}), encoding="utf-8-sig")
+            check("a BOM in installed_plugins.json still reads", vd._installed_entry(),
+                  ("superbole", "1.66.0"))
+
+            cfg = stage(tmp / "m18", "1.66.0", BLOCK.format(v="1.66.0"))
+            root18 = clone(cfg, None, fetched_days_ago=10)
+            found = vd._marketplace_drift("superbole", "1.66.0", now)
+            check("no readable manifest silences ONLY the version finding; stale fetch still fires",
+                  len(found) == 1 and "10 days ago" in found[0], True)
+
             print("\nB97: the marketplace name is read from the installed `cairn@<name>` key")
             cfg = stage(tmp / "m15", None, BLOCK.format(v="1.66.0"))
             (cfg / "plugins" / "installed_plugins.json").write_text(json.dumps(
@@ -260,7 +283,9 @@ def main() -> int:
             check("_installed_entry() -> (marketplace, version)", vd._installed_entry(),
                   ("other-mkt", "1.66.0"))
             check("_installed_version() unchanged", vd._installed_version(), "1.66.0")
-            clone(cfg, "1.70.0", fetched_days_ago=0, marketplace="other-mkt")
+            # No fetch timestamps: check() reads the wall clock, and a fixed `now` would make the
+            # fetch finding appear here once the real date passes it.
+            clone(cfg, "1.70.0", fetched_days_ago=None, marketplace="other-mkt")
             out = vd.check(tmp / "some-other-project")
             contains("check() reports it OUTSIDE the plugin repo (not scope-guarded)", out,
                      "cairn@other-mkt")

@@ -57,10 +57,15 @@ marketplace under `<config>/plugins/marketplaces/<name>/`. Two findings come fro
     release at all, so the first finding cannot fire. Last fetch = the newest mtime of
     `.git/FETCH_HEAD` and `.git/logs/HEAD` (a fresh clone has no FETCH_HEAD yet).
 
-Like the rules check, this is NOT scope-guarded: it needs no repo. It is silent whenever an input is
-missing or a version does not parse -- no clone, no `.git`, no readable manifest -- because a
-warning built from a missing input is the kind that teaches people to ignore the block. An installed
-version NEWER than the clone is silent too: that is a stale clone, which the fetch check reports.
+Like the rules check, this is NOT scope-guarded: it needs no repo. Each finding is silent when ITS
+inputs are missing -- no clone at all silences both; no readable manifest or a version that does
+not parse silences the version finding; no `.git/FETCH_HEAD` or `.git/logs/HEAD` silences the fetch
+finding -- because a warning built from a missing input is the kind that teaches people to ignore
+the block. An installed version NEWER than the clone is silent too: that is a stale clone, which
+the fetch check reports.
+
+Known blind spot: a fetch that succeeds but never advances the working tree (a failed fast-forward)
+refreshes FETCH_HEAD while the checked-out `plugin.json` stays old, so both findings read clean.
 """
 import json
 import os
@@ -132,7 +137,7 @@ def _installed_entry() -> tuple[str | None, str | None]:
     key. Either side None when it cannot be read."""
     path = _config_dir() / "plugins" / "installed_plugins.json"
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8-sig"))   # a BOM must not read as absent
     except Exception:
         return None, None
     for key, installs in (data.get("plugins") or {}).items():
@@ -162,7 +167,8 @@ def _clone_version(clone: Path) -> str | None:
     plugin lives (`./plugins/cairn` in this repo); `plugins/cairn` when that cannot be read."""
     rel = "plugins/cairn"
     try:
-        data = json.loads((clone / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+        data = json.loads((clone / ".claude-plugin" / "marketplace.json").read_text(
+            encoding="utf-8-sig"))
         for entry in data.get("plugins") or []:
             source = entry.get("source") if isinstance(entry, dict) else None
             if entry.get("name") == "cairn" and isinstance(source, str):
@@ -173,7 +179,7 @@ def _clone_version(clone: Path) -> str | None:
     manifest = (clone / rel / ".claude-plugin" / "plugin.json").resolve()
     try:
         manifest.relative_to(clone.resolve())      # a source that climbs out of the clone is ignored
-        return str(json.loads(manifest.read_text(encoding="utf-8")).get("version") or "") or None
+        return str(json.loads(manifest.read_text(encoding="utf-8-sig")).get("version") or "") or None
     except Exception:
         return None
 
