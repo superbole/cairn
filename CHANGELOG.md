@@ -3,6 +3,19 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-04 — `body` installed in the AFK prompt; scheduled runs can read their prompts (no version)
+
+Queue item 1 (`superbole/claude-inbox` #2) is done. The 13:41 `claude-inbox-check` run found all three
+`body` edits already in the installed `cairn-afk-firing` prompt (modified 13:40), confirmed lines 48, 148
+and 154, and closed #2. So today's 17:00 firing reviews with the dossier in hand. This session could not
+read the file itself to double-check, because it started before the settings change below.
+The 2026-10-03 17:31 run stalled on a `grep` of that prompt for 20h, and no later run started until 13:41.
+The allow rule was spelled `C:/Users/...` but the run typed `~/...`. The `Read(...)` rule didn't help either,
+because the user-level `blockReadsOutsideWorkingDirectories` overrides it. `.claude/settings.json` now names the
+folder in `additionalDirectories`, with `ask` rules on Edit/Write there (D50; `270fa88`, `16ddfba`). It also
+commits the claude-inbox `gh` and Discord allow rules the last session left uncommitted. Not yet seen
+working in a fresh run: W11 carries that.
+
 ## 2026-10-03 — `claude-inbox-check` scheduled task on NB5 (no version)
 
 Set up from `superbole/claude-inbox` #3, which Cairn (his Grok assistant) wrote. The task runs every 30
