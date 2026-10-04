@@ -48,6 +48,8 @@
       "C:/Users/SheldonBole/.claude/scheduled-tasks"
     ],
     "ask": [
+      "Edit(//c/Users/SheldonBole/.claude/scheduled-tasks/**)",
+      "Write(//c/Users/SheldonBole/.claude/scheduled-tasks/**)",
       "Bash(git push)",
       "Bash(git push origin)",
       "Bash(git push -*)",

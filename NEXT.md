@@ -71,7 +71,11 @@ the real warning gets lost, and that's a cairn hook bug to file in `BACKLOG.md`:
 Found on the first run (2026-10-03 15:31): it stalled on a `grep` of `~/.claude/scheduled-tasks/cairn-afk-firing/SKILL.md`
 for #2. That path is outside the checkout, so every request about the AFK prompt will prompt. Suggested fix, his to add:
 `Read(//c/Users/SheldonBole/.claude/scheduled-tasks/**)` and `Bash(grep * C:/Users/SheldonBole/.claude/scheduled-tasks/*)`.
-Keep edits there behind a prompt. Check whether he added them.
+Keep edits there behind a prompt. Added 2026-10-04 (`270fa88` and the next commit). Those rules weren't enough: the user-level
+`blockReadsOutsideWorkingDirectories` refuses Read anyway. So `additionalDirectories` now names the folder,
+and `ask` rules keep Edit/Write there behind a prompt. Not yet seen working: the 13:41 run started before the change.
+Check that a run started after 13:44 reads the AFK prompt without prompting. Also found: the stalled 2026-10-03 17:31 run
+held the task for 20h, with no runs at all until 2026-10-04 13:41. One stalled run blocks every later run.
 
 ---
 
