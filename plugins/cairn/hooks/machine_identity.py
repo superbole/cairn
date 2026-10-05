@@ -187,6 +187,65 @@ def _own_id(host: str, table: dict[str, str]) -> str | None:
     return None
 
 
+def table_says_here(machine_id: str, host: str,
+                    table: dict[str, str] | None = None) -> bool | None:
+    """B18 -- does `MACHINES.md` settle whether `machine_id` names the machine at `host`?
+
+    True/False when it can; None the instant it can't, and the caller falls back to its own
+    loose match. Same silence boundary as `mismatch_warning()`: a verdict needs BOTH sides
+    known -- this host resolved to an id through the table, and `machine_id` either equal to
+    that id (True) or equal to some OTHER row's id (False).
+
+    Why this exists: an id only matched as a case-insensitive substring of the hostname, so
+    a short id that is not a fragment of it (`BD` for a host named `BigDesk`) never matched,
+    and a `next session on BD` watch sat collapsed under "not actionable yet" on the very
+    machine it named. The table is what maps one to the other; nothing asked it.
+
+    Why None rather than False for an id the table has never heard of: the table is
+    populated on some machines and not others, and a trigger may name a hostname fragment
+    rather than an id. Answering False there would break every trigger that works today by
+    substring. The known-other-id False is the one place this is stricter than containment:
+    `LAPTOP1` on a host `ORG-LAPTOP12` whose row says `LAPTOP12` is a different machine.
+    """
+    if not machine_id or not host:
+        return None
+    if table is None:
+        table = _load_table()
+    if not table:
+        return None
+    my_id = _own_id(host.strip(), table)
+    if my_id is None:
+        return None
+    want = machine_id.strip().lower()
+    if want == my_id.lower():
+        return True
+    if want in {mid.lower() for mid in table.values()}:
+        return False
+    return None
+
+
+def is_known_machine(machine_id: str, host: str,
+                     table: dict[str, str] | None = None) -> bool:
+    """B18 -- could a trigger naming `machine_id` fire ANYWHERE this machine knows of?
+
+    True if it is an id in `MACHINES.md`, a fragment of (or equal to) a hostname row there,
+    or a case-insensitive substring of this machine's own hostname. False means it matches
+    none of those -- the `BD`-on-`BigDesk`-with-no-table case -- so nothing visible from here
+    will ever make it due. Advisory only: another machine may still match it by substring,
+    and this one cannot see that, which is why the caller words it as a note, not a failure.
+    """
+    want = (machine_id or "").strip().lower()
+    if not want:
+        return False
+    if table is None:
+        table = _load_table()
+    if want in {mid.lower() for mid in table.values()}:
+        return True
+    if any(want in row_host for row_host in table):
+        return True
+    return bool(host) and want in host.strip().lower()
+
+
 def mismatch_warning(nxt_lines: list[str]) -> str | None:
     """A queue item annotated `**run on <X>**` where <X> is a KNOWN machine that is NOT this
     one -- None the instant either half of that is not established.

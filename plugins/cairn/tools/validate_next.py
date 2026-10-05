@@ -84,6 +84,11 @@ except Exception as exc:                                    # pragma: no cover
     print(f"NEXT.md validator skipped: cannot import the plugin's own modules ({exc})")
     sys.exit(0)
 
+try:                                    # optional, same as session_orientation's own import
+    import machine_identity as mi
+except Exception:                                           # pragma: no cover
+    mi = None                           # type: ignore[assignment]
+
 # The two contradictions named in the brief. Both assert something false about the item: `AFK`
 # means nobody is there to clear a permission prompt, but `Plan` mode cannot finish without one;
 # `HITL` means the item WILL stop for them, but `Bypass` mode never stops for anyone. Matched
@@ -306,6 +311,44 @@ def check_watches(watches: list[list[str]]) -> list[str]:
     return problems
 
 
+def machine_trigger_notes(watches: list[list[str]], host: str | None = None) -> list[str]:
+    """B18 -- a `next session on <X>` watch whose X matches nothing this machine knows of.
+
+    Nothing visible from here will ever make it due: X is not an id or hostname row in
+    `~/.claude/MACHINES.md`, and not a substring of this host. That is the short-id case
+    (`BD` for a host named `BigDesk`, with the table unfilled) -- it validates clean and then
+    sits under "not actionable yet" on the machine it names, forever.
+
+    A NOTE, not a problem, and it never changes the exit code: the table is filled in on some
+    machines and not others, so another machine may still match X by substring and this one
+    cannot see that. The fix it points at is either a MACHINES.md row or a trigger that names
+    a hostname fragment. Here rather than in the SessionStart hook because the hook prints
+    on every session and this judgement is one only a human can finish.
+    """
+    if mi is None:
+        return []
+    if host is None:
+        host = mi.hostname()
+    table = mi._load_table()
+    notes: list[str] = []
+    for entry in watches:
+        kind, trigger = so._watch_trigger(entry)
+        if kind == "date" or not trigger:
+            continue
+        m = so._MACHINE_TRIGGER_RE.match(trigger)
+        if not m:
+            continue
+        target = m.group(1)
+        if mi.is_known_machine(target, host, table):
+            continue
+        notes.append(f"Watch {so._watch_title(entry)}: `next session on {target}` names no "
+                     f"machine in ~/.claude/MACHINES.md and is not part of this hostname "
+                     f"({host or 'unknown'}) -- unless another machine's hostname contains "
+                     f"it, it never becomes due. Add a MACHINES.md row mapping the hostname "
+                     f"to `{target}`, or name a fragment of the hostname instead.")
+    return notes
+
+
 def _split_next_full(root: Path):
     """`session_orientation._split_next`, with its SessionStart relay cap lifted.
 
@@ -338,19 +381,23 @@ def validate(root: Path) -> tuple[bool, list[str], dict]:
     problems = (check_queue(entries) + check_watches(watches)
                 + check_duplicate_ids(watches, decisions))
 
+    notes = machine_trigger_notes(watches)
     counts = {"queue_items": len(entries), "watches": len(watches),
-             "decisions": len(decisions), "problems": len(problems)}
+             "decisions": len(decisions), "problems": len(problems), "notes": len(notes)}
+    # Notes (B18) ride under the verdict and never change it -- see machine_trigger_notes().
+    note_lines = ([f"Note{'s' if len(notes) > 1 else ''} (not failures):"]
+                  + [f"  * {n}" for n in notes]) if notes else []
     if not problems:
         return True, [f"NEXT.md validate: OK -- {len(entries)} queue item(s), "
                       f"{len(watches)} watch(es), {len(decisions)} decision(s), all carry "
                       "model, effort, attendance/mode (and, for watches, `added` + "
-                      "`check after` last), and no Wn/Dn used twice."], counts
+                      "`check after` last), and no Wn/Dn used twice."] + note_lines, counts
 
     lines = [f"NEXT.md validate: {len(problems)} issue(s) across "
             f"{len(entries)} queue item(s), {len(watches)} watch(es) and "
             f"{len(decisions)} decision(s):"]
     lines += [f"  - {p}" for p in problems]
-    return False, lines, counts
+    return False, lines + note_lines, counts
 
 
 def _resolve_root(arg: str | None) -> Path:

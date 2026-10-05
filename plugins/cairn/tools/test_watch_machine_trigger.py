@@ -41,6 +41,12 @@ sys.path.insert(0, str(HOOKS))
 
 import session_orientation as so                          # noqa: E402
 
+# B18: `_is_here` now reads `~/.claude/MACHINES.md` first, so every in-process case below runs
+# against an EMPTY throwaway config dir -- the real table on whatever machine runs this suite
+# must never change an outcome. The B18 section swaps in its own table explicitly.
+_EMPTY_CFG = Path(tempfile.mkdtemp(prefix="watch-machine-cfg-"))
+os.environ["CLAUDE_CONFIG_DIR"] = str(_EMPTY_CFG)
+
 NW = {"creationflags": 0x08000000} if os.name == "nt" else {}
 
 fails = []
@@ -107,10 +113,10 @@ import machine_identity as mi                              # noqa: E402
 real_host = mi.hostname()
 check("this machine has a real hostname to build the fixture on", bool(real_host), True)
 
-# B40's own match (`_is_here`) runs straight off `machine_identity.hostname()` -- it does not
-# consult `~/.claude/MACHINES.md` (that table is B28's, a separate check). So the trigger here
-# names the real hostname itself, which is trivially a substring of itself, rather than an
-# invented id that would never match.
+# The subprocess below gets an empty CLAUDE_CONFIG_DIR, so no MACHINES.md table (B18 consults
+# one first) and `_is_here` falls back to substring containment. So the trigger here names the
+# real hostname itself, which is trivially a substring of itself, rather than an invented id
+# that would never match.
 tmp = Path(tempfile.mkdtemp(prefix="watch-machine-trigger-"))
 repo = tmp / "repo"
 repo.mkdir()
@@ -185,6 +191,96 @@ wB = watch(12, "Not a machine gate", "the next session that pulls this repo on a
 dueB, pendingB, eventsB = so._sort_watches([wB], "ORG-LAPTOP1")
 check("a look-alike event trigger is not treated as a machine gate", len(dueB), 0)
 check("it stays in events", len(eventsB), 1)
+
+
+# --------------------------------------------------------------------------------------
+# B18 -- A SHORT ID THAT IS NOT A FRAGMENT OF ITS HOSTNAME. `BD` for a host named `BigDesk`
+# never matched by substring, so `the next session on BD` sat under "not actionable yet" on
+# BigDesk itself, and validated clean. MACHINES.md maps hostname -> id and is now consulted
+# first; containment is the fallback, because the table is filled in on some machines only.
+# --------------------------------------------------------------------------------------
+print("")
+print("B18. MACHINES.md first, substring containment as the fallback")
+
+check("no table: the original defect, a short id never matches its host",
+      so._is_here("BD", "BigDesk"), False)
+check("no table: a hostname fragment still matches (the fallback is intact)",
+      so._is_here("Big", "BigDesk"), True)
+
+b18_cfg = Path(tempfile.mkdtemp(prefix="watch-machine-b18-"))
+(b18_cfg / mi.MACHINES_FILENAME).write_text(
+    "| Hostname | Id |\n|---|---|\n"
+    "| BigDesk | BD |\n| CORP-LAPTOP1 | LAPTOP1 |\n| CORP-LAPTOP12 | LAPTOP12 |\n",
+    encoding="utf-8")
+os.environ["CLAUDE_CONFIG_DIR"] = str(b18_cfg)
+try:
+    check("table: the short id now matches its host", so._is_here("BD", "BigDesk"), True)
+    check("table: case-insensitive", so._is_here("bd", "BIGDESK"), True)
+    check("table: a contained id still matches", so._is_here("LAPTOP1", "CORP-LAPTOP1"), True)
+    check("table: a KNOWN id for another machine does not match, even though it is a "
+          "substring of this hostname", so._is_here("LAPTOP1", "CORP-LAPTOP12"), False)
+    check("table: that other machine's own id matches it", so._is_here("LAPTOP12",
+          "CORP-LAPTOP12"), True)
+    check("table: a known id for another machine elsewhere", so._is_here("BD", "CORP-LAPTOP1"),
+          False)
+    check("table: an id the table never heard of falls back to substring",
+          so._is_here("Desk", "BigDesk"), True)
+    check("table: a host the table does not list falls back to substring",
+          so._is_here("BOX", "SPARE-BOX"), True)
+    check("table: ...and still refuses a non-fragment there", so._is_here("BD", "SPARE-BOX"),
+          False)
+
+    wS = watch(21, "Short-id machine watch", "the next session on BD")
+    dueS, _pS, eventsS = so._sort_watches([wS], "BigDesk")
+    check("end to end: the short-id watch is DUE on the machine it names",
+          any("Short-id machine watch" in ln for _t, e in dueS for ln in e), True)
+    dueS2, _pS2, eventsS2 = so._sort_watches([wS], "CORP-LAPTOP1")
+    check("...and not due on a different known machine", len(dueS2), 0)
+
+    print("")
+    print("B18. is_known_machine -- could this trigger fire anywhere visible from here?")
+    t = mi._load_table()
+    check("a table id", mi.is_known_machine("BD", "SPARE-BOX", t), True)
+    check("a fragment of a table hostname row", mi.is_known_machine("Desk", "SPARE-BOX", t), True)
+    check("a fragment of this host only", mi.is_known_machine("SPARE", "SPARE-BOX", t), True)
+    check("none of the three", mi.is_known_machine("ZQ", "SPARE-BOX", t), False)
+    check("no table: a non-fragment of this host", mi.is_known_machine("BD", "BigDesk", {}),
+          False)
+    check("an empty id is never known", mi.is_known_machine("", "BigDesk", t), False)
+
+    print("")
+    print("B18. validate_next -- the never-fires warning is a NOTE, never a failure")
+    sys.path.insert(0, str(ROOT / "tools"))
+    import validate_next as vn                             # noqa: E402
+
+    wOk = watch(31, "Known short id", "the next session on BD")
+    # An id no real hostname plausibly contains -- `validate()` below uses THIS machine's host.
+    wBad = watch(32, "Typo id", "the next session on ZQXJ7")
+    wEvt = watch(33, "Ordinary event", "the deploy lands")
+    notes = vn.machine_trigger_notes([wOk, wBad, wEvt], "SPARE-BOX")
+    check("exactly one note, for the id nothing knows", len(notes), 1)
+    check("it names the watch and the id", "W32" in notes[0] and "`next session on ZQXJ7`" in
+          notes[0], True)
+    check("table loaded: the short id is known, no note",
+          len(vn.machine_trigger_notes([wOk], "BigDesk")), 0)
+    os.environ["CLAUDE_CONFIG_DIR"] = str(_EMPTY_CFG)
+    check("with the table gone, the same short id on its own host is flagged",
+          len(vn.machine_trigger_notes([wOk], "BigDesk")), 1)
+    check("...but a hostname fragment is not", len(vn.machine_trigger_notes(
+          [watch(34, "Fragment", "the next session on Big")], "BigDesk")), 0)
+    os.environ["CLAUDE_CONFIG_DIR"] = str(b18_cfg)
+
+    vtmp = Path(tempfile.mkdtemp(prefix="watch-machine-validate-"))
+    (vtmp / "NEXT.md").write_text(
+        "# NEXT — test\n\n## Queue\n\n"
+        "1. **Something to do** — Sonnet 5 · medium · AFK/Auto\n\n"
+        "## Watching\n\n" + wBad[0] + "\n\n---\n\nAim: test.\n", encoding="utf-8")
+    ok, lines, counts = vn.validate(vtmp)
+    check("validate: a never-fires trigger does NOT fail the file", ok, True)
+    check("validate: it is counted as a note", counts.get("notes"), 1)
+    check("validate: and reported under the OK line", any("ZQXJ7" in ln for ln in lines[1:]), True)
+finally:
+    os.environ["CLAUDE_CONFIG_DIR"] = str(_EMPTY_CFG)
 
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
