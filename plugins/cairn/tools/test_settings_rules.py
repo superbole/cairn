@@ -240,8 +240,13 @@ print("\n8b. push and sync rules live in ask, and nothing else was moved out of 
 perm = DATA["permissions"]
 check("no push or sync_backlog rule left in deny",
       not [r for r in perm["deny"] if "push" in r or "sync_backlog" in r])
-check("every ask rule is a push or sync_backlog rule",
-      all("push" in r or "sync_backlog" in r for r in perm.get("ask", [])))
+# Scheduled-task Edit/Write ask rules keep those prompts behind permission; require them.
+ask_rules = perm.get("ask", [])
+scheduled_tasks_rules = [r for r in ask_rules if r.startswith(("Edit(", "Write(")) and "scheduled-tasks" in r]
+check("scheduled-tasks Edit ask rule is present", any(r.startswith("Edit(") for r in scheduled_tasks_rules))
+check("scheduled-tasks Write ask rule is present", any(r.startswith("Write(") for r in scheduled_tasks_rules))
+check("every other ask rule is a push or sync_backlog rule",
+      all("push" in r or "sync_backlog" in r for r in ask_rules if r not in scheduled_tasks_rules))
 
 print("\n9. no allow rule is a bare Bash / PowerShell, or an unanchored wildcard")
 allow = DATA["permissions"]["allow"]
