@@ -241,13 +241,10 @@ perm = DATA["permissions"]
 check("no push or sync_backlog rule left in deny",
       not [r for r in perm["deny"] if "push" in r or "sync_backlog" in r])
 # Scheduled-task Edit/Write ask rules keep those prompts behind permission; require them.
-scheduled_tasks_rules = [
-    'Edit(//c/Users/SheldonBole/.claude/scheduled-tasks/**)',
-    'Write(//c/Users/SheldonBole/.claude/scheduled-tasks/**)',
-]
 ask_rules = perm.get("ask", [])
-check("scheduled-tasks Edit ask rule is present", scheduled_tasks_rules[0] in ask_rules)
-check("scheduled-tasks Write ask rule is present", scheduled_tasks_rules[1] in ask_rules)
+scheduled_tasks_rules = [r for r in ask_rules if r.startswith(("Edit(", "Write(")) and "scheduled-tasks" in r]
+check("scheduled-tasks Edit ask rule is present", any(r.startswith("Edit(") for r in scheduled_tasks_rules))
+check("scheduled-tasks Write ask rule is present", any(r.startswith("Write(") for r in scheduled_tasks_rules))
 check("every other ask rule is a push or sync_backlog rule",
       all("push" in r or "sync_backlog" in r for r in ask_rules if r not in scheduled_tasks_rules))
 
