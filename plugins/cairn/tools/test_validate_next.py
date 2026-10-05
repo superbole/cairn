@@ -426,5 +426,83 @@ check("watch with an unknown backticked family reads as missing model",
 check("the model check does not bleed into effort (every item has one)",
       any("missing effort" in p for p in problems), False)
 
+print("\n22. B17 -- every watch's trigger kind is reported: date, machine gate, or free text")
+from datetime import date as _date, timedelta as _td      # noqa: E402
+_fresh = (_date.today() - _td(days=5)).isoformat()
+TRIGGERS = f"""# NEXT — fixture
+
+## Queue
+
+## Watching
+
+**W1. Dated** — `Opus 5` · effort `high` · `AFK/Auto` · added `2026-08-01` · check after `2026-09-01`
+**W2. Machine gate** — `Opus 5` · effort `high` · `AFK/Auto` · added `2026-08-01` · check after `the next session on LAPTOP1`
+**W3. Bare machine gate** — `Opus 5` · effort `high` · `AFK/Auto` · added `2026-08-01` · check after `next session on BigDesk`
+**W4. Old free text** — `Opus 5` · effort `high` · `AFK/Auto` · added `2026-08-01` · check after `when the deploy ships`
+**W5. Fresh free text** — `Opus 5` · effort `high` · `AFK/Auto` · added `{_fresh}` · check after `someone reports it`
+"""
+ok, lines, counts = vn.validate(write(TRIGGERS))
+kinds = {t["watch"].split(".")[0]: t["kind"] for t in counts["watch_triggers"]}
+check("classified per watch", kinds,
+      {"W1": "date", "W2": "machine", "W3": "machine", "W4": "free", "W5": "free"})
+check("machine id captured without the `the next session on` prefix",
+      [t["machine"] for t in counts["watch_triggers"] if t["kind"] == "machine"],
+      ["LAPTOP1", "BigDesk"])
+check("free text is INFORMATIONAL: file still validates ok", ok, True)
+check("free text adds no findings", problems_only(lines), [])
+check("report says free text is never DUE NOW",
+      any("W4." in ln and "FREE TEXT" in ln and "never DUE NOW" in ln for ln in lines), True)
+check("an old free-text watch says it is already flagged stale",
+      any("W4." in ln and "already flagged stale" in ln for ln in lines), True)
+check("a fresh free-text watch says when it will be flagged",
+      any("W5." in ln and f"flagged in {vn.so.STALE_WATCH_DAYS - 5}d" in ln for ln in lines), True)
+check("date and machine lines say how they become due",
+      (any("W1." in ln and "date `2026-09-01`" in ln for ln in lines),
+       any("W2." in ln and "machine gate `LAPTOP1`" in ln for ln in lines)), (True, True))
+check("informational lines are not `  - ` findings (exit code unaffected)",
+      any(ln.startswith("  - ") for ln in lines), False)
+
+print("\n23. B17 -- the report and the live DUE NOW decision agree, by construction")
+_, _, watches23, _ = vn._split_next_full(write(TRIGGERS))
+due23, pending23, events23 = vn.so._sort_watches(watches23, host="CORP-LAPTOP1")
+due_ids = sorted(vn.so._watch_title(e).split(".")[0] for _t, e in due23)
+check("on CORP-LAPTOP1: the past date and the LAPTOP1 gate are DUE, nothing free-text is",
+      due_ids, ["W1", "W2"])
+free_ids = {t["watch"].split(".")[0] for t in vn.watch_triggers(watches23) if t["kind"] == "free"}
+due_anywhere = set()
+for h in ("CORP-LAPTOP1", "BigDesk", "anything", ""):
+    d, _p, _e = vn.so._sort_watches(watches23, host=h)
+    due_anywhere |= {vn.so._watch_title(e).split(".")[0] for _t, e in d}
+check("no host makes a free-text watch DUE -- what the report claims", free_ids & due_anywhere,
+      set())
+
+print("\n24. B17 -- a free-text watch with no `added` says the timer cannot start either; "
+      "a missing trigger is 'none'")
+NO_FLOOR = """# NEXT — fixture
+
+## Queue
+
+## Watching
+
+**W1. No floor at all** — `Opus 5` · effort `high` · `AFK/Auto` · check after `eventually`
+**W2. No trigger** — `Opus 5` · effort `high` · `AFK/Auto` · added `2026-08-01`
+"""
+ok, lines, counts = vn.validate(write(NO_FLOOR))
+check("not ok -- but because of the missing `added`/`check after` findings, not free text",
+      (ok, any("W1" in p and "missing `added`" in p for p in problems_only(lines))),
+      (False, True))
+check("W1 note says the timer cannot start",
+      any("W1." in ln and "timer cannot start" in ln for ln in lines), True)
+check("W2 kind is none", [t["kind"] for t in counts["watch_triggers"]], ["free", "none"])
+
+print("\n25. B17 -- --json carries the per-watch trigger kinds")
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    rc = vn.main(["--json", str(write(TRIGGERS))])
+payload = json.loads(buf.getvalue())
+check("json exit 0 with free-text watches", rc, 0)
+check("json watch_triggers kinds", [t["kind"] for t in payload["watch_triggers"]],
+      ["date", "machine", "machine", "free", "free"])
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)

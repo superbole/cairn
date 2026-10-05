@@ -59,6 +59,12 @@ USAGE
     python validate_next.py PATH              # PATH is a project dir, or a NEXT.md file directly
     python validate_next.py --json PATH
 
+WATCH TRIGGERS (B17) -- INFORMATIONAL
+    Every run also lists each watch's trigger kind: a date, a machine gate, or free text that
+    never becomes DUE NOW and surfaces only on the staleness timer. Classified by the
+    orientation's own `_trigger_class`, so it cannot disagree with the live hook. Free text is
+    legitimate under today's rules, so it is reported, never counted as a finding.
+
 EXIT
     0  NEXT.md parses clean (or there is no NEXT.md here -- nothing to check)
     1  at least one queue item or watch fails the field-shape rules
@@ -306,6 +312,61 @@ def check_watches(watches: list[list[str]]) -> list[str]:
     return problems
 
 
+def watch_triggers(watches: list[list[str]]) -> list[dict]:
+    """B17 -- per watch, HOW it can ever become DUE NOW, from the orientation's own classifier.
+
+    `so._trigger_class` is the function `_sort_watches` decides DUE NOW with, so this report
+    cannot drift from the live behaviour: there is no second matcher here to disagree with it.
+    Kinds: 'date' (due on its day), 'machine' (`[the] next session on <machine>`, due when a
+    session opens on a host that matches), 'free' (any other text -- never DUE NOW, surfaces
+    only on the STALE_WATCH_DAYS timer), 'none' (no parseable `check after`; already a
+    finding in `check_watches`).
+    """
+    out = []
+    for entry in watches:
+        kind, trigger, machine = so._trigger_class(entry)
+        out.append({"watch": so._watch_title(entry), "kind": kind, "trigger": trigger,
+                    "machine": machine, "age": so._entry_age(entry)})
+    return out
+
+
+def trigger_notes(triggers: list[dict]) -> list[str]:
+    """The informational block for `watch_triggers()`. NOT findings, never the exit code.
+
+    A free-text trigger is legitimate today -- this repo's own W2/W3 are free text, and the
+    ways to make one evaluable (a date floor, a separate verification list, an explicit
+    timer-only marker) are open design choices in BACKLOG.md B17, not rules yet. Failing on
+    it would fail every NEXT.md that follows the current rules. What IS wrong today is not
+    knowing, so the kind is stated for every watch, and a free-text one says plainly that its
+    only floor is time since `added`.
+    """
+    if not triggers:
+        return []
+    days = so.STALE_WATCH_DAYS
+    lines = ["Watch triggers -- how each can become DUE NOW (informational; never changes "
+             "the exit code):"]
+    for t in triggers:
+        head = f"    · {t['watch']} -- "
+        if t["kind"] == "date":
+            lines.append(head + f"date `{t['trigger']}`: DUE NOW on that day.")
+        elif t["kind"] == "machine":
+            lines.append(head + f"machine gate `{t['machine']}`: DUE NOW when a session "
+                                "opens on a hostname containing it.")
+        elif t["kind"] == "free":
+            age = t["age"]
+            if age is None:
+                when = "and it has no `added`, so that timer cannot start either"
+            elif age >= days:
+                when = f"added {age}d ago, so it is already flagged stale"
+            else:
+                when = f"added {age}d ago, so it is flagged in {days - age}d"
+            lines.append(head + f"FREE TEXT: never DUE NOW; surfaces only on the {days}-day "
+                                f"staleness timer ({when}).")
+        else:
+            lines.append(head + "no parseable `check after` (reported above).")
+    return lines
+
+
 def _split_next_full(root: Path):
     """`session_orientation._split_next`, with its SessionStart relay cap lifted.
 
@@ -338,18 +399,22 @@ def validate(root: Path) -> tuple[bool, list[str], dict]:
     problems = (check_queue(entries) + check_watches(watches)
                 + check_duplicate_ids(watches, decisions))
 
+    triggers = watch_triggers(watches)
     counts = {"queue_items": len(entries), "watches": len(watches),
-             "decisions": len(decisions), "problems": len(problems)}
+             "decisions": len(decisions), "problems": len(problems),
+             "watch_triggers": triggers}
     if not problems:
-        return True, [f"NEXT.md validate: OK -- {len(entries)} queue item(s), "
-                      f"{len(watches)} watch(es), {len(decisions)} decision(s), all carry "
-                      "model, effort, attendance/mode (and, for watches, `added` + "
-                      "`check after` last), and no Wn/Dn used twice."], counts
+        return True, ([f"NEXT.md validate: OK -- {len(entries)} queue item(s), "
+                       f"{len(watches)} watch(es), {len(decisions)} decision(s), all carry "
+                       "model, effort, attendance/mode (and, for watches, `added` + "
+                       "`check after` last), and no Wn/Dn used twice."]
+                      + trigger_notes(triggers)), counts
 
     lines = [f"NEXT.md validate: {len(problems)} issue(s) across "
             f"{len(entries)} queue item(s), {len(watches)} watch(es) and "
             f"{len(decisions)} decision(s):"]
     lines += [f"  - {p}" for p in problems]
+    lines += trigger_notes(triggers)
     return False, lines, counts
 
 
