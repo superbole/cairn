@@ -58,9 +58,12 @@
       "Bash(grep * ~/.claude/scheduled-tasks/*)"
     ],
     "additionalDirectories": [
-      "C:/Users/SheldonBole/.claude/scheduled-tasks"
+      "C:/Users/SheldonBole/.claude/scheduled-tasks",
+      "C:/Users/SheldonBole/.claude/scripts"
     ],
     "ask": [
+      "Edit(//c/Users/SheldonBole/.claude/scripts/**)",
+      "Write(//c/Users/SheldonBole/.claude/scripts/**)",
       "Edit(//c/Users/SheldonBole/.claude/scheduled-tasks/**)",
       "Write(//c/Users/SheldonBole/.claude/scheduled-tasks/**)",
       "Bash(git push)",
