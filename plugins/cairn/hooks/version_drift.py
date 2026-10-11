@@ -156,7 +156,9 @@ def _installed_version() -> str | None:
 
 
 def _clone_dir(marketplace: str | None) -> Path | None:
-    if not marketplace or "/" in marketplace or "\\" in marketplace or marketplace in (".", ".."):
+    # `:` too: on Windows `Path(...) / "D:"` re-roots to that drive and reads a foreign manifest.
+    if (not marketplace or "/" in marketplace or "\\" in marketplace or ":" in marketplace
+            or marketplace in (".", "..")):
         return None
     clone = _config_dir() / "plugins" / "marketplaces" / marketplace
     return clone if clone.is_dir() else None
@@ -170,7 +172,9 @@ def _clone_version(clone: Path) -> str | None:
         data = json.loads((clone / ".claude-plugin" / "marketplace.json").read_text(
             encoding="utf-8-sig"))
         for entry in data.get("plugins") or []:
-            source = entry.get("source") if isinstance(entry, dict) else None
+            if not isinstance(entry, dict):     # one odd entry must not hide the cairn one after it
+                continue
+            source = entry.get("source")
             if entry.get("name") == "cairn" and isinstance(source, str):
                 rel = source
                 break

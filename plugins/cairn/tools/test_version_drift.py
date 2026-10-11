@@ -276,6 +276,16 @@ def main() -> int:
             check("no readable manifest silences ONLY the version finding; stale fetch still fires",
                   len(found) == 1 and "10 days ago" in found[0], True)
 
+            cfg = stage(tmp / "m19", "1.66.0", BLOCK.format(v="1.66.0"))
+            root19 = clone(cfg, "1.67.0", fetched_days_ago=1, source="./elsewhere/cairn")
+            (root19 / ".claude-plugin" / "marketplace.json").write_text(json.dumps(
+                {"plugins": ["junk", {"name": "cairn", "source": "./elsewhere/cairn"}]}),
+                encoding="utf-8")
+            contains("a non-dict entry before cairn in marketplace.json does not hide it",
+                     " ".join(vd._marketplace_drift("superbole", "1.66.0", now)), "v1.67.0")
+            check("a marketplace name with a drive colon -> silent",
+                  vd._marketplace_drift("C:", "1.66.0", now), [])
+
             print("\nB97: the marketplace name is read from the installed `cairn@<name>` key")
             cfg = stage(tmp / "m15", None, BLOCK.format(v="1.66.0"))
             (cfg / "plugins" / "installed_plugins.json").write_text(json.dumps(
