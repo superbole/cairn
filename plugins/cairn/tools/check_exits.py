@@ -53,7 +53,7 @@ project's identity beyond `CLAUDE_PROJECT_DIR`, only its dirty state. So identit
 steps, cheapest first:
 
   1. If ANY record in the directory is a `last_exit.json`, its `root` field is authoritative --
-     use `Path(root).name` and keep the full path.
+     use `PureWindowsPath(root).name` and keep the full path.
   2. Otherwise (a project that has only ever produced `stop-*.json`, e.g. a session that has not
      yet reached `SessionEnd`), strip the trailing `-<10 hex chars>` off the directory name. That
      recovers the exact slug `state_dir()` built UNLESS the real name was truncated to 32 chars or
@@ -69,7 +69,7 @@ import os
 import re
 import sys
 import time
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 # Trailing `-<10 hex>` that `state_dir()` appends to every slug. Matched, not re-derived by
 # hashing every candidate name -- there is nothing to hash against; a directory holds no list of
@@ -100,7 +100,8 @@ def _identity(dirname: str, last_exit: dict | None) -> tuple[str, str | None]:
     """(display name, full root path or None). See the module docstring for the two-step order."""
     root = last_exit.get("root") if last_exit else None
     if isinstance(root, str) and root.strip():
-        return Path(root).name or root, root
+        # PureWindowsPath splits on `\` AND `/`, so a Windows root reads right on Linux too.
+        return PureWindowsPath(root).name or root, root
     m = _HASH_SUFFIX.match(dirname)
     return (m.group("name") if m else dirname), None
 

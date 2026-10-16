@@ -162,6 +162,11 @@ check("names the sidebar escape hatch", "sidebar" in p.stderr)
 p = guard(r1, payload(r1, target=SESSION))
 check("the caller's own id spelled out is still self -> deny", p.returncode, 2)
 r1e = new_repo("encoding")
+# Backdate the marker so it is unambiguously older than the baseline. Written a few ms before
+# `stamp_baseline()`, it reads as NOT older whenever both land in one clock tick: on Windows
+# `time.time()` ticks every 15.6 ms (Python 3.11), and `_mtime_after` counts a tie as after.
+_old = os.stat(r1e / ".claude" / ".last_wrap").st_mtime - 60
+os.utime(r1e / ".claude" / ".last_wrap", (_old, _old))
 wrap_receipt.stamp_baseline(r1e, SESSION)
 (r1e / "scratch.txt").write_text("uncommitted\n", encoding="utf-8")   # dirty, marker inherited
 reasons_e = verdict_of(r1e)[1]

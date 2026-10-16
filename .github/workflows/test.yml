@@ -47,7 +47,6 @@ jobs:
       
       - name: Run test suite
         run: python plugins/cairn/tools/run_tests.py --timeout=300
-        continue-on-error: ${{ matrix.os == 'ubuntu-latest' }}
   
   afk-conflict-check:
     name: Check afk/* PR conflicts

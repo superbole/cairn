@@ -155,20 +155,25 @@ def _run_cmdkey() -> tuple[str | None, str | None]:
     return proc.stdout, None
 
 
-def list_targets(runner=_run_cmdkey) -> tuple[list[str] | None, str | None]:
+def list_targets(runner=None) -> tuple[list[str] | None, str | None]:
     """(raw target strings held by this machine, error note). Platform-dispatched.
 
     Reads ONLY lines beginning `Target:` out of whatever the backend prints -- every other line
     (a `User:`, a `Type:`, a `Persist:`) is discarded unread by this function, never stored in the
     returned list, never printed. See the module docstring, HARD RULE 1.
+
+    The platform gate picks the DEFAULT backend only. A runner passed in is parsed on any OS, so
+    the parser is tested on Linux CI too.
     """
-    if sys.platform == "win32":
-        out, err = runner()
-        if out is None:
-            return None, err
-        return [m.group(1) for ln in out.splitlines() if (m := _TARGET_RE.match(ln))], None
-    return None, (f"no listing implemented for {sys.platform} yet -- run `secret-tool search "
-                  "--all` (GNOME keyring) or your platform's equivalent by hand")
+    if runner is None:
+        if sys.platform != "win32":
+            return None, (f"no listing implemented for {sys.platform} yet -- run `secret-tool "
+                          "search --all` (GNOME keyring) or your platform's equivalent by hand")
+        runner = _run_cmdkey
+    out, err = runner()
+    if out is None:
+        return None, err
+    return [m.group(1) for ln in out.splitlines() if (m := _TARGET_RE.match(ln))], None
 
 
 def _credentials_path(override: str | None) -> Path:
