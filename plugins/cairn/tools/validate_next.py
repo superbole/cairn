@@ -59,6 +59,15 @@ USAGE
     python validate_next.py PATH              # PATH is a project dir, or a NEXT.md file directly
     python validate_next.py --json PATH
 
+WATCH TRIGGERS (B17) -- INFORMATIONAL
+    Every run also lists each watch's trigger kind: a date, a machine gate, or free text that
+    never becomes DUE NOW and surfaces only on the staleness timer. Classified by the
+    orientation's own `_trigger_class`, so it cannot disagree with the live hook. Free text is
+    legitimate under today's rules, so it is reported, never counted as a finding.
+    A machine gate is also checked against this machine's `~/.claude/MACHINES.md` and hostname
+    (B18), with the same `_is_here` the hook uses; one that names nothing known here gets a
+    note under the verdict. Notes never change the exit code either.
+
 EXIT
     0  NEXT.md parses clean (or there is no NEXT.md here -- nothing to check)
     1  at least one queue item or watch fails the field-shape rules
@@ -71,6 +80,7 @@ import argparse
 import json
 import re
 import sys
+from datetime import date
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -311,44 +321,6 @@ def check_watches(watches: list[list[str]]) -> list[str]:
     return problems
 
 
-def machine_trigger_notes(watches: list[list[str]], host: str | None = None) -> list[str]:
-    """B18 -- a `next session on <X>` watch whose X matches nothing this machine knows of.
-
-    Nothing visible from here will ever make it due: X is not an id or hostname row in
-    `~/.claude/MACHINES.md`, and not a substring of this host. That is the short-id case
-    (`BD` for a host named `BigDesk`, with the table unfilled) -- it validates clean and then
-    sits under "not actionable yet" on the machine it names, forever.
-
-    A NOTE, not a problem, and it never changes the exit code: the table is filled in on some
-    machines and not others, so another machine may still match X by substring and this one
-    cannot see that. The fix it points at is either a MACHINES.md row or a trigger that names
-    a hostname fragment. Here rather than in the SessionStart hook because the hook prints
-    on every session and this judgement is one only a human can finish.
-    """
-    if mi is None:
-        return []
-    if host is None:
-        host = mi.hostname()
-    table = mi._load_table()
-    notes: list[str] = []
-    for entry in watches:
-        kind, trigger = so._watch_trigger(entry)
-        if kind == "date" or not trigger:
-            continue
-        m = so._MACHINE_TRIGGER_RE.match(trigger)
-        if not m:
-            continue
-        target = m.group(1)
-        if mi.is_known_machine(target, host, table):
-            continue
-        notes.append(f"Watch {so._watch_title(entry)}: `next session on {target}` names no "
-                     f"machine in ~/.claude/MACHINES.md and is not part of this hostname "
-                     f"({host or 'unknown'}) -- unless another machine's hostname contains "
-                     f"it, it never becomes due. Add a MACHINES.md row mapping the hostname "
-                     f"to `{target}`, or name a fragment of the hostname instead.")
-    return notes
-
-
 # B16: an id the parser cannot read is INVISIBLE. `so._DECISION_START_RE` / `_WATCH_START_RE`
 # are `^\*\*D\d` / `^\*\*W\d`, so `**D-a.**` or `**Wa.**` starts no entry: `_split_next` folds
 # it into the entry above as a continuation line (or drops it, if nothing is above), it never
@@ -407,6 +379,146 @@ def check_near_miss_ids(root: Path) -> list[str]:
     return problems
 
 
+def _machine_context(host: str | None) -> tuple[str, dict, bool]:
+    """(host, MACHINES.md table, table_read_ok) for the machine-gate checks. Never raises.
+
+    The #105 review found `validate()` raising when the table could not be read, where the hook
+    degrades silently. Here a failure is not silent either: `table_read_ok` False turns into
+    words on the watch's line, because a check that quietly did not run reads as one that passed.
+    """
+    if mi is None:
+        return host or "", {}, False
+    if host is None:
+        try:
+            host = mi.hostname()
+        except Exception:
+            host = ""
+    try:
+        return host or "", mi._load_table() or {}, True
+    except Exception:
+        return host or "", {}, False
+
+
+def _machine_status(machine: str, host: str, table: dict, table_ok: bool) -> str:
+    """'here' | 'known' | 'unknown' | 'unchecked' for one machine gate, judged from THIS machine.
+
+    'here' uses the hook's own `_is_here` (MACHINES.md first, then the hostname substring), so
+    it says exactly what the hook would do in a session opened now. 'known' and 'unknown' can
+    only speak for this machine's table: the gate fires or not by the table on the machine it
+    names, and that table may differ (B41), so the wording says so rather than vouching.
+    """
+    if not table_ok:
+        return "unchecked"
+    try:
+        if host and so._is_here(machine, host):
+            return "here"
+        return "known" if mi.is_known_machine(machine, host, table) else "unknown"
+    except Exception:
+        return "unchecked"
+
+
+def watch_triggers(watches: list[list[str]], host: str | None = None) -> list[dict]:
+    """B17 + B18 -- per watch, HOW it can ever become DUE NOW, from the orientation's own code.
+
+    `so._trigger_class` is the function `_sort_watches` decides DUE NOW with, and a machine gate
+    is judged with the same `so._is_here` it calls, so this report cannot drift from the live
+    behaviour: there is no second matcher here to disagree with it.
+    Kinds: 'date' (due on its day), 'machine' (`[the] next session on <machine>`), 'free' (any
+    other text -- never DUE NOW, surfaces only on the STALE_WATCH_DAYS timer), 'none' (no
+    parseable `check after`; already a finding in `check_watches`). A machine gate also carries
+    `machine_status` from `_machine_status()`.
+    """
+    host, table, table_ok = _machine_context(host)
+    out = []
+    for entry in watches:
+        kind, trigger, machine = so._trigger_class(entry)
+        row = {"watch": so._watch_title(entry), "kind": kind, "trigger": trigger,
+               "machine": machine, "age": so._entry_age(entry)}
+        if kind == "machine":
+            row["machine_status"] = _machine_status(machine, host, table, table_ok)
+            row["host"] = host
+        out.append(row)
+    return out
+
+
+def _never_fires_note(t: dict) -> str:
+    """The B18 note for a machine gate that names nothing this machine knows of."""
+    target = t["machine"]
+    prose = (f" `{target}` has spaces in it, so it reads as prose, not a machine id."
+             if re.search(r"\s", target) else "")
+    return (f"Watch {t['watch']}: `next session on {target}` names no machine in this "
+            f"machine's ~/.claude/MACHINES.md and is not part of this hostname "
+            f"({t.get('host') or 'unknown'}). Unless the table or hostname on the machine it "
+            f"means matches it, it never becomes due.{prose} Add a MACHINES.md row mapping the "
+            f"hostname to `{target}`, or name a fragment of the hostname instead.")
+
+
+def machine_trigger_notes(watches: list[list[str]], host: str | None = None) -> list[str]:
+    """B18 -- the notes for machine gates whose id matches nothing this machine knows of.
+
+    The short-id case (`BD` for a host named `BigDesk`, with the table unfilled) validates clean
+    and then sits under "not actionable yet" on the machine it names, forever. A NOTE, never a
+    problem or the exit code: the table is filled in on some machines and not others, so the
+    named machine may still match it and this one cannot see that. Derived from
+    `watch_triggers()`, so the per-watch line and the note can never tell different stories.
+    """
+    return [_never_fires_note(t) for t in watch_triggers(watches, host)
+            if t.get("machine_status") == "unknown"]
+
+
+def trigger_notes(triggers: list[dict]) -> list[str]:
+    """The informational block for `watch_triggers()`. NOT findings, never the exit code.
+
+    A free-text trigger is legitimate under today's rules, and the ways to make one evaluable
+    (a date floor, a separate verification list, an explicit timer-only marker) are open design
+    choices in BACKLOG.md B17, not rules yet. Failing on it would fail every NEXT.md that follows
+    the current rules. What IS wrong today is not knowing, so the kind is stated for every
+    watch, and a free-text one says plainly that its only floor is time since `added`.
+    """
+    if not triggers:
+        return []
+    days = so.STALE_WATCH_DAYS
+    today = date.today().isoformat()
+    lines = ["Watch triggers -- how each can become DUE NOW (informational; never changes "
+             "the exit code):"]
+    for t in triggers:
+        head = f"    · {t['watch']} -- "
+        if t["kind"] == "date":
+            when = "DUE NOW since that day" if t["trigger"] <= today else "DUE NOW on that day"
+            lines.append(head + f"date `{t['trigger']}`: {when}.")
+        elif t["kind"] == "machine":
+            gate = f"machine gate `{t['machine']}`: "
+            status = t.get("machine_status")
+            if status == "here":
+                lines.append(head + gate + "names this machine, so it is DUE NOW here.")
+            elif status == "known":
+                lines.append(head + gate + "DUE NOW on the machine it names: that machine's "
+                                    "MACHINES.md decides first, then a hostname containing it. "
+                                    "Checked against this machine's table only.")
+            elif status == "unknown":
+                lines.append(head + gate + "matches no machine known here (see the note "
+                                           "below).")
+            else:
+                lines.append(head + gate + "~/.claude/MACHINES.md could not be read here, so "
+                                           "whether any machine matches it was not checked.")
+        elif t["kind"] == "free":
+            age = t["age"]
+            if age is None:
+                when = "and it has no readable `added`, so that timer cannot start either"
+            elif age < 0:
+                when = "but its `added` is after today, so that timer has not started"
+            elif so._is_stale(age):
+                when = f"added {age}d ago, so it is already flagged stale"
+            else:
+                when = f"added {age}d ago, so it is flagged in {days - age}d"
+            lines.append(head + f"FREE TEXT: never DUE NOW; surfaces only on the {days}-day "
+                                f"staleness timer ({when}).")
+        else:
+            lines.append(head + "no parseable `check after`, so it can never become DUE NOW "
+                                "(see the `check after` finding above).")
+    return lines
+
+
 def _split_next_full(root: Path):
     """`session_orientation._split_next`, with its SessionStart relay cap lifted.
 
@@ -440,24 +552,30 @@ def validate(root: Path) -> tuple[bool, list[str], dict]:
                 + check_duplicate_ids(watches, decisions)
                 + check_near_miss_ids(root))
 
-    notes = machine_trigger_notes(watches)
+    # One pass over the watches feeds both the per-watch trigger lines (B17) and the
+    # never-fires notes (B18), so the two can never tell different stories about one watch.
+    triggers = watch_triggers(watches)
+    notes = [_never_fires_note(t) for t in triggers if t.get("machine_status") == "unknown"]
+    # `notes` is a count like its neighbours; `watch_triggers` is the one list in `counts`.
     counts = {"queue_items": len(entries), "watches": len(watches),
-             "decisions": len(decisions), "problems": len(problems), "notes": len(notes)}
-    # Notes (B18) ride under the verdict and never change it -- see machine_trigger_notes().
-    note_lines = ([f"Note{'s' if len(notes) > 1 else ''} (not failures):"]
-                  + [f"  * {n}" for n in notes]) if notes else []
+             "decisions": len(decisions), "problems": len(problems), "notes": len(notes),
+             "watch_triggers": triggers}
+    # Both ride under the verdict and never change it.
+    tail = trigger_notes(triggers) + (
+        [f"Note{'s' if len(notes) > 1 else ''} (not failures):"] + [f"  * {n}" for n in notes]
+        if notes else [])
     if not problems:
         return True, [f"NEXT.md validate: OK -- {len(entries)} queue item(s), "
                       f"{len(watches)} watch(es), {len(decisions)} decision(s), all carry "
                       "model, effort, attendance/mode (and, for watches, `added` + "
                       "`check after` last), no Wn/Dn used twice, and no entry-shaped line "
-                      "with an id the parser cannot read."] + note_lines, counts
+                      "with an id the parser cannot read."] + tail, counts
 
     lines = [f"NEXT.md validate: {len(problems)} issue(s) across "
             f"{len(entries)} queue item(s), {len(watches)} watch(es) and "
             f"{len(decisions)} decision(s):"]
     lines += [f"  - {p}" for p in problems]
-    return False, lines + note_lines, counts
+    return False, lines + tail, counts
 
 
 def _resolve_root(arg: str | None) -> Path:

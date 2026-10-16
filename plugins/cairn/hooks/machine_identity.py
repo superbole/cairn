@@ -239,6 +239,7 @@ def is_known_machine(machine_id: str, host: str,
         return False
     if table is None:
         table = _load_table()
+    table = table or {}
     if want in {mid.lower() for mid in table.values()}:
         return True
     if any(want in row_host for row_host in table):
