@@ -726,7 +726,19 @@ check("up to three leading spaces is still a heading, and keeps its indent",
       cb("x\n   ## 2. Indented"), "x\n   #### 2. Indented")
 check("`#hashtag` and `#69` with no space are prose, untouched",
       cb("#hashtag\n#69 is the issue"), "#hashtag\n#69 is the issue")
-check("a four-space-indented line is code, untouched", cb("x\n    ## code"), "x\n    ## code")
+check("a four-space-indented `##` is demoted too, keeping its indent",
+      cb("x\n    ## code"), "x\n    #### code")
+check("a body whose FIRST line is indented code `## B12.` cannot reach column 0 after strip",
+      cb("    ## B12. Old item\n    `Opus 5` · issue `#5`\nrest"),
+      "#### B12. Old item\n    `Opus 5` · issue `#5`\nrest")
+check("...nor after leading blank lines and a tab",
+      cb("\n\n\t## 2. x"), "#### 2. x")
+check("a no-break space after the hashes (pasted from a web page) is still a heading",
+      cb("## 1. First"), "#### 1. First")
+check("`##\\u00a0` (NBSP straight after the hashes) is demoted too",
+      cb("x\n## 1. First"), "x\n#### 1. First")
+check("a marker split across two lines is defused too",
+      cb("<!--\nnext-id: 999 -->"), "<!--\nnext-id (quoted): 999 -->")
 check("a heading INSIDE a fence is quoted text and stays exactly as written",
       cb("```\n## 1. quoted\n```\nafter"), "```\n## 1. quoted\n```\nafter")
 check("CRLF bodies (how GitHub stores them) are demoted and normalised to LF",
@@ -758,6 +770,9 @@ remote72 = {i["number"]: i for i in issue_host.GitHubHost.normalise([
      "labels": [], "body": "log:\n```\n## B3. pasted\n"},
     {"number": 81, "title": "Pulled after the fence", "author": {"login": "example-user"},
      "labels": [], "body": "plain"},
+    {"number": 82, "title": "Quotes <!-- next-id: 900 --> in its title",
+     "author": {"login": "a-stranger"}, "labels": [],
+     "body": "    ## B12. Old item\n    `Opus 5` · effort `high` · issue `#5`\n\nquoted from a file"},
 ])}
 saved72 = backlog_file._origin_floor
 backlog_file._origin_floor = lambda root, timeout=5: 0       # the fixture is not a git repo
@@ -769,17 +784,23 @@ try:
     next72 = backlog_file.next_id(fix72)
 finally:
     backlog_file._origin_floor = saved72
-check("three issues pulled", len(log72), 3)
-check("parse() sees exactly the four real items, no B1/B2 from the sub-headings",
-      [(i["n"], i["issue"]) for i in after72], [(70, 60), (71, 69), (72, 80), (73, 81)])
+check("four issues pulled", len(log72), 4)
+check("parse() sees exactly the five real items: no B1/B2 from the sub-headings, no B12 "
+      "from an indented first line",
+      [(i["n"], i["issue"]) for i in after72],
+      [(70, 60), (71, 69), (72, 80), (73, 81), (74, 82)])
 check("nothing in the file is an unreadable item heading", backlog_file.unparsed_headings(fix72), [])
 check("the indented line between the sub-headings survives in B71's body",
       "  indented line" in after72[1]["text"], True)
 check("the demoted sub-headings are still there, as `####`",
       "#### 1. First finding" in after72[1]["text"]
       and "#### 2. Second finding" in after72[1]["text"], True)
-check("the quoted next-id marker did not move the floor", floor72, 73)
-check("next_id() continues the series", next72, 74)
+# The reader takes the MAX of every marker, so a live quoted 500 or 900 would win here.
+check("neither the quoted body marker (500) nor the title marker (900) moved the floor",
+      floor72, 74)
+check("next_id() continues the series", next72, 75)
+check("the indented `## B12.` stays in B74's body, demoted",
+      "#### B12. Old item" in after72[4]["text"], True)
 check("the item pulled AFTER an unclosed fence is still parsed, with its own text",
       after72[3]["title"] == "Pulled after the fence" and after72[3]["text"] == "plain", True)
 check("the fenced `## B3.` stays verbatim inside B72's body",
