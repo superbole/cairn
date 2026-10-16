@@ -51,11 +51,28 @@ Since 2026-10-02 (D49) a firing takes one new item and first reviews up to 2 ope
 #104 and #105 (B16, B17, B18) all touch `validate_next.py` `validate()`: the second and third to merge need a
 small rebase, and B16's rules-text half plus the version bump are left for the attended pass (see #103).
 
-**W10. The first firing on the rewritten `cairn-afk-firing` prompt ran cleanly** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-10-02` · check after `2026-10-03`
-Its first run was 2026-10-02 17:00. Read that firing's Discord post, and on `superbole/cairn` check
-for `Scheduled review` comments on open `afk/` PRs and at most one new PR. A missing post, or a run that
-never finished, means it stalled on a permission prompt: find which command, then fix
-`.claude/settings.json` or the prompt (D49, CHANGELOG 2026-10-02).
+**W10. A `cairn-afk-firing` run finishes without stalling on a permission prompt** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-10-02` · check after `2026-10-05`
+The 2026-10-02 firing did its work (#118, reviews on #102 and #103, the Discord post), but it sat 14h on the Discord
+post's `powershell.exe … notify-discord.ps1` command. That allow rule was committed 2026-10-04 (`270fa88`). So check the
+2026-10-04 17:05 run: `list_task_runs` should show it ending within about an hour. `~/.claude/permission-prompts.jsonl`
+(the `PermissionRequest` logger, in place since 2026-10-04) should have no line from its `session_id`. Any line there
+names the exact command that asked: add an allow rule for it or change the prompt. Delete this watch once a run is clean.
+
+**W11. The `claude-inbox-check` task runs cleanly and doesn't fake an unfinished session** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-10-03` · check after `2026-10-04`
+Created 2026-10-03 from `superbole/claude-inbox` #3: every 30 min, in this checkout, it acts on issues whose
+newest message starts `From Cairn` (author `superbole`). Two things to check. (1) Do the runs finish? Check
+`list_task_runs` and #2's reply. A stalled run means a missing allow rule: he was adding the 4 `Bash` + 4
+`PowerShell` `gh issue … -R superbole/claude-inbox` rules himself. (2) Does each quiet run (a session that
+starts and ends here with no wrap) set off the "last session did not finish cleanly" warning? If it does,
+the real warning gets lost, and that's a cairn hook bug to file in `BACKLOG.md`: scheduled runs should not count.
+Found on the first run (2026-10-03 15:31): it stalled on a `grep` of `~/.claude/scheduled-tasks/cairn-afk-firing/SKILL.md`
+for #2. That path is outside the checkout, so every request about the AFK prompt will prompt. Suggested fix, his to add:
+`Read(//c/Users/SheldonBole/.claude/scheduled-tasks/**)` and `Bash(grep * C:/Users/SheldonBole/.claude/scheduled-tasks/*)`.
+Keep edits there behind a prompt. Added 2026-10-04 (`270fa88` and the next commit). Those rules weren't enough: the user-level
+`blockReadsOutsideWorkingDirectories` refuses Read anyway. So `additionalDirectories` now names the folder,
+and `ask` rules keep Edit/Write there behind a prompt. Not yet seen working: the 13:41 run started before the change.
+Check that a run started after 13:44 reads the AFK prompt without prompting. Also found: the stalled 2026-10-03 17:31 run
+held the task for 20h, with no runs at all until 2026-10-04 13:41. One stalled run blocks every later run.
 
 ---
 
