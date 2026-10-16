@@ -566,5 +566,154 @@ report76b = sb.orphaned_pointers_report(fix76b, {12})
 check("an id still named as live Queue work is reported, exactly the B76 motivating case",
       any("NEXT.md" in ln and "B12" in ln for ln in report76b), True)
 
+print("\n15. B13 — a sync whose ONLY action is a file writes the number back to disk")
+# The live run that lost #129 did nothing but file: no close, no pull, no re-body. So this is
+# that run exactly — a real fixture file, the real parse() and write(), a host whose open list
+# is empty (nothing to pull) and whose create prints a URL — and the assertion is on the FILE,
+# not on the in-memory item list.
+
+
+def fake_run_b13(calls, open_issues=(), all_issues=None, created=129):
+    """`_run` for B13: a controllable open list, any-state list, and create number."""
+    def _run(self, *args):
+        calls.append(tuple(args))
+        if args[:2] == ("repo", "view"):
+            return json.dumps({"nameWithOwner": "example-user/fixture",
+                               "hasIssuesEnabled": True,
+                               "owner": {"login": "example-user"}}), ""
+        if args[:2] == ("issue", "list"):
+            state = args[args.index("--state") + 1] if "--state" in args else "open"
+            rows = list(open_issues) if state == "open" else list(
+                all_issues if all_issues is not None else open_issues)
+            return json.dumps(rows), ""
+        if args[:2] == ("issue", "create"):
+            return f"https://github.com/example-user/fixture/issues/{created}\n", ""
+        return "", ""
+    return _run
+
+
+def run_fixture(fix, runner, argv=()):
+    saved = (issue_host.IssueHost._run, issue_host.detect, sb.project_root)
+    issue_host.IssueHost._run = runner
+    issue_host.detect = lambda root, override="": (
+        issue_host.GitHubHost(Path("."), "github.com"), "")
+    sb.project_root = lambda: fix
+    try:
+        return sb.main(list(argv))
+    finally:
+        (issue_host.IssueHost._run, issue_host.detect, sb.project_root) = saved
+
+
+fix13 = Path(tempfile.mkdtemp())
+(fix13 / "BACKLOG.md").write_text(
+    "# BACKLOG — fixture\n\n"
+    "## B5. A fresh item nobody has filed yet\n"
+    "`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-01`\n\nbody text\n",
+    encoding="utf-8")
+calls13 = []
+rc = run_fixture(fix13, fake_run_b13(calls13))
+check("the file-only sync exits clean", rc, 0)
+check("it filed exactly one issue and made no other write",
+      [c[:2] for c in writes(calls13)], [("issue", "create")])
+check("the number is ON DISK after the run",
+      [(i["n"], i["issue"]) for i in backlog_file.parse(fix13)], [(5, 129)])
+check("...in the fields line itself",
+      "issue `#129`" in (fix13 / "BACKLOG.md").read_text(encoding="utf-8"), True)
+
+print("\n16. B13 — `closed, never synced` is NOT dropped when an open issue carries its title")
+# "Never filed" and "filed, number lost" have identical file signatures: a closed item with no
+# `issue` field. The drop is only safe for the first. So before dropping, match the title
+# against the OPEN listing; a match means the number was lost — write it back, close it, and
+# record the close exactly as the ordinary path does. Otherwise the next pull re-imports the
+# item's own issue as new work (the live phantom).
+lost = {"n": 7, "title": "Filed but the number was lost", "model": None, "effort": None,
+        "attend": "AFK", "mode": None, "added": "2026-09-01", "issue": None, "queued": False,
+        "inbound": False, "closed": "2026-09-09", "text": "t", "body": []}
+never = dict(lost, n=8, title="Genuinely never filed")
+remote16 = {129: {"number": 129, "title": "Filed but the number was lost", "body": "",
+                  "author": "example-user", "labels": ["backlog"]}}
+calls16, closed16 = [], set()
+saved16 = (issue_host.IssueHost._run, backlog_file.changelog_status)
+issue_host.IssueHost._run = fake_run_b13(calls16)
+backlog_file.changelog_status = lambda root, it: "covered"
+try:
+    its16 = [dict(lost), dict(never)]
+    log16 = sb.push(issue_host.GitHubHost(Path("."), "github.com"), its16, Path("."), "r",
+                    remote16, closed16, False)
+finally:
+    (issue_host.IssueHost._run, backlog_file.changelog_status) = saved16
+check("the title-matched issue #129 was CLOSED on the host",
+      ("issue", "close", "129") in [c[:3] for c in calls16], True)
+check("and #129 is handed to pull() as just-closed, so it is not re-imported", closed16, {129})
+check("the log names the recovered number and B13",
+      any("#129" in ln and "B7" in ln and "B13" in ln for ln in log16), True)
+check("the genuinely never-filed item is still dropped as before",
+      any("dropped B8 (closed, never synced)" in ln for ln in log16), True)
+check("both leave the file (one closed, one never synced)", its16, [])
+
+print("16a. an ambiguous title match (two open issues) refuses, keeps the item, closes nothing")
+remote16a = dict(remote16)
+remote16a[130] = dict(remote16[129], number=130)
+calls16a, closed16a = [], set()
+saved16a = (issue_host.IssueHost._run, backlog_file.changelog_status)
+issue_host.IssueHost._run = fake_run_b13(calls16a)
+backlog_file.changelog_status = lambda root, it: "covered"
+try:
+    its16a = [dict(lost)]
+    log16a = sb.push(issue_host.GitHubHost(Path("."), "github.com"), its16a, Path("."), "r",
+                     remote16a, closed16a, False)
+finally:
+    (issue_host.IssueHost._run, backlog_file.changelog_status) = saved16a
+check("no close call", [c for c in calls16a if c[:2] == ("issue", "close")], [])
+check("the item is kept", [i["n"] for i in its16a], [7])
+check("and the log names both candidates", any("#129" in ln and "#130" in ln
+                                               for ln in log16a), True)
+
+print("16b. host unreachable (remote=None): the drop refuses rather than guessing")
+its16b = [dict(lost)]
+log16b = sb.push(issue_host.GitHubHost(Path("."), "github.com"), its16b, Path("."), "r",
+                 None, set(), True)
+check("kept, because 'never filed' cannot be told from 'number lost' without the host",
+      [i["n"] for i in its16b], [7])
+check("and says so", any("B7" in ln and "B13" in ln for ln in log16b), True)
+
+print("16c. dry run with a title match reports a would-close and hands the number to pull")
+closed16c = set()
+its16c = [dict(lost)]
+log16c = sb.push(issue_host.GitHubHost(Path("."), "github.com"), its16c, Path("."), "r",
+                 remote16, closed16c, True)
+check("would close #129", any("would close #129" in ln for ln in log16c), True)
+check("pull is told to skip it", closed16c, {129})
+
+print("16d. end to end: the live incident's second run no longer re-imports #129 as new work")
+fix16 = Path(tempfile.mkdtemp())
+(fix16 / "BACKLOG.md").write_text(
+    "# BACKLOG — fixture\n\n"
+    "## B7. Filed but the number was lost\n"
+    "`AFK` · added `2026-09-01` · closed `2026-09-09`\n\nbody\n", encoding="utf-8")
+open16 = [{"number": 129, "title": "Filed but the number was lost", "body": "old",
+           "author": {"login": "example-user"}, "labels": [{"name": "backlog"}]}]
+calls16d = []
+saved16d = backlog_file.changelog_status
+backlog_file.changelog_status = lambda root, it: "covered"
+try:
+    rc = run_fixture(fix16, fake_run_b13(calls16d, open_issues=open16))
+finally:
+    backlog_file.changelog_status = saved16d
+check("exit 0", rc, 0)
+check("#129 was closed", ("issue", "close", "129") in [c[:3] for c in calls16d], True)
+check("no phantom item was pulled back in", backlog_file.parse(fix16), [])
+
+print("\n17. B13 — `fixed` is a closing word too: a line saying B46 was fixed is a citation")
+fix17 = Path(tempfile.mkdtemp())
+(fix17 / "NEXT.md").write_text("- B46 fixed in the last release\n- still waiting on B46\n",
+                               encoding="utf-8")
+report17 = sb.orphaned_pointers_report(fix17, {46})
+check("the 'fixed' line is exempt", any("fixed" in ln for ln in report17), False)
+check("the live pointer on the next line still fires",
+      any("NEXT.md:2" in ln for ln in report17), True)
+check("'prefixed' is not the word 'fixed' (word boundary)",
+      bool(sb._CLOSING_TOKEN_RE.search("prefixed B46")), False)
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
