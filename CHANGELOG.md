@@ -3,6 +3,37 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-04 — `body` installed in the AFK prompt; scheduled runs can read their prompts (no version)
+
+Queue item 1 (`superbole/claude-inbox` #2) is done. The 13:41 `claude-inbox-check` run found all three
+`body` edits already in the installed `cairn-afk-firing` prompt (modified 13:40), confirmed lines 48, 148
+and 154, and closed #2. So today's 17:00 firing reviews with the dossier in hand. This session could not
+read the file itself to double-check, because it started before the settings change below.
+The 2026-10-03 17:31 run stalled on a `grep` of that prompt for 20h, and no later run started until 13:41.
+The allow rule was spelled `C:/Users/...` but the run typed `~/...`. The `Read(...)` rule didn't help either,
+because the user-level `blockReadsOutsideWorkingDirectories` overrides it. `.claude/settings.json` now names the
+folder in `additionalDirectories`, with `ask` rules on Edit/Write there (D50; `270fa88`, `16ddfba`). It also
+commits the claude-inbox `gh` and Discord allow rules the last session left uncommitted. Not yet seen
+working in a fresh run: W11 carries that.
+Later the same day: a scan of the transcripts by tool-call wait time showed the 2026-10-02 firing sat 838 minutes
+on its Discord post, and the inbox run sat 1198 minutes on its `sed` edit of the prompt, not the `grep`. A
+`PermissionRequest` hook (`.claude/hooks/log_permission_request.py`) now appends every prompt, with the tool's full
+input, to `~/.claude/permission-prompts.jsonl`. It's outside the tree, because the firing aborts on a dirty one. Seen firing
+live in this session. W10 now checks the 2026-10-04 firing against that log.
+
+## 2026-10-03 — `claude-inbox-check` scheduled task on NB5 (no version)
+
+Set up from `superbole/claude-inbox` #3, which Cairn (his Grok assistant) wrote. The task runs every 30
+minutes in this checkout. It acts on open issues whose newest message starts `From Cairn` and replies
+`From Claude:`, at most 3 per run. Two changes from Cairn's draft, both agreed with him. First, an issue
+only counts if its author is `superbole` (`SboleWork` is also a collaborator, and the task runs
+unattended). Second, the `gh issue … -R superbole/claude-inbox` allow rules get PowerShell copies,
+because PowerShell is NB5's main shell. He added those rules to `.claude/settings.json` himself. Replied
+on #3 and closed it. W11 checks the first runs: whether they stall, and whether quiet runs set off the
+false "last session did not finish cleanly" warning.
+The first run (15:31) stalled on a read of the AFK prompt for #2, and W11 records that. It then prepared
+#2's diff without installing it, and that install is now Queue item 1, due before Sunday's firing.
+
 ## 2026-10-02 — `cairn-afk-firing` prompt replaced: one item, review first (no version)
 
 The NB5 scheduled task's prompt was replaced with his rewrite plus issue #1 on `cairn-private` (D49).
