@@ -306,6 +306,64 @@ def check_watches(watches: list[list[str]]) -> list[str]:
     return problems
 
 
+# B16: an id the parser cannot read is INVISIBLE. `so._DECISION_START_RE` / `_WATCH_START_RE`
+# are `^\*\*D\d` / `^\*\*W\d`, so `**D-a.**` or `**Wa.**` starts no entry: `_split_next` folds
+# it into the entry above as a continuation line (or drops it, if nothing is above), it never
+# reaches the orientation, and none of the checks in this file ever run on it. The live incident
+# was a session telling the user "one decision is yours (D-a in the brief)" -- a decision that
+# was then never shown again.
+#
+# The brief's pattern is `^\*\*D(?!\d)`, but that alone flags prose: a watch's continuation line
+# can legitimately open with a bolded word (`session_orientation.py` names atlas's W24, whose body
+# starts `**WORKOUT** (not a note)`, as the reason `_WATCH_START_RE` needs its digit). So a line
+# counts as a near-miss id only when it ALSO looks like an entry, either way:
+#   - id-shaped: at most a separator and two characters, then the `.` every real id carries
+#     (`**D-a.`, `**Da.`, `**D.`, `**W-1.`) -- `**WORKOUT**`, `**Why:**` don't qualify; or
+#   - field-shaped: the line carries the `·` field separator every real entry line has.
+_NEAR_MISS_ID_RE = re.compile(r"^\*\*([DW])(?!\d)[-_]?[A-Za-z0-9]{0,2}\.")
+_NEAR_MISS_ANY_RE = re.compile(r"^\*\*([DW])(?!\d)")
+
+
+def check_near_miss_ids(root: Path) -> list[str]:
+    """Lines under `## Decisions` / `## Watching` that look like an entry but whose id is not
+    `Dn` / `Wn`, by line number. Section tracking mirrors `so._split_next` exactly (a `## `
+    heading containing "watching" / "decision", `---` ends both), so a line is only reported in
+    the section the live parser would also put it in. Scanned through `bf._strip_fences` so a
+    fenced example of a bad id is not reported -- the parser would not read it either way.
+    """
+    try:
+        raw = (root / "NEXT.md").read_text(encoding="utf-8", errors="replace").splitlines()
+    except Exception:
+        return []
+    problems: list[str] = []
+    section = "queue"
+    for i, ln in enumerate(bf._strip_fences(raw), 1):
+        stripped = ln.strip()
+        if stripped == "---":
+            section = "footer"
+            continue
+        if stripped.startswith("## "):
+            low = stripped.lower()
+            section = ("watching" if "watching" in low else
+                       "decisions" if "decision" in low else "queue")
+            continue
+        want = {"decisions": "D", "watching": "W"}.get(section)
+        if not want:
+            continue
+        m = _NEAR_MISS_ANY_RE.match(stripped)
+        if not m or m.group(1) != want:
+            continue
+        if not (_NEAR_MISS_ID_RE.match(stripped) or "·" in stripped):
+            continue
+        kind = "decision" if want == "D" else "watch"
+        problems.append(
+            f"Line {i}: `{stripped[:60]}` under ## {'Decisions' if want == 'D' else 'Watching'} "
+            f"looks like a {kind} but its id is not {want}<number>, so the parser does not see "
+            f"it as an entry -- it never appears in the orientation and none of the checks above "
+            f"ran on it. Give it the next free integer id.")
+    return problems
+
+
 def _split_next_full(root: Path):
     """`session_orientation._split_next`, with its SessionStart relay cap lifted.
 
@@ -336,7 +394,8 @@ def validate(root: Path) -> tuple[bool, list[str], dict]:
     queue_lines, decisions, watches, _footer = _split_next_full(root)
     entries = _queue_entries(queue_lines)
     problems = (check_queue(entries) + check_watches(watches)
-                + check_duplicate_ids(watches, decisions))
+                + check_duplicate_ids(watches, decisions)
+                + check_near_miss_ids(root))
 
     counts = {"queue_items": len(entries), "watches": len(watches),
              "decisions": len(decisions), "problems": len(problems)}
@@ -344,7 +403,8 @@ def validate(root: Path) -> tuple[bool, list[str], dict]:
         return True, [f"NEXT.md validate: OK -- {len(entries)} queue item(s), "
                       f"{len(watches)} watch(es), {len(decisions)} decision(s), all carry "
                       "model, effort, attendance/mode (and, for watches, `added` + "
-                      "`check after` last), and no Wn/Dn used twice."], counts
+                      "`check after` last), no Wn/Dn used twice, and no entry-shaped line "
+                      "with an id the parser cannot read."], counts
 
     lines = [f"NEXT.md validate: {len(problems)} issue(s) across "
             f"{len(entries)} queue item(s), {len(watches)} watch(es) and "

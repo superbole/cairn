@@ -426,5 +426,66 @@ check("watch with an unknown backticked family reads as missing model",
 check("the model check does not bleed into effort (every item has one)",
       any("missing effort" in p for p in problems), False)
 
+print("\n22. B16 -- a malformed Dn/Wn id is reported by line number, not left invisible")
+NEAR_MISS = """# NEXT — fixture
+
+## Queue
+
+## Decisions
+
+**D1. A real decision** — answer: `here` · added `2026-08-09`
+**D-a. The live incident's shape** — answer: `here` · added `2026-09-08`
+**Da. No separator**
+**Decision pending on this** — answer: `here` · added `2026-09-08`
+
+## Watching
+
+**W1. A real watch** — `Opus 5` · effort `high` · `AFK/Auto` · added `2026-08-01` · check after `2026-09-01`
+**WORKOUT** (not a note) -- atlas W24's continuation line, must NOT be flagged
+**Why:** prose continuation, must NOT be flagged
+**Wa. Letter id** — `Opus 5` · effort `high` · `AFK/Auto` · added `2026-08-01` · check after `2026-09-01`
+
+```
+**D-b. fenced example, not structure**
+```
+
+---
+**D-c. in the footer, not the Decisions section**
+"""
+ok, lines, counts = vn.validate(write(NEAR_MISS))
+problems = problems_only(lines)
+near = [p for p in problems if "id is not" in p]
+check("not ok", ok, False)
+check("`**D-a.` reported with its line number (8)",
+      any(p.startswith("Line 8:") and "D-a." in p and "D<number>" in p for p in near), True)
+check("`**Da.` with no fields at all is still id-shaped, reported (line 9)",
+      any(p.startswith("Line 9:") for p in near), True)
+check("`**Decision pending...` carries `·` fields, reported (line 10)",
+      any(p.startswith("Line 10:") for p in near), True)
+check("`**Wa.` under Watching reported as a watch (line 17)",
+      any(p.startswith("Line 17:") and "W<number>" in p for p in near), True)
+check("`**WORKOUT**` continuation prose is NOT flagged",
+      any("WORKOUT" in p for p in near), False)
+check("`**Why:**` continuation prose is NOT flagged", any("Why:" in p for p in near), False)
+check("a fenced example is NOT flagged", any("D-b" in p for p in near), False)
+check("a line in the footer is NOT flagged", any("D-c" in p for p in near), False)
+check("the real D1 and W1 are NOT flagged", any("D1." in p or "W1." in p for p in near), False)
+check("exactly four near-misses", len(near), 4)
+
+print("\n23. B16 -- a D-shaped line under ## Watching is not a watch near-miss (and vice versa)")
+CROSS = """# NEXT — fixture
+
+## Decisions
+
+**Wa. a W-shape where decisions live**
+
+## Watching
+
+**Da. a D-shape where watches live**
+"""
+ok, lines, counts = vn.validate(write(CROSS))
+check("neither is reported -- each check only runs in its own section",
+      [p for p in problems_only(lines) if "id is not" in p], [])
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
