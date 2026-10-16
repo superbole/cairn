@@ -188,6 +188,13 @@ FETCH_TIMEOUT = 8        # seconds for the origin fetch — best effort, never f
 # the failure this whole section exists to avoid.
 STALE_WATCH_DAYS = 30
 
+
+def _is_stale(age: int | None) -> bool:
+    """The one staleness predicate: the watch and decision lists below and
+    `tools/validate_next.py`'s trigger report all ask this, so they cannot disagree at the
+    boundary day."""
+    return age is not None and age >= STALE_WATCH_DAYS
+
 # Everything after the `---` is echoed VERBATIM into the agent's context at every single
 # session start, so an unbounded footer is a recurring tax on every session in the project
 # forever. Measured 2026-08-15 in atlas: the footer had grown to 65 lines of session
@@ -306,9 +313,23 @@ def _is_here(machine_id: str, host: str) -> bool:
     substring (`ORG-LAPTOP1` contains `LAPTOP1`, `WORKSTATION` is its own). Comparing exactly would
     silently stop matching the day someone writes "check after `next session on LAPTOP1`" while
     the hostname is `ORG-LAPTOP1`, which is the normal case, not the edge case.
+
+    B18: `~/.claude/MACHINES.md` is consulted FIRST, because an id need not be a fragment of
+    its hostname (`BD` for a host named `BigDesk` is not), and the table is what maps one to
+    the other. It decides only when it knows both sides (`machine_identity.table_says_here`);
+    otherwise -- no table, this host not in it, an id it has never heard of -- the substring
+    match above still answers, since the table is filled in on some machines and not others.
+    Exact match was rejected for the reason in the first paragraph.
     """
     if not machine_id or not host:
         return False
+    if machine_identity is not None:
+        try:
+            verdict = machine_identity.table_says_here(machine_id, host)
+        except Exception:
+            verdict = None
+        if verdict is not None:
+            return verdict
     return machine_id.strip().lower() in host.strip().lower()
 
 
@@ -448,6 +469,25 @@ def _watch_trigger(entry: list[str]) -> tuple[str, str]:
     return ("date" if _DATE_RE.fullmatch(trigger) else "event"), trigger
 
 
+def _trigger_class(entry: list[str]) -> tuple[str, str, str]:
+    """(kind, trigger, machine_id) with kind 'date' | 'machine' | 'free' | 'none'.
+
+    B17 — the ONE place a watch's trigger is classified. `_sort_watches` decides DUE NOW from
+    this, and `tools/validate_next.py` reports it per watch, so the report can never disagree
+    with the live behaviour. Only 'date' and 'machine' can ever become DUE NOW; 'free' (and
+    'none') surfaces only on the STALE_WATCH_DAYS timer, which measures time since `added`.
+    Deliberately no more English than that — a guessed trigger that fires on the wrong session
+    has been judged worse than silence.
+    """
+    kind, trigger = _watch_trigger(entry)
+    if kind != "event":
+        return kind, trigger, ""
+    m = _MACHINE_TRIGGER_RE.match(trigger)
+    if m:
+        return "machine", trigger, m.group(1)
+    return "free", trigger, ""
+
+
 def _watch_title(entry: list[str]) -> str:
     """`W1. short title` — for the compact one-line forms, from either title shape."""
     m = _WATCH_TITLE_RE.match(entry[0].strip())
@@ -497,12 +537,11 @@ def _sort_watches(watches: list[list[str]], host: str = "") -> tuple[list, list,
     today = date.today().isoformat()
     due, pending, events = [], [], []
     for entry in watches:
-        kind, trigger = _watch_trigger(entry)
+        kind, trigger, machine = _trigger_class(entry)
         if kind == "date":
             (due if trigger <= today else pending).append((trigger, entry))
         else:
-            m = _MACHINE_TRIGGER_RE.match(trigger) if trigger else None
-            if m and host and _is_here(m.group(1), host):
+            if kind == "machine" and host and _is_here(machine, host):
                 due.append((trigger, entry))
             else:
                 # No parseable trigger, or a machine trigger that isn't this one, is treated
@@ -1367,7 +1406,7 @@ def main() -> None:
             if age is None:
                 undated += 1
                 tag = "  ⚠ no added date"
-            elif age >= STALE_WATCH_DAYS:
+            elif _is_stale(age):
                 stale += 1
                 tag = f"  ⚠ waiting {age}d"
             print(f"  {_decision_title(entry)} — answer: {_decision_answer(entry)}{tag}")
@@ -1422,7 +1461,7 @@ def main() -> None:
                 note = "⚠ no added date, waiting on"
             elif age == 0:
                 note = "added today, waiting on"
-            elif age >= STALE_WATCH_DAYS:
+            elif _is_stale(age):
                 stale += 1
                 note = f"⚠ waiting {age}d on"
             else:
