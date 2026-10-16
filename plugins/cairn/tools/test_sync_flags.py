@@ -715,5 +715,75 @@ check("the live pointer on the next line still fires",
 check("'prefixed' is not the word 'fixed' (word boundary)",
       bool(sb._CLOSING_TOKEN_RE.search("prefixed B46")), False)
 
+print("\n18. B72 — a pulled issue body can never be read back as file structure")
+cb = sb._contain_body
+check("`## 1.` sub-heading is demoted two levels",
+      cb("intro\n## 1. First\ntext"), "intro\n#### 1. First\ntext")
+check("`#` becomes `###`, `####` becomes `######`, `#####` and `######` cap at six",
+      cb("# a\n#### b\n##### c\n###### d"), "### a\n###### b\n###### c\n###### d")
+check("an empty heading line (`##` alone) is demoted too", cb("x\n##\ny"), "x\n####\ny")
+check("up to three leading spaces is still a heading, and keeps its indent",
+      cb("x\n   ## 2. Indented"), "x\n   #### 2. Indented")
+check("`#hashtag` and `#69` with no space are prose, untouched",
+      cb("#hashtag\n#69 is the issue"), "#hashtag\n#69 is the issue")
+check("a four-space-indented line is code, untouched", cb("x\n    ## code"), "x\n    ## code")
+check("a heading INSIDE a fence is quoted text and stays exactly as written",
+      cb("```\n## 1. quoted\n```\nafter"), "```\n## 1. quoted\n```\nafter")
+check("CRLF bodies (how GitHub stores them) are demoted and normalised to LF",
+      cb("a\r\n## 2. Second\r\nb\r\n"), "a\n#### 2. Second\nb")
+check("a quoted next-id marker no longer reads as a marker",
+      cb("see <!-- next-id: 999 --> here"), "see <!-- next-id (quoted): 999 --> here")
+check("...a marker inside a fence is left alone (the reader already ignores fenced text)",
+      cb("~~~\n<!-- next-id: 999 -->\n~~~"), "~~~\n<!-- next-id: 999 -->\n~~~")
+check("an unclosed ``` fence is closed with the same marker",
+      cb("text\n```\n## inside"), "text\n```\n## inside\n```")
+check("an unclosed ~~~ fence is closed with ~~~", cb("~~~\nx"), "~~~\nx\n~~~")
+check("a body with nothing structural comes back unchanged",
+      cb("please fix\n\n- a bullet\n"), "please fix\n\n- a bullet")
+check("an empty or missing body stays empty", (cb(""), cb(None)), ("", ""))
+
+print("18a. end to end: pull -> real write() -> parse(), the #69 incident shape")
+fix72 = Path(tempfile.mkdtemp())
+(fix72 / "BACKLOG.md").write_text(
+    "# BACKLOG — fixture\n<!-- next-id: 70 -->\n\n"
+    "## B70. Already here\n"
+    "`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-01` · issue `#60`\n\nbody\n",
+    encoding="utf-8")
+its72 = backlog_file.parse(fix72)
+remote72 = {i["number"]: i for i in issue_host.GitHubHost.normalise([
+    {"number": 69, "title": "Wrap: two findings", "author": {"login": "example-user"},
+     "labels": [], "body": "Intro.\r\n\r\n## 1. First finding\r\n\r\n  indented line\r\n\r\n"
+                           "## 2. Second finding\r\n\r\nsee <!-- next-id: 500 -->\r\n"},
+    {"number": 80, "title": "Unclosed fence", "author": {"login": "example-user"},
+     "labels": [], "body": "log:\n```\n## B3. pasted\n"},
+    {"number": 81, "title": "Pulled after the fence", "author": {"login": "example-user"},
+     "labels": [], "body": "plain"},
+])}
+saved72 = backlog_file._origin_floor
+backlog_file._origin_floor = lambda root, timeout=5: 0       # the fixture is not a git repo
+try:
+    log72 = sb.pull(fix72, its72, "example-user", remote72)
+    backlog_file.write(fix72, its72, "fixture")
+    after72 = backlog_file.parse(fix72)
+    floor72 = backlog_file.read_next_id_marker(fix72)
+    next72 = backlog_file.next_id(fix72)
+finally:
+    backlog_file._origin_floor = saved72
+check("three issues pulled", len(log72), 3)
+check("parse() sees exactly the four real items, no B1/B2 from the sub-headings",
+      [(i["n"], i["issue"]) for i in after72], [(70, 60), (71, 69), (72, 80), (73, 81)])
+check("nothing in the file is an unreadable item heading", backlog_file.unparsed_headings(fix72), [])
+check("the indented line between the sub-headings survives in B71's body",
+      "  indented line" in after72[1]["text"], True)
+check("the demoted sub-headings are still there, as `####`",
+      "#### 1. First finding" in after72[1]["text"]
+      and "#### 2. Second finding" in after72[1]["text"], True)
+check("the quoted next-id marker did not move the floor", floor72, 73)
+check("next_id() continues the series", next72, 74)
+check("the item pulled AFTER an unclosed fence is still parsed, with its own text",
+      after72[3]["title"] == "Pulled after the fence" and after72[3]["text"] == "plain", True)
+check("the fenced `## B3.` stays verbatim inside B72's body",
+      "## B3. pasted" in after72[2]["text"], True)
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)

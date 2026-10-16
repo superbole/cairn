@@ -52,6 +52,7 @@ sys.path.insert(0, str(HERE.parent / "hooks"))
 
 try:
     import backlog_file
+    import fence_scan
     import issue_host
     from reentry_state import project_root
 except Exception as exc:                                    # pragma: no cover
@@ -458,6 +459,50 @@ def push(host, items: list[dict], root: Path, repo: str,
     return log
 
 
+# An ATX heading: up to three spaces, one to six `#`, then whitespace or end of line.
+_HEADING_RE = re.compile(r"^( {0,3})(#{1,6})(?=[ \t]|$)")
+# The B75 floor marker's opening, so a quoted copy can be defused (see `_contain_body`).
+_MARKER_OPEN_RE = re.compile(r"<!--(\s*)next-id:")
+
+
+def _contain_body(text: str) -> str:
+    """An issue body made safe to append to `BACKLOG.md` as one item's text (B72).
+
+    A pulled body is written into the file verbatim, and the next sync PARSES it. Seen
+    2026-09-26: issue #69's body had `## 1. …` and `## 2. …` sub-headings, `_ITEM_RE` read them
+    as items 1 and 2 (the `B` is optional since B46), and the next sync filed both as new issues
+    under ids spent long ago. Three things in a body can be read as file structure, and each is
+    neutralised here, outside fenced blocks only (`parse()` already ignores fenced text, and
+    quoted code should stay as written):
+
+      - every heading is demoted by two levels (`#` -> `###`, `##` -> `####`, capped at six), so
+        nothing in a body sits at the `##` level items and `_ITEMISH_RE` live on;
+      - a `<!-- next-id: N -->` marker becomes `<!-- next-id (quoted): N -->`, which
+        `read_next_id_marker()` does not match, so a quoted marker cannot move the floor;
+      - an UNCLOSED fence gets its closing line. `_strip_fences()` fences an unclosed block to
+        EOF, so without this every item pulled after this one is invisible to `parse()`, and
+        the next `write()` would delete it without `unparsed_headings()` noticing.
+
+    Applied to every pulled body, the owner's own issues too: their headings break the parser
+    exactly the same way. Line endings become `\\n`, which is what `write()` emits anyway.
+    """
+    lines = (text or "").splitlines()
+    in_fence, unclosed_at = fence_scan.mask(lines)
+    out = []
+    for ln, fenced in zip(lines, in_fence):
+        if not fenced and not fence_scan.FENCE_RE.match(ln):
+            m = _HEADING_RE.match(ln)
+            if m:
+                level = min(len(m.group(2)) + 2, 6)
+                ln = m.group(1) + "#" * level + ln[m.end():]
+            ln = _MARKER_OPEN_RE.sub(r"<!--\1next-id (quoted):", ln)
+        out.append(ln)
+    if unclosed_at is not None:
+        opener = fence_scan.FENCE_RE.match(lines[unclosed_at - 1])
+        out.append(opener.group(1) if opener else "```")
+    return "\n".join(out).strip()
+
+
 def pull(root: Path, items: list[dict], owner: str,
          remote: dict[int, dict] | None = None,
          skip: set[int] | None = None,
@@ -492,7 +537,7 @@ def pull(root: Path, items: list[dict], owner: str,
             "queued": False,
             "inbound": inbound,
             "closed": None,
-            "text": (iss.get("body") or "").strip(),
+            "text": _contain_body(iss.get("body") or ""),   # B72: never raw into the file
             "body": [],
         })
         log.append(f"  · {'would pull' if dry else 'pulled'} #{num} into B{n}"
