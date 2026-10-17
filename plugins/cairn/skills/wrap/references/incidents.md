@@ -253,6 +253,15 @@ skill did this.
 this system was because you would give me a prompt to copy at the end of a session… We're kinda
 back there."* It has come back twice since.
 
+**The `Next:` line goes in a fence anyway (2026-09-26, B78).** They copied the close's *"Next: item
+1 — …"* line by hand to start the next session and asked for it in a copy box. That reads like the
+paste-ready prompt above and is not: the 2026-08-09 complaint was about a multi-line prompt that
+restated what is on disk, while this is one line whose every field is already in `NEXT.md`, and it is
+the thing they actually type. So the fence is allowed for exactly that one line. **The boundary is the
+line count**: a second line in the fence (a brief, a reminder, a list of steps) is the forbidden
+prompt coming back a third time. Rejected: leaving it unfenced (the copying was real work they did
+every session) and fencing the whole close (that is the prompt).
+
 **The stop-vs-continue rule (2026-08-22).** A wrap said *"good point to end the session here"* at
 **10% context used**, and they pushed back: *"how do you decide to make that recommendation? Our
 current used context is 101.8k tokens (10%). What do we carry and what does it cost to start a new
