@@ -257,10 +257,14 @@ back there."* It has come back twice since.
 1 — …"* line by hand to start the next session and asked for it in a copy box. That reads like the
 paste-ready prompt above and is not: the 2026-08-09 complaint was about a multi-line prompt that
 restated what is on disk, while this is one line whose every field is already in `NEXT.md`, and it is
-the thing they actually type. So the fence is allowed for exactly that one line. **The boundary is the
-line count**: a second line in the fence (a brief, a reminder, a list of steps) is the forbidden
-prompt coming back a third time. Rejected: leaving it unfenced (the copying was real work they did
-every session) and fencing the whole close (that is the prompt).
+the thing they actually type. So the fence is allowed for exactly that handle. **The boundary is the
+content, not the line count**: the fence carries `Next:`, item number, title, model, effort and
+attendance/mode, and nothing else. A brief link, an instruction or a list of steps is the forbidden
+prompt coming back a third time, whether it fits on one line or not; a second line is only the
+easiest symptom to spot. **The tag is `text`** because the app puts a Run button on shell-tagged
+blocks, and a handle is not a command. Rejected: leaving it unfenced (the copying was real work they
+did every session), fencing the whole close (that is the prompt), and line count as the boundary (a
+one-line prompt passes it; found by the scheduled firing's own self-review).
 
 **The stop-vs-continue rule (2026-08-22).** A wrap said *"good point to end the session here"* at
 **10% context used**, and they pushed back: *"how do you decide to make that recommendation? Our

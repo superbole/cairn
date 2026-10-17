@@ -617,11 +617,14 @@ shell, and bare `python` is missing on stock Linux — so always go through `hoo
      Next: item 1 — move the remaining repos. Sonnet, effort medium, AFK in Auto mode.
      ```
 
-     Never the model alone. **The fence holds that one line and nothing else** — no brief, no
-     instructions, no second line; the prose around it stays prose. If the next item is `HITL`, say
-     where it will stop in the sentence AFTER the fence, so they can judge whether they have the
-     attention for it today. If the Queue is empty there is no handle to copy: say so in prose, no
-     fence.
+     Never the model alone. **The fence holds the handle and nothing else**: `Next:`, the item
+     number, its title, model, effort and attendance/mode. No brief link, no instructions, no steps,
+     no second line; the prose around it stays prose. Tag the fence `text`, never a shell tag: the
+     app puts a Run button on shell blocks, and this line is not a command. Start the fence at the
+     left margin in chat, not at this list's indent. If the next item is `HITL`, say where it will
+     stop in the sentence AFTER the fence, so they can judge whether they have the attention for it
+     today. If no Queue item can be started (the Queue is empty, or every item is blocked) there is
+     no handle to copy: say so in prose, no fence.
    - **The session's name** (step 8b) — one short line.
    - **Whether to continue here or start a new session:**
 
@@ -652,8 +655,8 @@ shell, and bare `python` is missing on stock Linux — so always go through `hoo
    prompt to copy at the end of a session… We're kinda back there."* **The fenced `Next:` line above
    is not that prompt** — it is a one-line handle (item number, title, model, effort, attendance/mode)
    whose every field is already in `NEXT.md`, and it is what they copied by hand to re-enter until
-   they asked for the copy button (2026-09-26, B78). Anything longer than that one line in a fence is
-   the prompt this rule forbids.
+   they asked for the copy button (2026-09-26, B78). Anything in a fence beyond the handle's own
+   fields, on one line or several, is the prompt this rule forbids.
 
    Continue-or-new-session is the **only** part of the close deliberately not on disk: an action
    only they can take, not information they would need to recover.

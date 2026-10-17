@@ -9,12 +9,13 @@ a copy button). Step 9 also forbids a ready-to-copy PROMPT (removed 2026-08-09),
 boundary between the two, and this change's entire content is wording. A test that only checked
 "some fence appears" would pass against a skill that fences the whole close.
 
-WHAT THIS PINS. In `skills/wrap/SKILL.md` step 9: the example `Next:` line sits inside a fenced
-block that holds exactly one line; the skill says the fence holds that line and nothing else; the
-HITL stop point goes AFTER the fence; an empty Queue means no fence; the ready-to-copy prohibition
-is still there and now names the one-line handle as the exception. In
-`skills/wrap/references/incidents.md`: the B78 entry exists under "Step 9 -- the close" and keeps
-the 2026-08-09 entry it qualifies.
+WHAT THIS PINS. In `skills/wrap/SKILL.md` step 9: the example `Next:` line sits inside a `text`
+fence that holds exactly one line, and no other fence in step 9 holds more than one; the skill says
+the fence holds the handle's fields and nothing else (the boundary is content, not line count), why
+the tag is `text`, that the HITL stop point goes AFTER the fence, and that no startable item means
+no fence; the ready-to-copy prohibition is still there and names the handle as the exception. In
+`skills/wrap/references/incidents.md`: the B78 entry sits directly after the 2026-08-09 entry it
+qualifies, under "Step 9 -- the close", with its boundary, the tag's reason and the rejected options.
 
 Reads files only; touches no state and no `~/.claude`.
 """
@@ -70,19 +71,28 @@ print("\n1. the `Next:` example is fenced, as one line")
 check("exactly one fenced block in step 9 carries a `Next:` line", len(next_blocks), 1)
 if next_blocks:
     info, body = next_blocks[0]
-    check("that block holds exactly one line", len([b for b in body if b]), 1)
-    check("the line names model, effort and attendance/mode",
-          all(w in body[0] for w in ("Sonnet", "effort", "AFK", "mode")))
-    check("it is not tagged as a shell block (no Run button on a handle)",
-          info in ("", "text"))
+    lines = [b for b in body if b]
+    check("that block holds exactly one line", len(lines), 1)
+    check("the line names effort and attendance/mode",
+          bool(lines) and all(w in lines[0] for w in ("effort", "mode"))
+          and ("AFK" in lines[0] or "HITL" in lines[0]))
+    check("it is tagged `text`, not a shell block (no Run button on a handle)", info, "text")
+# The docstring's promise: a skill that fences a prompt ANYWHERE in the close must fail, not only
+# in the block that happens to start with `Next:`.
+check("every fenced block in step 9 holds at most one line (no fenced prompt elsewhere)",
+      [info for info, body in blocks if len([b for b in body if b]) > 1], [])
 
 print("\n2. the rule around the fence is stated, not just shown")
 flat = re.sub(r"\s+", " ", s9)
-check("the fence holds that one line and nothing else",
-      "The fence holds that one line and nothing else" in flat)
-check("the HITL stop point goes after the fence", "in the sentence AFTER the fence" in flat)
-check("an empty Queue gets no fence",
-      "If the Queue is empty there is no handle to copy: say so in prose, no fence" in flat)
+check("the fence holds the handle and nothing else",
+      "The fence holds the handle and nothing else" in flat)
+check("the boundary is content: no brief link, no instructions",
+      "No brief link, no instructions" in flat)
+check("the `text` tag is a written rule, with its reason",
+      "Tag the fence `text`, never a shell tag" in flat and "Run button" in flat)
+check("the HITL stop point goes after the fence", "AFTER the fence" in flat)
+check("no startable item gets no fence",
+      "no handle to copy" in flat and "every item is blocked" in flat)
 check("the close is still prose, not a labelled list", "never as a labelled list" in flat)
 
 print("\n3. the ready-to-copy prohibition survives, with the handle named as the exception")
@@ -90,17 +100,28 @@ check("the prohibition is still there", "Do NOT paste a ready-to-copy prompt int
 check("the 2026-08-09 quote is still there", "We're kinda back there" in flat)
 check("the fenced `Next:` line is said not to be that prompt",
       "The fenced `Next:` line above is not that prompt" in flat)
-check("more than one line in a fence is named as the forbidden prompt",
-      "Anything longer than that one line in a fence is the prompt this rule forbids" in flat)
+check("anything beyond the handle is named as the forbidden prompt, one line or several",
+      "beyond the handle's own fields, on one line or several, is the prompt this rule forbids"
+      in flat)
 
 print("\n4. the incident record carries the reason")
-close = INCIDENTS[INCIDENTS.index("## Step 9"):]
-close = close[:close.index("\n---")]
+start = INCIDENTS.find("## Step 9")
+check("the incidents file has a Step 9 section", start >= 0)
+close = INCIDENTS[start:] if start >= 0 else ""
+end = close.find("\n---")
+close = close[:end] if end >= 0 else close
 flat_i = re.sub(r"\s+", " ", close)
-check("the B78 entry is under Step 9", "B78" in close)
-check("it keeps the 2026-08-09 entry it qualifies", "**No paste-ready prompt.**" in close)
-check("it names the boundary: the line count", "The boundary is the line count" in flat_i)
-check("it names the rejected options", "Rejected:" in flat_i)
+paste = flat_i.find("**No paste-ready prompt.**")
+b78 = flat_i.find("**The `Next:` line goes in a fence anyway (2026-09-26, B78).**")
+stop = flat_i.find("**The stop-vs-continue rule")
+check("it keeps the 2026-08-09 entry it qualifies", paste >= 0)
+check("the B78 entry follows it directly, before the next entry",
+      0 <= paste < b78 and (stop < 0 or b78 < stop))
+check("it names the boundary: content, not line count",
+      "The boundary is the content, not the line count" in flat_i)
+check("it records why the tag is `text`", "The tag is `text`" in flat_i)
+check("it names the rejected options, line count among them",
+      "Rejected:" in flat_i and "line count as the boundary" in flat_i)
 
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
