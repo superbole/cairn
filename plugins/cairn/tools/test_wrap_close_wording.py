@@ -12,8 +12,9 @@ boundary between the two, and this change's entire content is wording. A test th
 WHAT THIS PINS. In `skills/wrap/SKILL.md` step 9: the example `Next:` line sits inside a `text`
 fence that holds exactly one line, and no other fence in step 9 carries any content; the skill says
 the fence holds the handle's fields and nothing else (the boundary is content, not line count), why
-the tag is `text`, that the HITL stop point goes AFTER the fence, and that no startable item means
-no fence; the ready-to-copy prohibition is still there and names the handle as the exception. In
+the tag is `text`, that the HITL stop point goes AFTER the fence, that the fence holds no steps
+and no second line, that the prose around it stays prose, that the model is never given alone, and
+that no startable item means no fence; the ready-to-copy prohibition is still there and names the handle as the exception. In
 `skills/wrap/references/incidents.md`: the B78 entry sits directly after the 2026-08-09 entry it
 qualifies, under "Step 9 -- the close", with its boundary, the tag's reason and the rejected options.
 
@@ -117,6 +118,9 @@ check("the fence holds the handle and nothing else",
       "The fence holds the handle and nothing else" in flat)
 check("the boundary is content: no brief link, no instructions",
       "No brief link, no instructions" in flat)
+check("no steps and no second line in the fence", "no steps, no second line" in flat)
+check("the prose around the fence stays prose", "the prose around it stays prose" in flat)
+check("never the model alone", "Never the model alone" in flat)
 check("the `text` tag is a written rule, with its reason",
       "Tag the fence `text`, never a shell tag" in flat and "Run button" in flat)
 check("the fence starts at the left margin, not the list's indent",
@@ -149,8 +153,25 @@ paste = flat_i.find("**No paste-ready prompt.**")
 b78 = flat_i.find("**The `Next:` line goes in a fence anyway (2026-09-26, B78).**")
 stop = flat_i.find("**The stop-vs-continue rule")
 check("it keeps the 2026-08-09 entry it qualifies", paste >= 0)
-check("the B78 entry follows it directly, before the next entry",
+check("the B78 entry follows it, before the next entry",
       0 <= paste < b78 and (stop < 0 or b78 < stop))
+
+
+# "Directly" means no other entry in between, and order alone cannot show that (the scheduled
+# review of 2bfe043). An entry is a paragraph opening with a bold lead, so look for a blank line
+# followed by `**` between the two, in the raw text where paragraph breaks still exist.
+def entry_between(text):
+    """True if another bold-lead paragraph sits between the 2026-08-09 entry and the B78 one."""
+    a = text.find("**No paste-ready prompt.**")
+    b = text.find("**The `Next:` line goes in a fence anyway")
+    return a < 0 or b < a or re.search(r"\n[ \t]*\n[ \t]*\*\*", text[a:b]) is not None
+
+
+check("the B78 entry follows it DIRECTLY: no other entry in between", entry_between(close), False)
+# Control: the check bites on an entry inserted between the two.
+wedge = close.replace("**The `Next:` line goes in a fence anyway",
+                      "**Some other rule.** Text.\n\n**The `Next:` line goes in a fence anyway", 1)
+check("control: an entry wedged between them is caught", entry_between(wedge), True)
 check("it names the boundary: content, not line count",
       "The boundary is the content, not the line count" in flat_i)
 check("it records why the tag is `text`", "The tag is `text`" in flat_i)
