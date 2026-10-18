@@ -48,13 +48,13 @@ def step9(text):
     return text[start:m.start()] if m else ""
 
 
-# The handle's shape: item number, a title, then model, effort and attendance/mode, and nothing
-# else. A line count alone cannot tell a handle from a one-line prompt (the incident note's own
-# reason for rejecting it), so the example's CONTENT is pinned too.
-HANDLE_RE = re.compile(
-    r"^Next: item \d+ — [^/\\`]+?\. (Haiku|Sonnet|Opus|Fable)[^,]*, effort (medium|high), "
-    r"(AFK|HITL) in (Auto|Manual|Accept Edits|Plan|Bypass) mode\.$")
-PROMPT_TELLS = re.compile(r"/|\\|\.md\b|`|\bthen\b|\bsteps?\b|\bread\b|\brun\b", re.I)
+# The example's CONTENT, pinned literally. A line count alone cannot tell a handle from a one-line
+# prompt (the incident note's own reason for rejecting it). A shape regex or a word blacklist only
+# moves that proxy one level up: a one-line prompt that avoids the words passes, and a real Queue
+# title (`NEXT.md`, `/cairn:next`, "dry-run") fails. This test can only ever see the skill's
+# example, never what an agent prints at wrap time, so the honest check is the example itself
+# (the scheduled review of 2ca0109).
+EXAMPLE = "Next: item 1 — move the remaining repos. Sonnet, effort medium, AFK in Auto mode."
 
 
 def fenced_blocks(text):
@@ -90,19 +90,8 @@ if next_blocks:
           bool(lines) and all(w in lines[0] for w in ("effort", "mode"))
           and ("AFK" in lines[0] or "HITL" in lines[0]))
     check("it is tagged `text`, not a shell block (no Run button on a handle)", info, "text")
-    check("its content is the handle's shape: item, title, model, effort, attendance/mode",
-          bool(lines) and bool(HANDLE_RE.match(lines[0])))
-    check("it carries no path, `.md` link, command or instruction (a one-line prompt fails)",
-          bool(lines) and not PROMPT_TELLS.search(lines[0]))
-# Control: the content guard must reject a one-line prompt dressed as a handle, or a pass above
-# says nothing (the scheduled review of 90120bd).
-_prompt = ("Next: item 1 — move repos; read briefs/x.md and do steps 1-4. "
-           "Sonnet, effort medium, AFK in Auto mode.")
-check("control: a one-line prompt in the handle's clothes is caught by the content guard",
-      bool(PROMPT_TELLS.search(_prompt)))
-check("control: a handle with a trailing instruction fails the shape",
-      bool(HANDLE_RE.match("Next: item 1 — move the repos. Sonnet, effort medium, "
-                           "AFK in Auto mode. Then push.")), False)
+    check("its content is exactly the handle example: item, title, model, effort, attendance/mode",
+          lines[0] if lines else None, EXAMPLE)
 # The docstring's promise: a skill that fences a prompt ANYWHERE in the close must fail, not only
 # in the block that happens to start with `Next:`.
 check("every fenced block in step 9 holds at most one line (no fenced prompt elsewhere)",
@@ -135,7 +124,10 @@ start = INCIDENTS.find("## Step 9")
 check("the incidents file has a Step 9 section", start >= 0)
 close = INCIDENTS[start:] if start >= 0 else ""
 end = close.find("\n---")
-close = close[:end] if end >= 0 else close
+# No closing `---` would widen the slice to the rest of the file, where a later section could
+# satisfy the checks below: report it, and check against nothing.
+check("the Step 9 section ends at a `---`", end >= 0)
+close = close[:end] if end >= 0 else ""
 flat_i = re.sub(r"\s+", " ", close)
 paste = flat_i.find("**No paste-ready prompt.**")
 b78 = flat_i.find("**The `Next:` line goes in a fence anyway (2026-09-26, B78).**")
