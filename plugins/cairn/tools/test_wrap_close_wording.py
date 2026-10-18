@@ -10,7 +10,7 @@ boundary between the two, and this change's entire content is wording. A test th
 "some fence appears" would pass against a skill that fences the whole close.
 
 WHAT THIS PINS. In `skills/wrap/SKILL.md` step 9: the example `Next:` line sits inside a `text`
-fence that holds exactly one line, and no other fence in step 9 holds more than one; the skill says
+fence that holds exactly one line, and no other fence in step 9 carries any content; the skill says
 the fence holds the handle's fields and nothing else (the boundary is content, not line count), why
 the tag is `text`, that the HITL stop point goes AFTER the fence, and that no startable item means
 no fence; the ready-to-copy prohibition is still there and names the handle as the exception. In
@@ -92,10 +92,24 @@ if next_blocks:
     check("it is tagged `text`, not a shell block (no Run button on a handle)", info, "text")
     check("its content is exactly the handle example: item, title, model, effort, attendance/mode",
           lines[0] if lines else None, EXAMPLE)
+
+
 # The docstring's promise: a skill that fences a prompt ANYWHERE in the close must fail, not only
-# in the block that happens to start with `Next:`.
-check("every fenced block in step 9 holds at most one line (no fenced prompt elsewhere)",
-      [info for info, body in blocks if len([b for b in body if b]) > 1], [])
+# in the block that happens to start with `Next:`. Checked by CONTENT, not line count: a line-count
+# guard is the proxy the incident note rejects, and a one-line fenced prompt passes it (the
+# scheduled review of f109663). Step 9's only fence is the handle example, so any other non-empty
+# fence there fails, and a deliberate new one has to be argued for here.
+def stray_fences(fences):
+    """Every non-empty fenced block whose content is not exactly the handle example."""
+    return [body for _, body in fences if [b for b in body if b] not in ([], [EXAMPLE])]
+
+
+check("no fenced block in step 9 carries anything but the handle example",
+      stray_fences(blocks), [])
+# Control: the guard bites on a ONE-line fenced prompt, the shape line count let through.
+probe = s9 + "\n\n   ```text\n   Run /cairn:next, open briefs/x.md, do steps 1-4, then push.\n   ```\n"
+check("control: a one-line fenced prompt elsewhere in step 9 is caught",
+      len(stray_fences(fenced_blocks(probe))), 1)
 
 print("\n2. the rule around the fence is stated, not just shown")
 flat = re.sub(r"\s+", " ", s9)
@@ -105,6 +119,8 @@ check("the boundary is content: no brief link, no instructions",
       "No brief link, no instructions" in flat)
 check("the `text` tag is a written rule, with its reason",
       "Tag the fence `text`, never a shell tag" in flat and "Run button" in flat)
+check("the fence starts at the left margin, not the list's indent",
+      "Start the fence at the left margin" in flat)
 check("the HITL stop point goes after the fence", "AFTER the fence" in flat)
 check("no startable item gets no fence",
       "no handle to copy" in flat and "every item is blocked" in flat)
