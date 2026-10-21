@@ -31,6 +31,8 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(sys.argv[1] if len(sys.argv) > 1
@@ -150,11 +152,13 @@ def main() -> int:
             day = 86400
             now = 1_800_000_000.0
 
-            def clone(config: Path, version: str | None, fetched_days_ago: float | None = 0,
-                      logs_days_ago: float | None = None, marketplace: str = "superbole",
+            def clone(config: Path, version: str | None, landed_days_ago: float = 2,
+                      marketplace: str = "superbole",
                       source: str | None = "./plugins/cairn") -> Path:
+                """A fake marketplace clone. `landed_days_ago` is the clone plugin.json's mtime:
+                Claude Code re-clones, so that is when this machine's copy last changed."""
                 root = config / "plugins" / "marketplaces" / marketplace
-                (root / ".git" / "logs").mkdir(parents=True, exist_ok=True)
+                (root / ".git").mkdir(parents=True, exist_ok=True)
                 if source is not None:
                     (root / ".claude-plugin").mkdir(parents=True, exist_ok=True)
                     (root / ".claude-plugin" / "marketplace.json").write_text(json.dumps(
@@ -166,34 +170,54 @@ def main() -> int:
                     manifest.parent.mkdir(parents=True, exist_ok=True)
                     manifest.write_text(json.dumps({"name": "cairn", "version": version}),
                                         encoding="utf-8")
-                for rel, ago in (("FETCH_HEAD", fetched_days_ago), ("logs/HEAD", logs_days_ago)):
-                    if ago is not None:
-                        p = root / ".git" / rel
-                        p.write_text("x\n", encoding="utf-8")
-                        os.utime(p, (now - ago * day, now - ago * day))
+                    os.utime(manifest, (now - landed_days_ago * day, now - landed_days_ago * day))
                 return root
 
+            def refresh(config: Path, days_ago: float | None, auto: bool | None = None,
+                        marketplace: str = "superbole") -> None:
+                """known_marketplaces.json in Claude Code's own shape (`lastUpdated` as ISO `Z`)."""
+                entry = {"source": {"source": "github", "repo": "superbole/cairn"}}
+                if days_ago is not None:
+                    stamp = datetime.fromtimestamp(now - days_ago * day, timezone.utc)
+                    entry["lastUpdated"] = stamp.isoformat(timespec="milliseconds").replace(
+                        "+00:00", "Z")
+                if auto is not None:
+                    entry["autoUpdate"] = auto
+                (config / "plugins" / "known_marketplaces.json").write_text(
+                    json.dumps({marketplace: entry}), encoding="utf-8")
+
             cfg = stage(tmp / "m1", "1.66.0", BLOCK.format(v="1.66.0"))
-            clone(cfg, "1.66.0", fetched_days_ago=1)
-            check("same version, fetched yesterday -> silent",
+            clone(cfg, "1.66.0")
+            refresh(cfg, 1)
+            check("same version, refreshed yesterday -> silent",
                   vd._marketplace_drift("superbole", "1.66.0", now), [])
 
             cfg = stage(tmp / "m2", "1.66.0", BLOCK.format(v="1.66.0"))
-            clone(cfg, "1.67.0", fetched_days_ago=1)
+            clone(cfg, "1.67.0", landed_days_ago=2)
             found = vd._marketplace_drift("superbole", "1.66.0", now)
-            check("clone NEWER than installed -> exactly one finding", len(found), 1)
+            check("clone NEWER than installed for 2 days -> exactly one finding", len(found), 1)
             contains("...names the installed version", found[0] if found else "", "v1.66.0")
             contains("...names the published version", found[0] if found else "", "v1.67.0")
             contains("...names the update command for THAT marketplace", found[0] if found else "",
                      "claude plugin update cairn@superbole")
 
+            print("\nB97 finding 2: a release gets RELEASE_GRACE_HOURS to install before it is 'stuck'")
+            cfg = stage(tmp / "g1", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.67.0", landed_days_ago=2 / 24)
+            check("clone newer, landed 2h ago (refresh ran after the hook) -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+            cfg = stage(tmp / "g2", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.67.0", landed_days_ago=(vd.RELEASE_GRACE_HOURS + 1) / 24)
+            check("clone newer, landed just past the grace -> one finding",
+                  len(vd._marketplace_drift("superbole", "1.66.0", now)), 1)
+
             cfg = stage(tmp / "m3", "1.67.0", BLOCK.format(v="1.67.0"))
-            clone(cfg, "1.66.0", fetched_days_ago=1)
-            check("installed NEWER than clone -> silent (a stale clone, the fetch check's job)",
+            clone(cfg, "1.66.0")
+            check("installed NEWER than clone -> silent (a stale clone, the stale check's job)",
                   vd._marketplace_drift("superbole", "1.67.0", now), [])
 
             cfg = stage(tmp / "m4", "1.66.0", BLOCK.format(v="1.66.0"))
-            clone(cfg, "1.67.0-rc1", fetched_days_ago=1)
+            clone(cfg, "1.67.0-rc1")
             check("a version that does not parse -> silent, never a guessed direction",
                   vd._marketplace_drift("superbole", "1.66.0", now), [])
 
@@ -203,45 +227,79 @@ def main() -> int:
             check("no marketplace name -> silent", vd._marketplace_drift(None, "1.66.0", now), [])
             check("a marketplace name with a path separator -> silent",
                   vd._marketplace_drift("../x", "1.66.0", now), [])
+            check("a marketplace name with a drive colon -> silent",
+                  vd._marketplace_drift("C:", "1.66.0", now), [])
             check("no installed version -> silent", vd._marketplace_drift("superbole", None, now), [])
 
+            print("\nB97 finding 1: staleness is `lastUpdated` with auto-update OFF, never git mtimes")
             cfg = stage(tmp / "m6", "1.66.0", BLOCK.format(v="1.66.0"))
-            clone(cfg, "1.66.0", fetched_days_ago=10)
+            clone(cfg, "1.66.0")
+            refresh(cfg, 10, auto=False)
             found = vd._marketplace_drift("superbole", "1.66.0", now)
-            check("fetched 10 days ago -> one stale-clone finding", len(found), 1)
+            check("auto-update off, refreshed 10 days ago -> one stale finding", len(found), 1)
             contains("...says how many days", found[0] if found else "", "10 days ago")
             contains("...names the marketplace refresh", found[0] if found else "",
                      "claude plugin marketplace update superbole")
+            cfg = stage(tmp / "m6b", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.66.0")
+            refresh(cfg, 10, auto=None)
+            check("no autoUpdate field counts as off -> fires",
+                  len(vd._marketplace_drift("superbole", "1.66.0", now)), 1)
 
             cfg = stage(tmp / "m7", "1.66.0", BLOCK.format(v="1.66.0"))
-            clone(cfg, "1.66.0", fetched_days_ago=vd.STALE_FETCH_DAYS - 0.5)
+            clone(cfg, "1.66.0")
+            refresh(cfg, vd.STALE_REFRESH_DAYS - 0.5, auto=False)
             check("just under the threshold -> silent",
                   vd._marketplace_drift("superbole", "1.66.0", now), [])
 
             cfg = stage(tmp / "m8", "1.66.0", BLOCK.format(v="1.66.0"))
-            clone(cfg, "1.66.0", fetched_days_ago=None, logs_days_ago=2)
-            check("fresh clone with no FETCH_HEAD: reflog mtime counts -> silent",
-                  vd._marketplace_drift("superbole", "1.66.0", now), [])
-            cfg = stage(tmp / "m9", "1.66.0", BLOCK.format(v="1.66.0"))
-            clone(cfg, "1.66.0", fetched_days_ago=30, logs_days_ago=1)
-            check("the NEWER of FETCH_HEAD and the reflog wins -> silent",
-                  vd._marketplace_drift("superbole", "1.66.0", now), [])
-            cfg = stage(tmp / "m10", "1.66.0", BLOCK.format(v="1.66.0"))
-            clone(cfg, "1.66.0", fetched_days_ago=None, logs_days_ago=None)
-            check("neither file -> no fetch time -> silent",
+            clone(cfg, "1.66.0")
+            refresh(cfg, 30, auto=True)
+            check("auto-update ON, back from 30 idle days (refresh comes after the hook) -> silent",
                   vd._marketplace_drift("superbole", "1.66.0", now), [])
 
+            cfg = stage(tmp / "m9", "1.66.0", BLOCK.format(v="1.66.0"))
+            root9 = clone(cfg, "1.66.0")
+            (root9 / ".git" / "logs").mkdir(parents=True, exist_ok=True)
+            for rel in ("logs/HEAD", "HEAD"):
+                (root9 / ".git" / rel).write_text("x\n", encoding="utf-8")
+                os.utime(root9 / ".git" / rel, (now - 30 * day, now - 30 * day))
+            refresh(cfg, 1, auto=False)
+            check("clone last CHANGED 30 days ago but refreshed yesterday (a quiet repo) -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+
+            cfg = stage(tmp / "m10", "1.66.0", BLOCK.format(v="1.66.0"))
+            clone(cfg, "1.66.0")
+            check("no known_marketplaces.json -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+            refresh(cfg, 10, auto=False, marketplace="someone-else")
+            check("marketplace not listed there -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+            refresh(cfg, None, auto=False)
+            check("no lastUpdated -> silent", vd._marketplace_drift("superbole", "1.66.0", now), [])
+            (cfg / "plugins" / "known_marketplaces.json").write_text(json.dumps(
+                {"superbole": {"lastUpdated": "last tuesday"}}), encoding="utf-8")
+            check("lastUpdated that does not parse -> silent",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+            (cfg / "plugins" / "known_marketplaces.json").write_text(json.dumps(
+                {"superbole": {"lastUpdated": "2026-10-21T08:47:31.395Z", "autoUpdate": True}}),
+                encoding="utf-8-sig")
+            check("Claude Code's real `...395Z` stamp parses, BOM and all",
+                  vd._marketplace_refresh("superbole"),
+                  (datetime(2026, 10, 21, 8, 47, 31, 395000, timezone.utc).timestamp(), True))
+
             cfg = stage(tmp / "m11", "1.66.0", BLOCK.format(v="1.66.0"))
-            clone(cfg, "1.67.0", fetched_days_ago=12)
+            clone(cfg, "1.67.0", landed_days_ago=12)
+            refresh(cfg, 12, auto=False)
             check("newer AND stale -> both findings",
                   len(vd._marketplace_drift("superbole", "1.66.0", now)), 2)
 
             cfg = stage(tmp / "m12", "1.66.0", BLOCK.format(v="1.66.0"))
-            clone(cfg, "1.67.0", fetched_days_ago=1, source="./elsewhere/cairn")
+            clone(cfg, "1.67.0", source="./elsewhere/cairn")
             contains("the plugin path comes from the clone's marketplace.json",
                      " ".join(vd._marketplace_drift("superbole", "1.66.0", now)), "v1.67.0")
             cfg = stage(tmp / "m13", "1.66.0", BLOCK.format(v="1.66.0"))
-            clone(cfg, "1.67.0", fetched_days_ago=1, source=None)
+            clone(cfg, "1.67.0", source=None)
             contains("no marketplace.json -> falls back to plugins/cairn",
                      " ".join(vd._marketplace_drift("superbole", "1.66.0", now)), "v1.67.0")
             cfg = stage(tmp / "m14", "1.66.0", BLOCK.format(v="1.66.0"))
@@ -249,20 +307,22 @@ def main() -> int:
             (outside / ".claude-plugin").mkdir(parents=True, exist_ok=True)
             (outside / ".claude-plugin" / "plugin.json").write_text(
                 json.dumps({"version": "9.9.9"}), encoding="utf-8")
-            clone(cfg, None, fetched_days_ago=1, source="../evil-target")
+            os.utime(outside / ".claude-plugin" / "plugin.json", (now - 2 * day, now - 2 * day))
+            clone(cfg, None, source="../evil-target")
             check("a source that climbs out of the clone is ignored -> silent",
                   vd._marketplace_drift("superbole", "1.66.0", now), [])
 
             cfg = stage(tmp / "m16", "1.66", BLOCK.format(v="1.66"))
-            clone(cfg, "1.66.0", fetched_days_ago=1)
+            clone(cfg, "1.66.0")
             check("`1.66` installed vs `1.66.0` published compare equal -> silent",
                   vd._marketplace_drift("superbole", "1.66", now), [])
 
             cfg = stage(tmp / "m17", "1.66.0", BLOCK.format(v="1.66.0"))
-            root17 = clone(cfg, None, fetched_days_ago=1)
+            root17 = clone(cfg, None)
             bom = root17 / "plugins" / "cairn" / ".claude-plugin" / "plugin.json"
             bom.parent.mkdir(parents=True, exist_ok=True)
             bom.write_text(json.dumps({"version": "1.67.0"}), encoding="utf-8-sig")
+            os.utime(bom, (now - 2 * day, now - 2 * day))
             contains("a BOM in the clone's plugin.json still reads (PowerShell 5.1 writes one)",
                      " ".join(vd._marketplace_drift("superbole", "1.66.0", now)), "v1.67.0")
             (cfg / "plugins" / "installed_plugins.json").write_text(json.dumps(
@@ -271,20 +331,32 @@ def main() -> int:
                   ("superbole", "1.66.0"))
 
             cfg = stage(tmp / "m18", "1.66.0", BLOCK.format(v="1.66.0"))
-            root18 = clone(cfg, None, fetched_days_ago=10)
+            clone(cfg, None)
+            refresh(cfg, 10, auto=False)
             found = vd._marketplace_drift("superbole", "1.66.0", now)
-            check("no readable manifest silences ONLY the version finding; stale fetch still fires",
+            check("no readable manifest silences ONLY the version finding; stale still fires",
                   len(found) == 1 and "10 days ago" in found[0], True)
 
             cfg = stage(tmp / "m19", "1.66.0", BLOCK.format(v="1.66.0"))
-            root19 = clone(cfg, "1.67.0", fetched_days_ago=1, source="./elsewhere/cairn")
+            root19 = clone(cfg, "1.67.0", source="./elsewhere/cairn")
             (root19 / ".claude-plugin" / "marketplace.json").write_text(json.dumps(
                 {"plugins": ["junk", {"name": "cairn", "source": "./elsewhere/cairn"}]}),
                 encoding="utf-8")
             contains("a non-dict entry before cairn in marketplace.json does not hide it",
                      " ".join(vd._marketplace_drift("superbole", "1.66.0", now)), "v1.67.0")
-            check("a marketplace name with a drive colon -> silent",
-                  vd._marketplace_drift("C:", "1.66.0", now), [])
+
+            print("\nB97 finding 8: a `source` that is not a path is silence, not the fallback")
+            cfg = stage(tmp / "m20", "1.66.0", BLOCK.format(v="1.66.0"))
+            root20 = clone(cfg, "1.67.0")            # a newer plugin.json at the fallback path
+            (root20 / ".claude-plugin" / "marketplace.json").write_text(json.dumps(
+                {"plugins": [{"name": "cairn",
+                              "source": {"source": "github", "repo": "someone/cairn"}}]}),
+                encoding="utf-8")
+            check("object-form source -> silent, the fallback copy is not the published one",
+                  vd._marketplace_drift("superbole", "1.66.0", now), [])
+            refresh(cfg, 10, auto=False)
+            check("...and the stale finding still fires on its own inputs",
+                  len(vd._marketplace_drift("superbole", "1.66.0", now)), 1)
 
             print("\nB97: the marketplace name is read from the installed `cairn@<name>` key")
             cfg = stage(tmp / "m15", None, BLOCK.format(v="1.66.0"))
@@ -293,14 +365,47 @@ def main() -> int:
             check("_installed_entry() -> (marketplace, version)", vd._installed_entry(),
                   ("other-mkt", "1.66.0"))
             check("_installed_version() unchanged", vd._installed_version(), "1.66.0")
-            # No fetch timestamps: check() reads the wall clock, and a fixed `now` would make the
-            # fetch finding appear here once the real date passes it.
-            clone(cfg, "1.70.0", fetched_days_ago=None, marketplace="other-mkt")
+            # check() reads the wall clock, so the clone's mtime is set against the real time.
+            root15 = clone(cfg, "1.70.0", marketplace="other-mkt")
+            real_ago = time.time() - 2 * day
+            os.utime(root15 / "plugins" / "cairn" / ".claude-plugin" / "plugin.json",
+                     (real_ago, real_ago))
             out = vd.check(tmp / "some-other-project")
             contains("check() reports it OUTSIDE the plugin repo (not scope-guarded)", out,
                      "cairn@other-mkt")
             check("...and the rules check stays silent alongside it", "OLD rules" in (out or ""),
                   False)
+
+            print("\nB97 finding 3: with several installs, user scope wins, then the highest version")
+
+            def installs(plugins: dict) -> tuple:
+                (cfg / "plugins" / "installed_plugins.json").write_text(
+                    json.dumps({"version": 2, "plugins": plugins}), encoding="utf-8")
+                return vd._installed_entry()
+
+            cfg = stage(tmp / "s1", None, None)
+            check("a stale project-scope install listed first does not speak for the machine",
+                  installs({"cairn@superbole": [
+                      {"scope": "project", "version": "1.50.0"},
+                      {"scope": "user", "version": "1.66.0"}]}), ("superbole", "1.66.0"))
+            check("a dev marketplace key listed first does not win over the user install",
+                  installs({"cairn@dev": [{"scope": "project", "version": "9.0.0"}],
+                            "cairn@superbole": [{"scope": "user", "version": "1.66.0"}]}),
+                  ("superbole", "1.66.0"))
+            check("no user-scope install -> the highest version, paired with ITS marketplace",
+                  installs({"cairn@a": [{"scope": "project", "version": "1.60.0"}],
+                            "cairn@b": [{"scope": "local", "version": "1.66.0"}]}),
+                  ("b", "1.66.0"))
+            check("two user installs -> the higher one",
+                  installs({"cairn@a": [{"scope": "user", "version": "1.60.0"}],
+                            "cairn@b": [{"scope": "user", "version": "1.61.0"}]}),
+                  ("b", "1.61.0"))
+            check("a non-dict install entry is skipped, not fatal",
+                  installs({"cairn@superbole": ["junk", {"scope": "user", "version": "1.66.0"}]}),
+                  ("superbole", "1.66.0"))
+            check("only other plugins -> (None, None)",
+                  installs({"other@some-mkt": [{"scope": "user", "version": "0.2.0"}]}),
+                  (None, None))
 
             print("\nEND-TO-END: a healthy machine stays silent")
             stage(tmp / "j", "1.31.0", BLOCK.format(v="1.31.0"))
