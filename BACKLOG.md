@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 107 -->
+<!-- next-id: 109 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1490,9 +1490,25 @@ Every commit on `main` and on the `afk/` branches is authored with a non-noreply
 - [ ] Check the other repos for the same address.
 
 ## B106. Expand AFK firings to every cairn-managed project
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-23`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-23` · issue `#129`
 **Not yet: wait until the open `afk/` PRs on this repo are cleared** (2026-10-23: #119, #125, #126). His plan, relayed
 via Cairn on 2026-10-23, with "nothing to do on that yet". Today `cairn-afk-firing` works only on `superbole/cairn`
 (Sat and Sun 09:00 under D51). A plan has to settle how one firing picks a project and how backlogs on other hosts
 (GitLab work repos) fit. Work-account runs must stay local NB5 scheduled tasks, because cloud routines can't reach
 GitHub there. It also has to keep the rule that an AFK PR touches no shared file.
+
+## B108. check_repos: say that the session's own project is not checked
+added `2026-10-23` · issue `#128`
+Follow-up from #118 (B19), from both scheduled reviews.
+
+The output never says that the session's own project is excluded, so a count like "3 touched, 2 rows" can't be reconciled. #118's own hypothesis names this as the cause of the original incident.
+
+Suggested fix: add a one-line footer, such as `(this session's project <name> is not checked here)`. Small related gaps: two named forms of one repo, and a named path that is also a `--known` root, both fold silently. `add()` already returns False in those cases, so they could be counted into the header note too.
+
+## B109. check_repos: same-name protection misses worktree and subdirectory sessions
+added `2026-10-23` · issue `#127`
+Follow-up from #118 (B19), from both scheduled reviews.
+
+`check_repos.py` matches the session's project by `project_root().resolve().name`. In a worktree session (for example `b19-xyz`) or a subdirectory session, a lone `cairn` row therefore stays bare, which is the original incident shape one level up.
+
+Suggested fix: resolve the project to its main repo toplevel name first, for example via `git rev-parse --git-common-dir`, and fall back to `project_root()`. This needs a decision on which root counts as "the project".
