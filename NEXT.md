@@ -46,7 +46,7 @@ Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier agains
 (CHANGELOG, version bump, `BACKLOG.md` closes, the Queue) and run `tools/sync_backlog.py`. Any lane-0
 bookkeeping PRs already merged cover part of this, so read `git log` first.
 Firings run on `cairn-afk-firing` (Scheduled sidebar on NB5), and each posts its summary to Discord. D51 (2026-10-23) moves it to
-`0 9 * * 6,0` (Sat and Sun 09:00), but the auto-mode classifier refused that change, so he sets it in the sidebar. Its prompt's D49 end date still has to go too.
+`0 9 * * 6,0` (Sat and Sun 09:00). He applied that and a prompt with no end date, and both were checked on disk 2026-10-23. First run: 2026-10-24.
 Since 2026-10-02 (D49) a firing takes one new item and first reviews up to 2 open PRs, leaving a
 `Scheduled review` comment on each: start from those. Not disabled after 2026-10-20: D51 keeps it. #102, #103, #105 and #118 are merged, and #104 is closed.
 Open now: #119 (B97, review findings done in the attended pass 2026-10-21, see its body), #125 (B72), #126 (B78).
