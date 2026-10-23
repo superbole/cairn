@@ -3,6 +3,24 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-23 — PR #119 (B97) finished; unwrapped commits caught up; local cleanup (no version)
+
+`superbole/claude-inbox` #13: PR #119 finished in an attended session, pushed to its branch (`7c1fe9b`), CI
+green, not merged. A live look showed the marketplace clone is shallow and re-cloned, with no `FETCH_HEAD`,
+and that the refresh only bumps `lastUpdated` in `known_marketplaces.json`, about 3 minutes after the
+SessionStart hook. So staleness now reads `lastUpdated`, auto-update off only. "Never installed" waits 24h,
+installs rank user scope then version, and a non-string `source` is silent. Review findings 4, 5 and 9 are
+in the PR body. B97 stays open until the merge, which also brings its CHANGELOG line and the version bump.
+Caught up here, never wrapped at the time: the seven commits after the 2026-10-04 wrap. They are `main`'s
+red tests (#121, including a `docs/decisions.md` machine name), Linux fixes for `check_credentials` and
+`check_exits` (#122), CI no longer ignoring Ubuntu failures (#123), the `.claude/scripts` ask rules and their
+test (#124, `5d9aea6`, `0bbde95`), and the `sh` Discord allow rule (`93775e5`).
+Local cleanup only, nothing on origin: removed the clean worktree `.claude/worktrees/b18` and deleted 8
+local branches, each with no commit missing from origin. Those are `inbox9-b18` and the `afk/` branches of
+B13 (#102), B16 (#103), B18 (#105), B19 (#118), `fix-red-tests` (#121) and `ubuntu-ci-counts` (#122), all
+merged. The eighth, `wip/afk-review-119-dfe4b2c`, was patch-equal to the pushed `4eeecc2`. Kept: B97, B72
+and B78 (PRs #119, #125 and #126, all open).
+
 ## 2026-10-04 — `body` installed in the AFK prompt; scheduled runs can read their prompts (no version)
 
 Queue item 1 (`superbole/claude-inbox` #2) is done. The 13:41 `claude-inbox-check` run found all three

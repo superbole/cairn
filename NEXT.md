@@ -47,9 +47,11 @@ Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier agains
 bookkeeping PRs already merged cover part of this, so read `git log` first.
 Firings run Sun/Wed/Fri 17:00 (`cairn-afk-firing`, Scheduled sidebar on NB5); each posts its summary to Discord.
 Since 2026-10-02 (D49) a firing takes one new item and first reviews up to 2 open PRs, leaving a
-`Scheduled review` comment on each: start from those. It stops itself after 2026-10-20; disable it then. PRs #103,
-#104 and #105 (B16, B17, B18) all touch `validate_next.py` `validate()`: the second and third to merge need a
-small rebase, and B16's rules-text half plus the version bump are left for the attended pass (see #103).
+`Scheduled review` comment on each: start from those. It was meant to stop after 2026-10-20, but on 2026-10-23 it was
+still enabled (last run 2026-10-21 17:05). Disabling it is his call. #102, #103, #105 and #118 are merged, and #104 is closed.
+Open now: #119 (B97, review findings done in the attended pass 2026-10-21, see its body), #125 (B72), #126 (B78).
+Once #119 merges, add one rollout watch per workspace hub (its finding 4: a machine with auto-update off only gets
+the new check by a manual update). B16's rules-text half plus the version bump are still left for this pass (see #103).
 
 **W10. A `cairn-afk-firing` run finishes without stalling on a permission prompt** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-10-02` · check after `2026-10-05`
 The 2026-10-02 firing did its work (#118, reviews on #102 and #103, the Discord post), but it sat 14h on the Discord
