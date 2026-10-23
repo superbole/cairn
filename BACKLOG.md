@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 105 -->
+<!-- next-id: 107 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1488,3 +1488,11 @@ Every commit on `main` and on the `afk/` branches is authored with a non-noreply
 - [ ] Re-clone or hard-reset every machine that has a copy.
 - [ ] Ask GitHub Support to purge cached commit pages and PR refs, as was done for W9.
 - [ ] Check the other repos for the same address.
+
+## B106. Expand AFK firings to every cairn-managed project
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-23`
+**Not yet: wait until the open `afk/` PRs on this repo are cleared** (2026-10-23: #119, #125, #126). His plan, relayed
+via Cairn on 2026-10-23, with "nothing to do on that yet". Today `cairn-afk-firing` works only on `superbole/cairn`
+(Sat and Sun 09:00 under D51). A plan has to settle how one firing picks a project and how backlogs on other hosts
+(GitLab work repos) fit. Work-account runs must stay local NB5 scheduled tasks, because cloud routines can't reach
+GitHub there. It also has to keep the rule that an AFK PR touches no shared file.

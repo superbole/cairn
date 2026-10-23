@@ -20,6 +20,8 @@ local branches, each with no commit missing from origin. Those are `inbox9-b18` 
 B13 (#102), B16 (#103), B18 (#105), B19 (#118), `fix-red-tests` (#121) and `ubuntu-ci-counts` (#122), all
 merged. The eighth, `wip/afk-review-119-dfe4b2c`, was patch-equal to the pushed `4eeecc2`. Kept: B97, B72
 and B78 (PRs #119, #125 and #126, all open).
+D51: `cairn-afk-firing` stays, moving to Sat and Sun 09:00. The classifier refused the schedule change, so he
+sets it, and the prompt's end date has to go too. The planned expansion of AFK to every project is B106.
 
 ## 2026-10-04 — `body` installed in the AFK prompt; scheduled runs can read their prompts (no version)
 

@@ -45,10 +45,10 @@ Every NB5 cairn firing leaves PRs on `superbole/cairn`. Read each dossier agains
 (`docs/running-a-batch.md`, "The review surface"), merge or close each one, then do one bookkeeping pass
 (CHANGELOG, version bump, `BACKLOG.md` closes, the Queue) and run `tools/sync_backlog.py`. Any lane-0
 bookkeeping PRs already merged cover part of this, so read `git log` first.
-Firings run Sun/Wed/Fri 17:00 (`cairn-afk-firing`, Scheduled sidebar on NB5); each posts its summary to Discord.
+Firings run on `cairn-afk-firing` (Scheduled sidebar on NB5), and each posts its summary to Discord. D51 (2026-10-23) moves it to
+`0 9 * * 6,0` (Sat and Sun 09:00), but the auto-mode classifier refused that change, so he sets it in the sidebar. Its prompt's D49 end date still has to go too.
 Since 2026-10-02 (D49) a firing takes one new item and first reviews up to 2 open PRs, leaving a
-`Scheduled review` comment on each: start from those. It was meant to stop after 2026-10-20, but on 2026-10-23 it was
-still enabled (last run 2026-10-21 17:05). Disabling it is his call. #102, #103, #105 and #118 are merged, and #104 is closed.
+`Scheduled review` comment on each: start from those. Not disabled after 2026-10-20: D51 keeps it. #102, #103, #105 and #118 are merged, and #104 is closed.
 Open now: #119 (B97, review findings done in the attended pass 2026-10-21, see its body), #125 (B72), #126 (B78).
 Once #119 merges, add one rollout watch per workspace hub (its finding 4: a machine with auto-update off only gets
 the new check by a manual update). B16's rules-text half plus the version bump are still left for this pass (see #103).
