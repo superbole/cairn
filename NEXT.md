@@ -53,10 +53,11 @@ Open now: #119 (B97, review findings done in the attended pass 2026-10-21, see i
 Once #119 merges, add one rollout watch per workspace hub (its finding 4: a machine with auto-update off only gets
 the new check by a manual update). B16's rules-text half plus the version bump are still left for this pass (see #103).
 
-**W10. A `cairn-afk-firing` run finishes without stalling on a permission prompt** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-10-02` · check after `2026-10-05`
+**W10. A `cairn-afk-firing` run finishes without stalling on a permission prompt** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-10-02` · check after `2026-10-24`
 The 2026-10-02 firing did its work (#118, reviews on #102 and #103, the Discord post), but it sat 14h on the Discord
-post's `powershell.exe … notify-discord.ps1` command. That allow rule was committed 2026-10-04 (`270fa88`). So check the
-2026-10-04 17:05 run: `list_task_runs` should show it ending within about an hour. `~/.claude/permission-prompts.jsonl`
+post's `powershell.exe … notify-discord.ps1` command. The run no longer posts at all: it writes `summary.md` and the
+`CairnPostSummary` Windows task posts it, so the notify-discord allow rules were removed 2026-10-23 (`b2af803`). So check
+the first Sat/Sun 09:00 run (2026-10-24): `list_task_runs` should show it ending within about an hour. `~/.claude/permission-prompts.jsonl`
 (the `PermissionRequest` logger, in place since 2026-10-04) should have no line from its `session_id`. Any line there
 names the exact command that asked: add an allow rule for it or change the prompt. Delete this watch once a run is clean.
 

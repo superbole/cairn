@@ -3,6 +3,15 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-23 — notify-discord leftovers removed (no version)
+
+`superbole/claude-inbox` #12, the tidy-up after the Discord post moved to the `CairnPostSummary` Windows task.
+Removed the three notify-discord allow rules from `.claude/settings.json` (`b2af803`; the two `.ps1` forms and
+the `.sh` one). `test_settings_rules.py` and `test_settings_drift.py` both pass. Outside the repo: the
+`cairn-afk-firing` prompt's section 1 is now headed "Run summary", and its duplicate "Last step" paragraph
+had already gone in the D51 rewrite. `~/.claude/scripts/notify-discord.sh` went to the Recycle Bin, and
+`notify-discord.ps1` stays for `post-summary-if-new.ps1`. W10 now checks the first Sat/Sun run (2026-10-24).
+
 ## 2026-10-23 — PR #119 (B97) finished; unwrapped commits caught up; local cleanup (no version)
 
 `superbole/claude-inbox` #13: PR #119 finished in an attended session, pushed to its branch (`7c1fe9b`), CI
