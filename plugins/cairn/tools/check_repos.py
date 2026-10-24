@@ -53,8 +53,8 @@ name the paths -- never to silence.
 **B67 -- an empty record can also mean this SCRIPT asked the wrong project.**
 `project_root()` (`reentry_state.py`) trusts `CLAUDE_PROJECT_DIR` when set, and that env
 var is reliably exported to genuine hook processes but not necessarily to this script
-when it is run as a plain Bash step (as `wrap/SKILL.md` step 1a does: `python
-"$CLAUDE_PLUGIN_ROOT/tools/check_repos.py"`, no cwd or env pinned). If the session's
+when it is run as a plain Bash step (as `wrap/SKILL.md` step 1a does: `sh
+"<root>/hooks/run.sh" tools/check_repos.py`, no cwd or env pinned). If the session's
 shell has `cd`'d elsewhere since the hook that recorded a write last ran -- e.g. into the
 very sibling repo it just edited -- and `CLAUDE_PROJECT_DIR` is absent, `project_root()`
 used to fall straight to `cwd()` and silently check that OTHER project's record instead:

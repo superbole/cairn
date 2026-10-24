@@ -143,8 +143,8 @@ so it is also the one-liner to run by hand in a new repo:
 python plugins/cairn/tools/label_backlog.py --ensure -R owner/repo
 ```
 
-(from a clone of this repo; inside a wrap the skill resolves it as
-`$CLAUDE_PLUGIN_ROOT/tools/label_backlog.py`. Don't glob the plugin cache — every installed
+(from a clone of this repo; inside a wrap the skill runs it as
+`sh "<root>/hooks/run.sh" tools/label_backlog.py --ensure`. Don't glob the plugin cache — every installed
 version is still on disk and the glob would match all of them.)
 
 **Every one of these tools takes `--help`, and since v1.26.0 that is all it does.** They used to

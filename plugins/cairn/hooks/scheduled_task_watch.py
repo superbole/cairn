@@ -18,8 +18,9 @@ working). Two opposite outcomes, one appearance.
 
 The fix is a heartbeat, written by the task itself, before anything else it does and after the
 last thing it does: `record_start()`/`record_finish()` below, driven by the `--start`/`--finish`
-CLI so a scheduled task's own prompt can call this file directly (`$CLAUDE_PLUGIN_ROOT` is set
-in a normal session the same way it is for `wrap_receipt.py --check`, per `rules/CLAUDE.md`).
+CLI so a scheduled task's own prompt can call this file directly, the same way as
+`wrap_receipt.py --check`: `sh "<root>/hooks/run.sh" scheduled_task_watch.py --start ...`
+(`$CLAUDE_PLUGIN_ROOT` is NOT set in the agent's shell; `rules/CLAUDE.md` defines `<root>`).
 `stalled_runs()` then answers the one question nothing could answer before: is a run in flight
 right now, and since when. **Wiring the actual `--start`/`--finish` calls into the scheduled
 task's own prompt template (`docs/running-a-batch.md` or wherever such a prompt is authored) is

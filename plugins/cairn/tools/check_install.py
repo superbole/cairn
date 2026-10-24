@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Has the plugin update actually landed on THIS machine? (v1.39.0, B41 + B49)
 
-    python plugins/cairn/tools/check_install.py          # from anywhere
+    python3 plugins/cairn/tools/check_install.py         # from anywhere (`py -3` on Windows;
+                                                         # stock Linux has no bare `python`)
 
 WHY THIS EXISTS
 ---------------

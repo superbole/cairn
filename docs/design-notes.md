@@ -89,8 +89,12 @@ changelog as finished; a day later all 8 trees were still uncommitted. Nothing h
 *"Recommendation accepted"* had been written down as if it meant *"change committed."*
 
 ```bash
-python "$CLAUDE_PLUGIN_ROOT/tools/check_repos.py"
+sh "<root>/hooks/run.sh" tools/check_repos.py
 ```
+
+(`<root>` is the cairn plugin root, two directories above a skill's base directory.
+`$CLAUDE_PLUGIN_ROOT` is not set in the agent's shell, and stock Linux has no bare `python`, which
+is why the call goes through `run.sh`.)
 
 One line per repo — uncommitted count, unpushed count, and the paths — with a nonzero exit if
 anything has not landed.
@@ -110,7 +114,7 @@ have caught 2026-08-25**, which wrote through `Bash`. It catches the ordinary sh
 — a subagent editing a sibling repo — and named paths still work, as an *addition* to the record:
 
 ```bash
-python "$CLAUDE_PLUGIN_ROOT/tools/check_repos.py" ~/Projects/lighthouse
+sh "<root>/hooks/run.sh" tools/check_repos.py ~/Projects/lighthouse
 ```
 
 A repo the recorder found that you did **not** name is called out in the header; that is the eighth

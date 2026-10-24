@@ -136,5 +136,33 @@ else:
         check(f"{rel(f)}:{i} {arg} -> {want}",
               bool(m) and m.group(1).replace("\\", "/").endswith("/" + want), True)
 
+print("\n5. outside the skills: no doc or plugin script builds a path from $CLAUDE_PLUGIN_ROOT (B68)")
+# B59 rewrote the skills and rules; copies of the old command survived in docs and docstrings,
+# where an agent reads them and runs them. The one legitimate use is the hooks.json shape,
+# `sh "${CLAUDE_PLUGIN_ROOT}/hooks/run.sh" ...`: hook processes DO get the variable. Dated
+# evidence quotes old commands verbatim on purpose and is left out: `docs/review/` (not globbed,
+# only top-level `docs/*.md` is), `docs/decisions.md` (the rationale record), `test_*.py`
+# (fixtures), and `references/*.md` (as above). README.md is not scanned here.
+STALE_ROOT = re.compile(r"""\$\{?CLAUDE_PLUGIN_ROOT\}?["']?/(?!hooks/run\.sh\b)""")
+check("the pattern catches the old forms, and spares the hooks.json shape",
+      ([s for s in selftest[:3] + ["`$CLAUDE_PLUGIN_ROOT/tools/label_backlog.py`"]
+        if not STALE_ROOT.search(s)],
+       bool(STALE_ROOT.search('sh "${CLAUDE_PLUGIN_ROOT}/hooks/run.sh" archive_guard.py'))),
+      ([], False))
+REPO = PLUGIN.parents[1]
+DATED = {"docs/decisions.md"}
+wider = sorted(p for p in list(PLUGIN.glob("tools/*.py")) + list(PLUGIN.glob("hooks/*.py"))
+               if not p.name.startswith("test_"))
+if (REPO / "docs").is_dir():
+    wider += sorted(p for p in (REPO / "docs").glob("*.md")
+                    if p.relative_to(REPO).as_posix() not in DATED)
+else:
+    print("  SKIP docs/: not present (an installed copy ships the plugin only)")
+check("the wider scan found files to read", len(wider) > 10, True)
+for f in wider:
+    lines = f.read_text(encoding="utf-8").splitlines()
+    hits = [f"{i}: {l.strip()}" for i, l in enumerate(lines, 1) if STALE_ROOT.search(l)]
+    check(f"{f.relative_to(REPO).as_posix()}: no `$CLAUDE_PLUGIN_ROOT/...` path", hits, [])
+
 print(f"\n{'ALL PASS' if not fails else 'FAILED: ' + repr(fails)}")
 sys.exit(1 if fails else 0)
