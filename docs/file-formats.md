@@ -140,10 +140,10 @@ than falling back to an unlabelled issue. `/cairn:wrap` runs this first, and it 
 so it is also the one-liner to run by hand in a new repo:
 
 ```bash
-python plugins/cairn/tools/label_backlog.py --ensure -R owner/repo
+python3 plugins/cairn/tools/label_backlog.py --ensure -R owner/repo
 ```
 
-(from a clone of this repo; inside a wrap the skill runs it as
+(from a clone of this repo, `py -3` in place of `python3` on Windows; inside a wrap the skill runs it as
 `sh "<root>/hooks/run.sh" tools/label_backlog.py --ensure`. Don't glob the plugin cache — every installed
 version is still on disk and the glob would match all of them.)
 

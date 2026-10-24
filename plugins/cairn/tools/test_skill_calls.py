@@ -138,17 +138,32 @@ else:
 
 print("\n5. outside the skills: no doc or plugin script builds a path from $CLAUDE_PLUGIN_ROOT (B68)")
 # B59 rewrote the skills and rules; copies of the old command survived in docs and docstrings,
-# where an agent reads them and runs them. The one legitimate use is the hooks.json shape,
-# `sh "${CLAUDE_PLUGIN_ROOT}/hooks/run.sh" ...`: hook processes DO get the variable. Dated
-# evidence quotes old commands verbatim on purpose and is left out: `docs/review/` (not globbed,
-# only top-level `docs/*.md` is), `docs/decisions.md` (the rationale record), `test_*.py`
-# (fixtures), and `references/*.md` (as above). README.md is not scanned here.
-STALE_ROOT = re.compile(r"""\$\{?CLAUDE_PLUGIN_ROOT\}?["']?/(?!hooks/run\.sh\b)""")
-check("the pattern catches the old forms, and spares the hooks.json shape",
-      ([s for s in selftest[:3] + ["`$CLAUDE_PLUGIN_ROOT/tools/label_backlog.py`"]
-        if not STALE_ROOT.search(s)],
-       bool(STALE_ROOT.search('sh "${CLAUDE_PLUGIN_ROOT}/hooks/run.sh" archive_guard.py'))),
-      ([], False))
+# where an agent reads them and runs them. hooks.json legitimately says
+# `sh "${CLAUDE_PLUGIN_ROOT}/hooks/run.sh" ...` (hook processes DO get the variable), but it is not
+# scanned here, so nothing is exempt: in a doc or script that same line is the agent-shell bug
+# again, and it is the likeliest way back, since the correct form also ends in `hooks/run.sh`.
+# Dated evidence quotes old commands verbatim on purpose and is left out: `docs/review/` (not
+# globbed, only top-level `docs/*.md` is), `docs/decisions.md` (the rationale record), `test_*.py`
+# (fixtures), `references/*.md` (as above), and `briefs/` (item inputs that quote the bug they
+# describe). README.md is a shared file and is not scanned here. A new doc that has to quote the
+# old form as history goes into DATED below.
+# Not caught: a variable not followed by a path separator (`cd "$CLAUDE_PLUGIN_ROOT"`), or prose
+# claiming the variable is set. The pattern covers `$X/`, `${X}/`, `${X:-...}/`, `$env:X\`, `%X%\`.
+STALE_ROOT = re.compile(
+    r"""(?:\$\{?|\$env:|%)CLAUDE_PLUGIN_ROOT(?::[-?=+][^}]*)?\}?%?["']?[/\\]""")
+check("the pattern catches the old forms, the run.sh form, and Windows and default spellings",
+      [s for s in selftest[:3] + [
+          "`$CLAUDE_PLUGIN_ROOT/tools/label_backlog.py`",
+          'sh "$CLAUDE_PLUGIN_ROOT/hooks/run.sh" wrap_receipt.py --check',
+          'sh "${CLAUDE_PLUGIN_ROOT}/hooks/run.sh" archive_guard.py',
+          'python "$CLAUDE_PLUGIN_ROOT\\tools\\check_repos.py"',
+          '& py -3 "$env:CLAUDE_PLUGIN_ROOT/tools/x.py"',
+          r"%CLAUDE_PLUGIN_ROOT%\tools\x.py",
+          "${CLAUDE_PLUGIN_ROOT:-.}/tools/x.py"]
+       if not STALE_ROOT.search(s)], [])
+check("the pattern does not flag the variable named in prose",
+      [s for s in ["`$CLAUDE_PLUGIN_ROOT` is unset in your shell", "CLAUDE_PLUGIN_ROOT and",
+                   "`<root>/hooks/run.sh`"] if STALE_ROOT.search(s)], [])
 REPO = PLUGIN.parents[1]
 DATED = {"docs/decisions.md"}
 wider = sorted(p for p in list(PLUGIN.glob("tools/*.py")) + list(PLUGIN.glob("hooks/*.py"))
@@ -160,7 +175,11 @@ else:
     print("  SKIP docs/: not present (an installed copy ships the plugin only)")
 check("the wider scan found files to read", len(wider) > 10, True)
 for f in wider:
-    lines = f.read_text(encoding="utf-8").splitlines()
+    try:
+        lines = f.read_text(encoding="utf-8").splitlines()
+    except UnicodeDecodeError as e:          # a file saved in another encoding: a FAIL, not a crash
+        check(f"{f.relative_to(REPO).as_posix()}: reads as UTF-8", str(e), "")
+        continue
     hits = [f"{i}: {l.strip()}" for i, l in enumerate(lines, 1) if STALE_ROOT.search(l)]
     check(f"{f.relative_to(REPO).as_posix()}: no `$CLAUDE_PLUGIN_ROOT/...` path", hits, [])
 

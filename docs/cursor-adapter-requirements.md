@@ -286,8 +286,10 @@ Scripts that take a path argument, or that fall back to cwd, work. Any instructi
 builds a path from that variable does not, unless the adapter sets that env (Cursor
 `sessionStart` can return `env`; **unverified it sticks for subsequent Shell tool calls**,
 documented only as "available to all subsequent hook executions"). Since B59 (v1.63.0) the
-skills say `sh "<root>/hooks/run.sh" tools/...` instead, with `<root>` resolved from the skill's
-base directory, so they no longer depend on it.
+skills say `sh "<root>/hooks/run.sh" tools/...` instead, with `<root>` defined as two directories
+above the skill's base directory, so they no longer need the variable. Whether Cursor's shell has
+`sh` and gives the agent a skill base directory to resolve `<root>` from is a separate question,
+not checked here.
 
 **Reusable verbatim, with caveats:**
 
