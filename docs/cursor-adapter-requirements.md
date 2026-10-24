@@ -282,11 +282,14 @@ scripts with no Claude Code environment.
 | `tools/sync_backlog.py` | **Not run** (would talk to the issue host). Plain Python, but it now goes through `issue_host.py`, which shells out to `gh` or `glab`. |
 
 `CLAUDE_PLUGIN_ROOT` and `CLAUDE_PROJECT_DIR` are **empty** in the Cursor Agent shell.
-Scripts that take a path argument, or that fall back to cwd, work. Skill instructions
-that still say `python "$CLAUDE_PLUGIN_ROOT/tools/..." ` do not, unless the adapter
-sets that env (Cursor `sessionStart` can return `env`; **unverified it sticks for
-subsequent Shell tool calls**, documented only as "available to all subsequent hook
-executions").
+Scripts that take a path argument, or that fall back to cwd, work. Any instruction that
+builds a path from that variable does not, unless the adapter sets that env (Cursor
+`sessionStart` can return `env`; **unverified it sticks for subsequent Shell tool calls**,
+documented only as "available to all subsequent hook executions"). Since B59 (v1.63.0) the
+skills say `sh "<root>/hooks/run.sh" tools/...` instead, with `<root>` defined as two directories
+above the skill's base directory, so they no longer need the variable. Whether Cursor's shell has
+`sh` and gives the agent a skill base directory to resolve `<root>` from is a separate question,
+not checked here.
 
 **Reusable verbatim, with caveats:**
 
