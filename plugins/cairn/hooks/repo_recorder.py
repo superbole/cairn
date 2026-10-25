@@ -102,8 +102,10 @@ _CD_RE = re.compile(
 # `$HOME/x` and every `origin/main`, so sixty such words used up `MAX_CANDIDATES` before
 # a real absolute target later in the same command was reached. `~/x` is its own shape
 # now (`record()` expands it); it used to be matched as `/x`, a different path.
+# A one-letter flag glued to the path (`-I/abs`, `-o/abs`, `-C/abs`) still starts one.
 _PATH_RE = re.compile(r'(?:(?<![\w])[A-Za-z]:[\\/][^\s"\'<>|&;]+)'
                       r'|(?:(?<![\w.~$%}\-/])/[^\s"\'<>|&;]+)'
+                      r'|(?:(?<=-[A-Za-z])/[^\s"\'<>|&;]+)'
                       r'|(?:(?<![\w.])~[\\/][^\s"\'<>|&;]+)')
 
 # A token roughly as the shell splits it (B82): a quoted run, or a run of anything that is
@@ -153,9 +155,16 @@ def bash_candidate_paths(command: str, cwd=None) -> list[str]:
     this is a regex, not a shell parser, and is meant to be over-inclusive: every caller
     here re-checks each candidate against real git state before recording.
 
-    With `cwd` (B82), relative tokens are joined onto it and onto each `cd` target in the
-    command, in order, so `cd ..\\a; Add-Content b\\y.txt` tries `<cwd>/../a/b/y.txt` too.
-    Without it, only absolute shapes are returned and a `cd` target comes back as written."""
+    With `cwd` (B82), relative tokens are joined onto it and onto EVERY `cd` target in the
+    command (a `cd` that comes after the token too: over-inclusive, never ordered), so
+    `cd ..\\a; Add-Content b\\y.txt` tries `<cwd>/../a/b/y.txt`. A relative `cd` target is
+    walked from the previous one. Without `cwd`, a relative `cd` target comes back as
+    written and is not joined; an absolute one still becomes a join base.
+
+    Each stage has its own `MAX_CANDIDATES`: cd targets, absolute shapes, relative tokens.
+    Within the relative stage, tokens starting `..` go first, because they are the only
+    ones that can leave the directory they are joined to -- sixty `src/x.py` words in a
+    `git add` must not crowd out the `..\\other\\y.txt` after them."""
     if not command:
         return []
     text = command[:MAX_COMMAND_CHARS]
@@ -174,7 +183,7 @@ def bash_candidate_paths(command: str, cwd=None) -> list[str]:
         else:
             found.append(target)
             if len(found) >= MAX_CANDIDATES:
-                return found
+                break
             continue
         if current is None:
             continue
@@ -182,26 +191,30 @@ def bash_candidate_paths(command: str, cwd=None) -> list[str]:
         if current not in dirs:
             dirs.append(current)
         if len(found) >= MAX_CANDIDATES:
-            return found
+            break
+    absolute = 0
     for m in _PATH_RE.finditer(text):
         found.append(m.group(0))
-        if len(found) >= MAX_CANDIDATES:
-            return found
-    # Relative tokens get their own cap, so a command full of `origin/main`-shaped words
-    # cannot crowd out the absolute ones above.
+        absolute += 1
+        if absolute >= MAX_CANDIDATES:
+            break
+    if not dirs:
+        return found
+    rels = []
+    for m in _TOKEN_RE.finditer(text):
+        if m.start() in cd_starts:           # already walked as a `cd` target above
+            continue
+        rel = _relative_shape(m.group(0))
+        if rel is not None and rel not in rels:
+            rels.append(rel)
+    rels.sort(key=lambda r: not r.startswith(".."))   # stable: `..` first, order kept
     relative = 0
-    if dirs:
-        for m in _TOKEN_RE.finditer(text):
-            if m.start() in cd_starts:       # already walked as a `cd` target above
-                continue
-            rel = _relative_shape(m.group(0))
-            if rel is None:
-                continue
-            for d in dirs:
-                found.append(str(d / rel))
-                relative += 1
-                if relative >= MAX_CANDIDATES:
-                    return found
+    for rel in rels:
+        for d in dirs:
+            found.append(str(d / rel))
+            relative += 1
+            if relative >= MAX_CANDIDATES:
+                return found
     return found
 
 

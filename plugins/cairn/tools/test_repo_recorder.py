@@ -384,10 +384,16 @@ shell(r'Set-Content "..\b82 h\y.txt" hi', "b82-6", tool="PowerShell")
 check("a quoted relative path with a space in it", "b82 h" in repos(since=0), True)
 
 repo82("b82f")
-shell("git show HEAD:../b82f/x.txt; echo $X/../b82f/y; curl https://h/../b82f/z; "
-      "echo %Y%/../b82f/w", "b82-7")
-check("`rev:path`, `$VAR/..`, `%VAR%/..` and a URL are not paths: nothing recorded",
+# Each input would resolve to `<base>/b82f/...` if its first segment were taken literally,
+# so these fail if the `:`/`$`/`%` refusal is removed (the review's finding B).
+shell("git show HEAD:x/../../b82f/x.txt; echo $X/../../b82f/y; "
+      "echo %Y%/../../b82f/w", "b82-7")
+check("`rev:path`, `$VAR/..` and `%VAR%/..` are not paths: nothing recorded",
       "b82f" in repos(since=0), False)
+check("...and the same shape WITHOUT the marker would be recorded (the control)",
+      any(c.replace("\\", "/").endswith("/b82f/y")
+          for c in __import__("repo_recorder").bash_candidate_paths(
+              "echo X/../../b82f/y", cwd=str(root))), True)
 
 before82 = len(touched_repos.read_records(root))
 shell("git log origin/main; sed -i s/a/b/ notes.txt docs/x.md ./sub/y.txt", "b82-8")
@@ -413,6 +419,21 @@ check("`/x` is no longer matched in the middle of `../x`, `$HOME/x` or `a/b`",
 check("absolute shapes that start a token still match",
       repo_recorder.bash_candidate_paths('cat /a/b "/c d" --out=/e C:\\f\\g ~/h'),
       ["/a/b", "/c", "/e", "C:\\f\\g", "~/h"])
+repo82("b82j")
+shell("git add " + " ".join("src/f%d.py" % i for i in range(60))
+      + r"; Add-Content ..\b82j\y.txt hi", "b82-10", tool="PowerShell")
+check("sixty `src/x.py` words cannot crowd out a later `..\\x` (the review's finding A)",
+      "b82j" in repos(since=0), True)
+check("a `..` token is tried even when the absolute stage hit its cap",
+      any(c.replace("\\", "/").endswith("/p/../o/y") for c in
+          repo_recorder.bash_candidate_paths(" ".join(["/a/b"] * 40) + " ../o/y",
+                                             cwd="/p")), True)
+check("an absolute path glued to a one-letter flag still matches (the review's finding C)",
+      repo_recorder.bash_candidate_paths("gcc -I/abs/inc tar -C/abs/dir"),
+      ["/abs/inc", "/abs/dir"])
+check("with no cwd, an absolute `cd` still becomes a join base (the stated contract)",
+      [Path(g).as_posix() for g in repo_recorder.bash_candidate_paths("cd /r && touch a/b")],
+      ["/r", "/r", "/r/a/b"])                # cd stage, then absolute stage, then relative
 check("a bare file name is never a candidate",
       repo_recorder.bash_candidate_paths("touch notes.txt", cwd="/p/proj"), [])
 
