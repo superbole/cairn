@@ -64,6 +64,8 @@ print("\n1. the recorder writes nothing to the agent's context, ever")
 p = fire(sibling / "a.txt")
 check("stdout empty", p.stdout, "")
 check("exit 0", p.returncode, 0)
+check("and nothing on stderr either (a SyntaxError in the hook would show here)",
+      p.stderr, "")
 
 print("\n2. what is and is not recorded")
 check("a sibling repo IS recorded", repos(since=0), ["sibling"])
@@ -340,6 +342,79 @@ check("a named path NOT in the record adds no such note",
 check("...and is still checked, as a row of its own",
       any(ln.startswith(("  [!!] named19 --", "  [ok] named19 --"))
           for ln in only19.stdout.splitlines()), True)
+
+print("\n14. B82 -- a shell write that names its target by a RELATIVE path is recorded")
+def repo82(*parts):
+    d = base.joinpath(*parts)
+    d.mkdir(parents=True)
+    subprocess.run(("git", "init", "-q"), cwd=d, capture_output=True, **NW)
+    return d
+
+def shell(command, session, tool="Bash", **extra):
+    return fire(root / "unused.txt", session=session, tool=tool,
+                tool_input={"command": command}, **extra)
+
+repo82("b82a")
+shell(r"Add-Content ..\b82a\y.txt -Value hi", "b82-1", tool="PowerShell")
+check("the live incident shape: `Add-Content ..\\x\\y.txt` (PowerShell, backslashes)",
+      "b82a" in repos(since=0), True)
+
+repo82("b82b")
+shell("echo hi > ../b82b/y.txt", "b82-2")
+check("a redirect to `../x/y.txt` (Bash)", "b82b" in repos(since=0), True)
+
+repo82("outer82", "b82d")                 # `outer82` itself is NOT a repo
+shell(r"cd ..\outer82; Set-Content b82d\y.txt hi", "b82-3", tool="PowerShell")
+check("a relative token after a relative `cd` resolves from the cd target",
+      "b82d" in repos(since=0), True)
+check("...and the non-repo cd target itself is not recorded",
+      "outer82" in repos(since=0), False)
+
+repo82("b82e")
+shell("cp a.txt ../b82e/a.txt", "b82-4", cwd="")
+check("an empty `cwd` (what Cursor sends) falls back to the project root",
+      "b82e" in repos(since=0), True)
+
+repo82("b82g")
+shell("tool --out=../b82g/report.txt", "b82-5")
+check("a `--flag=../x/y` value", "b82g" in repos(since=0), True)
+
+repo82("b82 h")
+shell(r'Set-Content "..\b82 h\y.txt" hi', "b82-6", tool="PowerShell")
+check("a quoted relative path with a space in it", "b82 h" in repos(since=0), True)
+
+repo82("b82f")
+shell("git show HEAD:../b82f/x.txt; echo $X/../b82f/y; curl https://h/../b82f/z; "
+      "echo %Y%/../b82f/w", "b82-7")
+check("`rev:path`, `$VAR/..`, `%VAR%/..` and a URL are not paths: nothing recorded",
+      "b82f" in repos(since=0), False)
+
+before82 = len(touched_repos.read_records(root))
+shell("git log origin/main; sed -i s/a/b/ notes.txt docs/x.md ./sub/y.txt", "b82-8")
+check("relative writes INSIDE the project add nothing (it is not a foreign write)",
+      len(touched_repos.read_records(root)), before82)
+
+repo82("b82i")
+shell(" ".join(["a/b"] * 60) + " > %s" % (base / "b82i" / "y.txt"), "b82-9")
+check("sixty relative-looking words cannot crowd out an absolute target",
+      "b82i" in repos(since=0), True)
+
+import repo_recorder                                                    # noqa: E402
+check("without a cwd, no relative join is tried (the old contract)",
+      repo_recorder.bash_candidate_paths("echo hi > ../x/y"), [])
+check("a relative `cd` with no cwd still comes back as written",
+      repo_recorder.bash_candidate_paths("cd ../x && ls"), ["../x"])
+got82 = repo_recorder.bash_candidate_paths("cd ../x; touch y/z.txt", cwd="/p/proj")
+check("with a cwd, the cd target and the token are joined in order",
+      [Path(g).as_posix() for g in got82],
+      ["/p/proj/../x", "/p/proj/y/z.txt", "/p/proj/../x/y/z.txt"])
+check("`/x` is no longer matched in the middle of `../x`, `$HOME/x` or `a/b`",
+      repo_recorder.bash_candidate_paths("cat ../x $HOME/y a/b"), [])
+check("absolute shapes that start a token still match",
+      repo_recorder.bash_candidate_paths('cat /a/b "/c d" --out=/e C:\\f\\g ~/h'),
+      ["/a/b", "/c", "/e", "C:\\f\\g", "~/h"])
+check("a bare file name is never a candidate",
+      repo_recorder.bash_candidate_paths("touch notes.txt", cwd="/p/proj"), [])
 
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
