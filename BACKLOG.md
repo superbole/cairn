@@ -85,117 +85,6 @@ fields line gets best-effort parse and silent normalisation.
 compare tokens to be emitted against tokens read, and if a recognised field would disappear, refuse
 and name the item. A rewrite that loses a field must never be reported as a change count.
 
-## B13. `sync_backlog.py` filed an issue without writing its number back, then re-imported it as a phantom
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-09` · issue `#11` · closed `2026-10-26`
-Was `agent-reentry` B136 (migrated 2026-09-23). **Found live, and it corrupted the file it synced.**
-(1) An item with no `issue` field was synced: `· filed #129`. (2) **The number never reached the
-file** — a later exact-match `Edit` of the fields line would have failed had `· issue #129` been
-appended. (3) The work was done and the item marked `closed`. (4) The next sync printed `· dropped
-(closed, never synced)` — **dropping the row without closing #129**. (5) In the same run it saw an
-open issue absent from the file and `· pulled #129 into` a new id — re-importing the item's own issue
-as new work, with the pre-fix body and a mangled fields line.
-**Net: an OPEN issue for shipped work, the closure record deleted, and a phantom live item.** Every
-printed line was accurate about what it did; none revealed that file and host had diverged.
-
-**Conditional, and that is measured:** in the repair run the next item's number *did* land on disk.
-The run that lost it did nothing but file (no close, no pull); runs where it survived also rewrote
-the file for another reason. **Suspect a file-only path that skips the write, or a writeback
-overwritten by a later `render()`.** Reproduce with a fixture: fresh item, one sync whose only action
-is a file, assert the `issue` field is on disk.
-**The `closed, never synced` branch needs its own fix regardless:** "never filed" and "filed, number
-lost" have identical file signatures and the drop is only safe for the first. Match by title against
-open issues before dropping, or refuse and say so. **Also:** the orphan-pointer check exempts lines
-carrying `closed|shipped|dropped`, and the lines it flagged said **`fixed`** — a closing word it does
-not know (same narrow-vocabulary shape as B15).
-
-## B16. A malformed decision id is INVISIBLE, and nothing warns
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-08` · issue `#14` · closed `2026-10-26`
-Was `agent-reentry` B130 (migrated 2026-09-23). **Live incident:** a session in another project wrote
-*"one decision is yours before I build anything (D-a in the brief)"*. The parser is
-`_DECISION_START_RE = ^\*\*D\d`, so `**D-a.**` and `**Da.**` match nothing — verified against the
-module. The row never appears in the orientation's decisions block, `validate_next.py` never checks
-it (no missing `answer:`/`added`/duplicate check), and the user is told a decision is blocking the
-work and then **never shown it again** — a thing to remember wearing the appearance of being tracked.
-
-**Cause:** the numbering vacuum in `## Decisions` D30 — no stated rule for where an open decision's
-number comes from, so an agent fearing a collision reaches for a non-integer label.
-**Fix, two halves; the second matters more:** (1) say the rule (an open decision takes the next
-integer from the rationale record's counter — D30's recommendation); (2) **warn on the near-miss**:
-`validate_next.py` reports lines under `## Decisions` matching `^\*\*D(?!\d)` and under `## Watching`
-matching `^\*\*W(?!\d)`, by line number. Without (2), fixing (1) changes nothing for the next agent
-that invents a label. Consider whether B16/B17/B18 are one "did this file parse the way you think?"
-report rather than three warnings.
-
-**D29 and D30 answered 2026-09-25** (`docs/decisions.md`): backlog ids stay integers (a split takes
-the next id and names its parent), and a repo has one D-number sequence shared by open and answered
-decisions, with no prefix. That makes fix (1) concrete: state D30's rule in `rules/CLAUDE.md`'s
-`## Decisions` shape (*"an open decision takes the next number after the highest in the rationale
-record, and keeps it when answered"*) — a rules-text change, so it needs a version bump. Fix (2)'s
-near-miss warning should also catch a letter-suffixed backlog heading (`## B2b.`), which D29 now
-says is always a mistake. **Billing codes are not ids** — see B55, whose content stays private.
-
-## B17. A watch trigger has exactly TWO evaluable forms; everything else is prose on a timer
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-08` · issue `#15` · closed `2026-10-26`
-Was `agent-reentry` B129 (migrated 2026-09-23). **Measured across a portfolio 2026-09-08: 3 of 8
-watches (38%) carried a trigger the system cannot evaluate.** `check after` understands a
-`YYYY-MM-DD` date and `[the] next session on <machine>` (v1.53.1). Anything else never becomes
-`DUE NOW`; only the 30-day staleness flag surfaces it, which measures time since `added` — *nobody
-has looked*, never *the trigger fired*. One of the three was written hours after the machine-trigger
-matcher was fixed, by the same session, and was inert on arrival; the operator caught it in four
-words (*"I don't see W7 yet"*).
-
-**Tempting and wrong:** teach the parser more English (`when X ships`) — a wrong guess makes a watch
-DUE on the wrong session, worse than silence.
-**Build instead:** `validate_next.py` reports per watch whether the trigger is a date, a machine gate,
-or **free text that only surfaces on the staleness timer**. Then, for the unexpressible ones:
-(1) attach a date floor as the review point (cheapest; applies to W1 and W2 in this repo today);
-(2) turn the condition into a check — W1 and W2 are really *pending verifications of shipped
-features* and might deserve their own list; (3) mark timer-only explicitly, only with (1).
-**Do not** reword inert watches into machine gates — a false `DUE NOW` has repeatedly been judged
-worse than silence.
-
-## B18. A short machine id only works as a SUBSTRING of the hostname; `MACHINES.md` is not consulted
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-08` · issue `#16` · closed `2026-10-26`
-Was `agent-reentry` B128 (migrated 2026-09-23). The operator proposed a two-letter id for a machine
-whose hostname is one CamelCase word (say `BigDesk` → `BD`). Measured before answering: it **would
-silently never fire.** `_is_here()` (`session_orientation.py`) is case-insensitive substring
-containment against the live hostname:
-
-    _is_here('BD', 'BigDesk') -> False    _is_here('Big', 'BigDesk') -> True    _is_here('DESK', 'BigDesk') -> True
-
-An unmatched machine trigger falls to the free-text branch and renders as "not actionable yet" on
-the very machine where it is due; it validates clean. **`MACHINES.md` exists to map hostname → id
-and the watch matcher does not read it** — `machine_identity.check()` loads it in the same function
-for the `run on <id>` annotation, so the lookup is adjacent and unused. `_is_here`'s docstring states
-the assumption honestly; the short id breaks it.
-
-**Fix:** consult `MACHINES.md` first, fall back to containment (it is populated on one machine only —
-see B41 — so lookup-only would break every working trigger elsewhere). Then **warn on an id matching
-neither** a `MACHINES.md` row nor the current host. **Rejected:** "just use the substring" (makes the
-id a function of hostname spelling; the fix becomes something to remember), and exact match
-(`ORG-LAPTOP1` containing `LAPTOP1` is the normal case).
-
-## B19. `check_repos.py` collapses two repos that share a basename, and names only the basename
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-16` · issue `#17` · closed `2026-10-26`
-Was `agent-reentry` B142 (migrated 2026-09-23). Found during a wrap, at the step whose whole job is to
-stop a CHANGELOG claiming work landed somewhere it did not. A session wrote to three repos: two under
-`~/Projects` (one named `cairn`), and a private config clone *also* named `cairn` under
-`~/.claude-private/`, outside the recorder's view. Naming the third explicitly:
-
-    python tools/check_repos.py ~/.claude-private/cairn
-    -> 2 repo(s) checked -- all clean and pushed (1 found by the recorder, not named)
-         [ok] cairn -- clean, nothing unpushed
-         [ok] workspace -- clean, nothing unpushed
-
-**Three roots in, two out**, and the named path was folded into the recorded one. `record["name"]`
-is `resolved.name`, so the line reads `[ok] cairn` either way — a clean result on the wrong repo is
-indistinguishable from one on the right. Exit 0; the header arithmetic is the only tell and nothing
-checks it. **Ruled out:** path format (`--no-recorded` resolves both MSYS and Windows forms
-correctly) and `known_roots()`'s dedupe (keys on the full lowered path); the collision is in merging
-*named* with *recorded*. **Fix:** dedupe on the resolved absolute path, and print a path whenever two
-entries would render identically — the existing `"%s (in %s)"` branch proves it can. Consider always
-printing the resolved root. (The wrap that found it verified the third repo by hand.)
-
 ## B20. The disclosure checker cannot see gitignored files, and every `.pyc` embeds the username
 `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-09` · issue `#18`
 Was `agent-reentry` B140 (migrated 2026-09-23). Running the tests creates `__pycache__/`, and **every
@@ -1002,18 +891,6 @@ file, both the dry run and the real run went ahead and filed an issue for the se
 the host before anything flags it. **Add to the fix:** `sync_backlog.py` refuses, the same way it refuses
 unparseable headings, when `duplicates()` is non-empty, before any host call.
 
-## B68. The old `python "$CLAUDE_PLUGIN_ROOT/…"` command form survives outside the skills
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-26` · issue `#66` · closed `2026-10-26`
-B59 (v1.63.0, D35) rewrote every call site in `skills/*/SKILL.md` and `rules/CLAUDE.md`, and
-`tools/test_skill_calls.py` pins those two places only. Lane B listed the copies it did not own:
-`plugins/cairn/tools/check_repos.py:56-57` (a docstring quoting the old wrap step-1a command),
-`docs/design-notes.md:91,112`, and `docs/cursor-adapter-requirements.md:286`. The README's
-`check_install.py` row also tells the user to run `python plugins/cairn/tools/check_install.py`,
-which fails on stock Linux. Rewrite them to the `sh "<root>/hooks/run.sh" …` form (the README one is
-for a human, so `python3`/`py` alternatives are fine there). Leave `skills/*/references/incidents.md`
-alone: it quotes history verbatim on purpose. Consider widening `test_skill_calls.py` to `docs/` with
-an allow-list for dated evidence.
-
 ## B71. Wrap: act on sync_backlog dangling-citation warnings inline; prefer gh/glab for cross-repo backlog items
 added `2026-09-26` · issue `#69`
 Two related findings from an ai-coach wrap session (2026-09-26), both about how an agent
@@ -1063,23 +940,6 @@ actual plugin development — editing rules/skills/hooks, which needs a real che
 
 This issue itself was filed this way, from the ai-coach session that found it, as a live
 instance of the proposed rule.
-
-## B72. An inbound issue whose body has `## N.` headings becomes extra backlog items
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#72` · closed `2026-10-26`
-**Seen 2026-09-26.** `sync_backlog.py` pulled issue #69 in as B71, and that issue's body has two
-sub-headings, `## 1. …` and `## 2. …`. On the next sync, `backlog_file._ITEM_RE`
-(`^##\s+B?(\d+)\.\s+(.+?)\s*$`, where the `B` is optional) read them as items **1** and **2**. It
-rewrote them as `## B1.` and `## B2.`, gave them fields lines, filed them as issues #70 and #71, and
-dropped an indented line from B71's body. That makes three defects: the optional `B` accepts any
-numbered `##` heading; a pulled-in body is written into the file without demoting its headings; and
-the parser takes an item number from the heading, so it reused **B1** and **B2**, ids spent long ago,
-even though `next_id()` exists to stop exactly that. Repaired by hand: B71's sub-headings are now
-`###`, and #70 and #71 are closed as not planned. **Fix:** when pulling, demote every `#` heading in
-an issue body by two levels, or indent it. Decide whether `B?` can become `B` (check what the
-`## 12.` REFUSED guard from 2026-09-03 relies on). If the parser sees a number at or below the
-spent floor that isn't already in the file, refuse, don't renumber. Add a test with a body carrying
-`## 1.` headings. **Ruled out:** fixing only #69's text, because the next inbound issue with
-numbered headings does the same.
 
 ## B73. Offer "do N covers N, M" when a queue item can run other queued AFK items as its own lanes
 `Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#74`
@@ -1151,16 +1011,6 @@ Changing a repo setting is his to approve (HITL).
 **Ruled out:** `deny` in `settings.json`, because it also refuses his attended wraps (his decision,
 2026-09-26).
 
-## B78. Wrap close: print the 'Next: item N …' line in a copy box
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-26` · issue `#73` · closed `2026-10-26`
-Reported 2026-09-26 (captured via a project's INBOX.md, then triaged here).
-
-The wrap close ends with the "what's next" line, e.g. *"Next: item 1 — <title>. Opus 5, effort high, AFK in Auto mode."* The user copied that line by hand from the close to start the next session. They asked for it to be printed in a **copy box**, i.e. a fenced code block, so the desktop app gives it a copy button.
-
-Tension to resolve: step 9 says **do not paste a ready-to-copy prompt into chat** (the 2026-08-09 correction), because everything a prompt would hold is already on disk. This is not that. It is a one-line handle (item number, title, model, effort, attendance/mode), and it is evidently what the user types to re-enter. A likely resolution: fence the one "Next:" line and keep the prose around it.
-
-Touches: `skills/wrap/SKILL.md` step 9, plus the matching incident note in `skills/wrap/references/incidents.md`.
-
 ## B79. Review the unattended `afk/` PRs in Cursor's diff view, and say so where the review is queued
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#79`
 **From B57's plan (2026-09-27), D43.** `AFK` items run in Claude Code and each pushes one `afk/…` branch
@@ -1193,18 +1043,6 @@ that shares the account, which is right for cairn and wrong for anything machine
 requirements report, §3). **Unverified:** whether a team marketplace can host a GitHub repository
 that is not in the team's organisation, and whether auto-refresh needs the Cursor GitHub App on
 `superbole/cairn`. Blocked on nothing; start from `README.md`'s "Using it from Cursor".
-
-## B82. The repo recorder misses a shell write that names its target by a RELATIVE path
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-27` · issue `#82` · closed `2026-10-26`
-**Seen live 2026-09-26**, in the second Cursor test chat. The agent ran `Add-Content
-..\cursor-v1-other\y.txt …`. The recorder hook fired, exit 0, and recorded nothing:
-`repo_recorder.bash_candidate_paths()` only picks up absolute-path-shaped tokens, and every
-candidate is re-checked against real git state, so a relative one is never tried. **Both harnesses
-have it;** Cursor only made it visible, because its agent writes relative paths by default. **The
-fix to weigh:** resolve relative-looking tokens (`..\x`, `../x`, `x/y`) against the command's working
-directory (`cwd`, or the project root when that is empty, which Cursor sends), then apply the same
-git re-check. Keep the over-inclusive-then-verify shape the module docstring defends. **Ruled out:**
-recording the project's own tree, which is not a foreign write.
 
 ## B83. Make the wrap receipt measurable in Cursor (today it reads `CAIRN UNKNOWN`)
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#83`
@@ -1431,12 +1269,6 @@ whether a `#watching` anchor opens at the heading in the desktop app's file pane
 hook can print `NEXT.md:<line of the heading>`, computed at print time.
 **Ruled out:** asking agents to write links by hand. That is the rule that failed here.
 
-## B97. `installed_plugins.json` is never compared against the latest PUBLISHED version
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30` · issue `#108` · closed `2026-10-26`
-**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
-
-(2026-09-30, from a workspace session on NB1) `version_drift.py` never compares the installed plugin against the latest PUBLISHED version: only installed vs this repo's `plugin.json` (cairn repo only) and installed vs the rules block. So a machine with auto-update silently off stays silent. Sheldon wants it added only if it succeeds silently. Proposed, offline, no network in the hook: compare `installed_plugins.json` with `~/.claude/plugins/marketplaces/superbole/plugins/cairn/.claude-plugin/plugin.json`, and flag if the marketplace clone's last fetch (FETCH_HEAD mtime / last commit) is older than a few days. Print nothing when both are fine. On NB1 today both read 1.66.0, clone fetched 2026-09-29 23:03. Auto-update itself proven working on NB1 (workspace W10, closed 2026-09-30). Also see workspace B71 / #69 (sync_backlog.py targets the session's project, not the cwd), which belongs here.
-
 ## B98. `sync_backlog.py` run from a sibling repo silently syncs the SESSION's project
 `Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30` · issue `#109` · queued
 **Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
@@ -1514,7 +1346,7 @@ Follow-up from #118 (B19), from both scheduled reviews.
 Suggested fix: resolve the project to its main repo toplevel name first, for example via `git rev-parse --git-common-dir`, and fall back to `project_root()`. This needs a decision on which root counts as "the project".
 
 ## B110. Refuse to file an item whose id was already spent (B72's third part)
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-26`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-26` · issue `#132`
 Follow-up from #125 (B72), which contained pulled issue bodies but left this part of the entry undone.
 B72's entry asked for defence in depth: if the parser sees an item number at or below the spent floor
 that isn't already in the file, `sync_backlog.py` should refuse to file it, before any host call,
@@ -1527,7 +1359,7 @@ Candidate signal: the id is at or below origin's highest and absent from origin'
 when the bad heading was already pushed. **Needs B67's decision on what the marker means first.**
 
 ## B111. The repo recorder still misses relative writes in a quoted wrapper, after `Set-Location`, and via `$PWD`
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-10-26`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-10-26` · issue `#133`
 Follow-up from #131 (B82), which resolves relative paths in shell commands against the cwd and every
 `cd` target. Still missed, all silently:
 - a command wrapped in a quoted string: `powershell -Command "Add-Content ..\other\y.txt hi"`,
@@ -1543,7 +1375,7 @@ writes, not what the harness adds. Read-only references stay recorded (decided 2
 Also worth deciding here: a miss gives no signal at all, which is how B82 went unseen.
 
 ## B112. Put the open `afk/` PRs in front of him: a Queue line at session start and one review page per batch
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-26` · queued
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-26` · issue `#134` · queued
 Raised 2026-10-26 in the W6 pass. Asked to run three `gh pr merge` commands, he pointed out that this
 merges without anyone reading the PRs, which defeats the review, and that the review should be
 presented to him. Today the only reminder is W6, a dated watch he has to notice, and the review means
@@ -1565,7 +1397,7 @@ Evidence for the review step itself: on 2026-10-26 a review with Cursor found tw
 had missed. Fixed in `8d332c7` before the merge.
 
 ## B113. Queue order has no written criteria, and a repo nobody opens is never re-sorted
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-26`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-26` · issue `#135`
 Captured in `INBOX.md` on 2026-10-26 by a session in `workspace` that was building its portfolio status page,
 and triaged at this repo's wrap the same day. The wrap rule says the Queue is in "PRIORITY order, most important
 first, RE-SORTED at every wrap", but what makes an item first is left to the wrapping agent. And a repo that is
