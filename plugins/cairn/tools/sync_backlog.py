@@ -52,6 +52,7 @@ sys.path.insert(0, str(HERE.parent / "hooks"))
 
 try:
     import backlog_file
+    import fence_scan
     import issue_host
     from reentry_state import project_root
 except Exception as exc:                                    # pragma: no cover
@@ -458,6 +459,79 @@ def push(host, items: list[dict], root: Path, repo: str,
     return log
 
 
+# A heading-shaped line: ANY leading whitespace, one to six `#`, then whitespace or end of line.
+# Wider than markdown on purpose. A four-space-indented `## 12.` is code to a renderer, but
+# `_contain_body()`'s own `.strip()` and `render()`'s both remove leading whitespace from the
+# first line, which would put it at column 0 as an item heading. And `\s` (not `[ \t]`) because
+# `_ITEM_RE`'s `\s+` also accepts a no-break space, which text pasted from a web page carries.
+_HEADING_RE = re.compile(r"^(\s*)(#{1,6})(?=\s|$)")
+# The text the B75 floor marker needs. `_NEXT_ID_MARKER_RE` is `<!--\s*next-id:\s*(\d+)\s*-->`,
+# run over the WHOLE file, so its `\s*` spans a line break: rewriting `next-id:` itself (not
+# only `<!-- next-id:`) also defuses a marker split across two lines.
+_MARKER_WORD_RE = re.compile(r"next-id:")
+
+
+def _contain_body(text: str) -> str:
+    """An issue body made safe to append to `BACKLOG.md` as one item's text (B72).
+
+    A pulled body is written into the file verbatim, and the next sync PARSES it. Seen
+    2026-09-26: issue #69's body had `## 1. …` and `## 2. …` sub-headings, `_ITEM_RE` read them
+    as items 1 and 2 (the `B` is optional since B46), and the next sync filed both as new issues
+    under ids spent long ago. Three things in a body can be read as file structure, and each is
+    neutralised here, outside fenced blocks only (`parse()` already ignores fenced text, and
+    quoted code should stay as written):
+
+      - every heading-shaped line, at any indent, is demoted by two levels (`#` -> `###`,
+        `##` -> `####`, capped at six), so no line of a body can reach the `##` level items and
+        `_ITEMISH_RE` live on, even after a later strip moves it to column 0;
+      - `next-id:` becomes `next-id (quoted):`, so `read_next_id_marker()` cannot match a quoted
+        `<!-- next-id: N -->`, even one split across lines, and a quote cannot move the floor;
+      - an UNCLOSED fence gets its closing line. `_strip_fences()` fences an unclosed block to
+        EOF, so without this every item pulled after this one is invisible to `parse()`, and
+        the next `write()` would delete it without `unparsed_headings()` noticing.
+
+    Applied to every pulled body, the owner's own issues too: their headings break the parser
+    exactly the same way. Line endings become `\\n`, which is what `write()` emits anyway.
+    """
+    lines = (text or "").splitlines()
+    in_fence, _ = fence_scan.mask(lines)
+    out = []
+    for ln, fenced in zip(lines, in_fence):
+        if not fenced and not fence_scan.FENCE_RE.match(ln):
+            m = _HEADING_RE.match(ln)
+            if m:
+                level = min(len(m.group(2)) + 2, 6)
+                ln = m.group(1) + "#" * level + ln[m.end():]
+            ln = _MARKER_WORD_RE.sub("next-id (quoted):", ln)
+        out.append(ln)
+    closer = _fence_closer(lines)
+    if closer:
+        out.append(closer)
+    return "\n".join(out).strip()
+
+
+def _fence_closer(lines: list[str]) -> str | None:
+    """The marker that closes a fence still open at the end of `lines`, or None if every fence
+    closes. The opener's own marker (```` ``` ```` or `~~~`), so the block reads as intended."""
+    _, unclosed_at = fence_scan.mask(lines)
+    if unclosed_at is None:
+        return None
+    opener = fence_scan.FENCE_RE.match(lines[unclosed_at - 1])
+    return opener.group(1) if opener else "```"
+
+
+def _contain_title(title: str) -> str:
+    """A pulled issue title made safe for the `## Bn.` line (B72).
+
+    One line: `str.splitlines()` is how `backlog_file` reads the file, so every break it
+    recognises (`\\n`, `\\r`, `\\v`, `\\f`, `\\x1c`-`\\x1e`, `\\x85`, `\\u2028`, `\\u2029`) is
+    collapsed to a space. Otherwise a title `Hello` + newline + `## 1. Stolen` writes a line of
+    its own, item 1 takes the issue number, and the real item has none. And a quoted `next-id:`
+    marker is defused, as in a body, because the reader takes the max over the whole file."""
+    one = " ".join(p.strip() for p in (title or "").splitlines() if p.strip())
+    return _MARKER_WORD_RE.sub("next-id (quoted):", one)
+
+
 def pull(root: Path, items: list[dict], owner: str,
          remote: dict[int, dict] | None = None,
          skip: set[int] | None = None,
@@ -465,6 +539,18 @@ def pull(root: Path, items: list[dict], owner: str,
     """Bring in issues that are not in the file. NEVER deletes a local item.
 
     `skip` is what `push` just closed — see its docstring for why that cannot be inferred here.
+
+    Issues the owner filed are pulled too, contained like any other (decided 2026-10-23 on
+    `claude-inbox` #14, rejecting "pull only other people's issues"). Issues an agent files
+    through the Cursor GitHub app show up authored by the owner, so excluding the owner would
+    cut that path. There are no bot accounts to exclude.
+
+    A fence the FILE leaves open is closed before the first append (B72, review of `f47bdba`).
+    `_strip_fences()` fences an unclosed block to EOF, so a `## Bn.` heading written after it
+    is invisible to `parse()`: the item never records its issue number, the next sync pulls the
+    issue again, and a contained body's own closed fence flips the state back, so a heading
+    quoted inside it parses as an item. `parse()` leaves such a fence at the end of the last
+    item's text (the items after it read as that item's body), so that is where it is closed.
     """
     if remote is None:
         return ["  ! could not list issues"]
@@ -473,16 +559,26 @@ def pull(root: Path, items: list[dict], owner: str,
     known = {i["issue"] for i in items if i.get("issue")} | (skip or set())
     log: list[str] = []
     n = backlog_file.next_id(root)
+    sealed = False
     for iss in raw:
         num = iss.get("number")
         if num in known:
             continue
+        if not sealed:
+            sealed = True
+            last = (items[-1].get("text") or "") if items else ""
+            closer = _fence_closer(last.splitlines())
+            if closer:
+                items[-1]["text"] = last.rstrip() + "\n" + closer
+                log.append(f"  · {'would close' if dry else 'closed'} a fence left open at "
+                           f"the end of B{items[-1]['n']}, before appending")
         names = {str(l).lower() for l in (iss.get("labels") or [])}
         author = iss.get("author") or ""
         inbound = bool(owner) and author.lower() != owner.lower()
         items.append({
             "n": n,
-            "title": iss.get("title") or f"issue #{num}",
+            # B72: the title lands on the `## Bn.` line itself, so it must stay one line
+            "title": _contain_title(iss.get("title") or "") or f"issue #{num}",
             "model": None,
             "effort": None,
             "attend": "AFK" if "afk" in names else ("HITL" if "hitl" in names else None),
@@ -492,7 +588,7 @@ def pull(root: Path, items: list[dict], owner: str,
             "queued": False,
             "inbound": inbound,
             "closed": None,
-            "text": (iss.get("body") or "").strip(),
+            "text": _contain_body(iss.get("body") or ""),   # B72: never raw into the file
             "body": [],
         })
         log.append(f"  · {'would pull' if dry else 'pulled'} #{num} into B{n}"
