@@ -517,6 +517,11 @@ def pull(root: Path, items: list[dict], owner: str,
     """Bring in issues that are not in the file. NEVER deletes a local item.
 
     `skip` is what `push` just closed — see its docstring for why that cannot be inferred here.
+
+    Issues the owner filed are pulled too, contained like any other (decided 2026-10-23 on
+    `claude-inbox` #14, rejecting "pull only other people's issues"). Issues an agent files
+    through the Cursor GitHub app show up authored by the owner, so excluding the owner would
+    cut that path. There are no bot accounts to exclude.
     """
     if remote is None:
         return ["  ! could not list issues"]

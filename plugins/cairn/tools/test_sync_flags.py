@@ -806,5 +806,55 @@ check("the item pulled AFTER an unclosed fence is still parsed, with its own tex
 check("the fenced `## B3.` stays verbatim inside B72's body",
       "## B3. pasted" in after72[2]["text"], True)
 
+print("18b. end to end: owner and stranger bodies both pulled and contained, and a second sync "
+      "changes nothing")
+fix72b = Path(tempfile.mkdtemp())
+(fix72b / "BACKLOG.md").write_text(
+    "# BACKLOG — fixture\n<!-- next-id: 10 -->\n\n"
+    "## B10. Already here\n"
+    "`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-01` · issue `#1`\n\nbody\n",
+    encoding="utf-8")
+its72b = backlog_file.parse(fix72b)
+remote72b = {i["number"]: i for i in issue_host.GitHubHost.normalise([
+    {"number": 90, "title": "Owner, unclosed tilde fence", "author": {"login": "example-user"},
+     "labels": [], "body": "## 1. Owner heading\n~~~\n## B4. pasted log\n"},
+    {"number": 91, "title": "Stranger, unclosed backtick fence", "author": {"login": "a-stranger"},
+     "labels": [], "body": "## 2. Their heading\n```\n<!-- next-id: 700 -->\n"},
+    {"number": 92, "title": "Owner, pulled after both fences", "author": {"login": "example-user"},
+     "labels": [], "body": "plain"},
+])}
+saved72b = backlog_file._origin_floor
+backlog_file._origin_floor = lambda root, timeout=5: 0       # the fixture is not a git repo
+try:
+    log72b = sb.pull(fix72b, its72b, "example-user", remote72b)
+    backlog_file.write(fix72b, its72b, "fixture")
+    first72b = (fix72b / "BACKLOG.md").read_text(encoding="utf-8")
+    after72b = backlog_file.parse(fix72b)
+    # the next sync, from the file as written: nothing to pull, and nothing to rewrite
+    log72b2 = sb.pull(fix72b, after72b, "example-user", remote72b)
+    backlog_file.write(fix72b, after72b, "fixture")
+    second72b = (fix72b / "BACKLOG.md").read_text(encoding="utf-8")
+    floor72b = backlog_file.read_next_id_marker(fix72b)
+finally:
+    backlog_file._origin_floor = saved72b
+check("all three pulled, the owner's two included", len(log72b), 3)
+check("parse() sees the four real items, and only the stranger's is inbound",
+      [(i["n"], i["issue"], i["inbound"]) for i in after72b],
+      [(10, 1, False), (11, 90, False), (12, 91, True), (13, 92, False)])
+check("the owner's heading is demoted like the stranger's",
+      ("#### 1. Owner heading" in after72b[1]["text"],
+       "#### 2. Their heading" in after72b[2]["text"]), (True, True))
+check("each unclosed fence is closed with its own marker",
+      (after72b[1]["text"].endswith("\n~~~"), after72b[2]["text"].endswith("\n```")),
+      (True, True))
+check("the item after both fences is parsed with its own text",
+      (after72b[3]["title"], after72b[3]["text"]), ("Owner, pulled after both fences", "plain"))
+check("nothing in the file is an unreadable item heading",
+      backlog_file.unparsed_headings(fix72b), [])
+check("the fenced marker (700) did not move the floor", floor72b, 13)
+check("the second sync pulls nothing", log72b2, [])
+check("...and writes the file back byte for byte (no second fence closer)",
+      second72b == first72b, True)
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
