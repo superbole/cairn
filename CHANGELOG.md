@@ -3,6 +3,20 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-26 — v1.67.0: every `afk/` PR merged since v1.66.0, closed out (W6)
+
+One bookkeeping pass for nine merged PRs, none of which had been closed or changelogged.
+- **B13** (#102). `sync_backlog.py` matches by title before dropping a closed item that has no issue number.
+- **B16** (#103, plus this pass). `validate_next.py` reports a `Dn`/`Wn` near-miss id by line number. The rules now say an open decision takes the next integer after the highest D in the rationale record, never a letter.
+- **B17 and B18** (#105). Watches report their trigger kind, and machine gates use `MACHINES.md`.
+- **B19** (#118). `check_repos` tells apart two repos with the same folder name. Follow-ups are B108 and B109.
+- **B97** (#119). The installed plugin is compared with the marketplace clone on disk. The per-machine rollout reminder is a watch in the `SBole/workspace` hub.
+- **B68** (#130). The old `$CLAUDE_PLUGIN_ROOT` command forms are rewritten, and `test_skill_calls` pins the docs.
+- **B72** (#125, D52). Pulled issue bodies and titles can't be read back as backlog structure, and a fence the file leaves open is closed before an append. Cursor's review found the last two bugs before the merge. The spent-floor refusal is B110.
+- **B78** (#126). The wrap close prints its `Next:` line in a one-line `text` copy box, scoped to the close's chat message.
+- **B82** (#131, D53). The repo recorder resolves relative paths in shell commands. Read-only references are recorded too. What's still missed is B111.
+Also filed **B112**: put the open `afk/` PRs in front of him at session start, with one review page per batch. On 2026-10-26 he pointed out that running merge commands unread skips the review. W10 closed: both weekend firings (2026-10-24 and -25) finished in about 15 minutes, and the permission-prompt log has no line from either day. B112 is Queue item 4. Triaged an `INBOX.md` capture from a `workspace` session into **B113** (Queue order has no written criteria).
+
 ## 2026-10-23 — notify-discord leftovers removed (no version)
 
 `superbole/claude-inbox` #12, the tidy-up after the Discord post moved to the `CairnPostSummary` Windows task.

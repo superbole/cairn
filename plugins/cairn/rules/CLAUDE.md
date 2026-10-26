@@ -195,7 +195,9 @@ repo, bump its version, and reinstall.
               `answer:` is `ask <authority>` — the project names its own authority
               (a domain expert, an API doc, a spec), code follows it — or `here`
               (the user tells the session, and it becomes a code or profile change).
-              Flagged past 30 days, same as a stale watch.
+              Flagged past 30 days, same as a stale watch. The number is the next
+              integer after the highest D in the rationale record, kept once answered;
+              never a letter (`D-a`, `Da`), which nothing parses.
 ## Watching   waiting on a trigger. W1, W2, ... uncapped. One shape, fields after the
               bold, `check after` always LAST:
               **W1. Short title** — `Opus` · effort `high` · `AFK/Auto`
