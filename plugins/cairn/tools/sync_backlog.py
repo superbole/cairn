@@ -494,7 +494,7 @@ def _contain_body(text: str) -> str:
     exactly the same way. Line endings become `\\n`, which is what `write()` emits anyway.
     """
     lines = (text or "").splitlines()
-    in_fence, unclosed_at = fence_scan.mask(lines)
+    in_fence, _ = fence_scan.mask(lines)
     out = []
     for ln, fenced in zip(lines, in_fence):
         if not fenced and not fence_scan.FENCE_RE.match(ln):
@@ -504,10 +504,32 @@ def _contain_body(text: str) -> str:
                 ln = m.group(1) + "#" * level + ln[m.end():]
             ln = _MARKER_WORD_RE.sub("next-id (quoted):", ln)
         out.append(ln)
-    if unclosed_at is not None:
-        opener = fence_scan.FENCE_RE.match(lines[unclosed_at - 1])
-        out.append(opener.group(1) if opener else "```")
+    closer = _fence_closer(lines)
+    if closer:
+        out.append(closer)
     return "\n".join(out).strip()
+
+
+def _fence_closer(lines: list[str]) -> str | None:
+    """The marker that closes a fence still open at the end of `lines`, or None if every fence
+    closes. The opener's own marker (```` ``` ```` or `~~~`), so the block reads as intended."""
+    _, unclosed_at = fence_scan.mask(lines)
+    if unclosed_at is None:
+        return None
+    opener = fence_scan.FENCE_RE.match(lines[unclosed_at - 1])
+    return opener.group(1) if opener else "```"
+
+
+def _contain_title(title: str) -> str:
+    """A pulled issue title made safe for the `## Bn.` line (B72).
+
+    One line: `str.splitlines()` is how `backlog_file` reads the file, so every break it
+    recognises (`\\n`, `\\r`, `\\v`, `\\f`, `\\x1c`-`\\x1e`, `\\x85`, `\\u2028`, `\\u2029`) is
+    collapsed to a space. Otherwise a title `Hello` + newline + `## 1. Stolen` writes a line of
+    its own, item 1 takes the issue number, and the real item has none. And a quoted `next-id:`
+    marker is defused, as in a body, because the reader takes the max over the whole file."""
+    one = " ".join(p.strip() for p in (title or "").splitlines() if p.strip())
+    return _MARKER_WORD_RE.sub("next-id (quoted):", one)
 
 
 def pull(root: Path, items: list[dict], owner: str,
@@ -522,6 +544,13 @@ def pull(root: Path, items: list[dict], owner: str,
     `claude-inbox` #14, rejecting "pull only other people's issues"). Issues an agent files
     through the Cursor GitHub app show up authored by the owner, so excluding the owner would
     cut that path. There are no bot accounts to exclude.
+
+    A fence the FILE leaves open is closed before the first append (B72, review of `f47bdba`).
+    `_strip_fences()` fences an unclosed block to EOF, so a `## Bn.` heading written after it
+    is invisible to `parse()`: the item never records its issue number, the next sync pulls the
+    issue again, and a contained body's own closed fence flips the state back, so a heading
+    quoted inside it parses as an item. `parse()` leaves such a fence at the end of the last
+    item's text (the items after it read as that item's body), so that is where it is closed.
     """
     if remote is None:
         return ["  ! could not list issues"]
@@ -530,18 +559,26 @@ def pull(root: Path, items: list[dict], owner: str,
     known = {i["issue"] for i in items if i.get("issue")} | (skip or set())
     log: list[str] = []
     n = backlog_file.next_id(root)
+    sealed = False
     for iss in raw:
         num = iss.get("number")
         if num in known:
             continue
+        if not sealed:
+            sealed = True
+            last = (items[-1].get("text") or "") if items else ""
+            closer = _fence_closer(last.splitlines())
+            if closer:
+                items[-1]["text"] = last.rstrip() + "\n" + closer
+                log.append(f"  · {'would close' if dry else 'closed'} a fence left open at "
+                           f"the end of B{items[-1]['n']}, before appending")
         names = {str(l).lower() for l in (iss.get("labels") or [])}
         author = iss.get("author") or ""
         inbound = bool(owner) and author.lower() != owner.lower()
         items.append({
             "n": n,
-            # B72: the title lands on the `## Bn.` line itself; a marker there moves the floor too
-            "title": _MARKER_WORD_RE.sub("next-id (quoted):", iss.get("title") or "")
-                     or f"issue #{num}",
+            # B72: the title lands on the `## Bn.` line itself, so it must stay one line
+            "title": _contain_title(iss.get("title") or "") or f"issue #{num}",
             "model": None,
             "effort": None,
             "attend": "AFK" if "afk" in names else ("HITL" if "hitl" in names else None),

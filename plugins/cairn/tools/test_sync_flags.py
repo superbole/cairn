@@ -856,5 +856,72 @@ check("the second sync pulls nothing", log72b2, [])
 check("...and writes the file back byte for byte (no second fence closer)",
       second72b == first72b, True)
 
+print("18c. the review of f47bdba: a fence the FILE leaves open, and a newline in a title")
+ct = sb._contain_title
+check("a newline in a title collapses to a space", ct("Hello\n## 1. Stolen"), "Hello ## 1. Stolen")
+check("so do CRLF, a line separator and a form feed, the breaks `splitlines()` reads",
+      ct("a\r\nb c\x0cd"), "a b c d")
+check("a title marker is still defused", ct("x <!-- next-id: 9 -->"), "x <!-- next-id (quoted): 9 -->")
+check("`_fence_closer` names the opener's marker, or None when every fence closes",
+      (sb._fence_closer(["~~~", "x"]), sb._fence_closer(["```", "x", "```"])), ("~~~", None))
+
+
+def sync72c(head, remote):
+    """One pull + write + parse on a fresh fixture whose B10 ends with `head`, then a
+    second pull + write. Returns (log, items, file text, second log, second file text)."""
+    fx = Path(tempfile.mkdtemp())
+    (fx / "BACKLOG.md").write_text(
+        "# BACKLOG — fixture\n<!-- next-id: 10 -->\n\n"
+        "## B10. Already here\n"
+        "`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-01` · issue `#1`\n\n"
+        + head, encoding="utf-8")
+    saved = backlog_file._origin_floor
+    backlog_file._origin_floor = lambda root, timeout=5: 0   # the fixture is not a git repo
+    try:
+        its = backlog_file.parse(fx)
+        lg = sb.pull(fx, its, "example-user", remote)
+        backlog_file.write(fx, its, "fixture")
+        first = (fx / "BACKLOG.md").read_text(encoding="utf-8")
+        after = backlog_file.parse(fx)
+        lg2 = sb.pull(fx, after, "example-user", remote)
+        backlog_file.write(fx, after, "fixture")
+        second = (fx / "BACKLOG.md").read_text(encoding="utf-8")
+        floor = backlog_file.read_next_id_marker(fx)
+        unparsed = backlog_file.unparsed_headings(fx)
+    finally:
+        backlog_file._origin_floor = saved
+    return lg, after, first, lg2, second, (floor, unparsed)
+
+
+open_head = "intro\n```\npasted and never closed\n"
+remote72c = {i["number"]: i for i in issue_host.GitHubHost.normalise([
+    {"number": 93, "title": "Quotes a heading in a fence", "author": {"login": "example-user"},
+     "labels": [], "body": "```\n## 1. Quoted heading\n```\n"}])}
+lg, after, first, lg2, second, (floor, unparsed) = sync72c(open_head, remote72c)
+check("the open fence at the end of B10 is reported as closed before the append",
+      lg[0].startswith("  · closed a fence left open at the end of B10"), True)
+check("parse() sees B10 and the new B11 with its issue number, and no item 1",
+      [(i["n"], i["issue"]) for i in after], [(10, 1), (11, 93)])
+check("B10 keeps its pasted text, now with a closing fence",
+      after[0]["text"], "intro\n```\npasted and never closed\n```")
+check("the quoted heading stays verbatim, inside B11's own fence",
+      after[1]["text"], "```\n## 1. Quoted heading\n```")
+check("nothing in the file is an unreadable item heading", unparsed, [])
+check("the second sync pulls nothing, so the issue is not minted again", lg2, [])
+check("...the floor stays at 11", floor, 11)
+check("...and the file comes back byte for byte", second == first, True)
+
+lg, after, _, lg2, _, _ = sync72c("balanced\n", {})
+check("control: nothing to pull means no fence is touched", (lg, after[0]["text"]), ([], "balanced"))
+
+remote72t = {i["number"]: i for i in issue_host.GitHubHost.normalise([
+    {"number": 94, "title": "Hello\n## 1. Stolen", "author": {"login": "example-user"},
+     "labels": [], "body": "plain"}])}
+lg, after, _, lg2, _, _ = sync72c("plain\n", remote72t)
+check("a newline in a pulled title cannot make item 1 steal the issue",
+      [(i["n"], i["title"], i["issue"]) for i in after],
+      [(10, "Already here", 1), (11, "Hello ## 1. Stolen", 94)])
+check("...and the second sync pulls nothing", lg2, [])
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
