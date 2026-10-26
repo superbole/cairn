@@ -655,8 +655,11 @@ shell, and bare `python` is missing on stock Linux — so always go through `hoo
    prompt to copy at the end of a session… We're kinda back there."* **The fenced `Next:` line above
    is not that prompt** — it is a one-line handle (item number, title, model, effort, attendance/mode)
    whose every field is already in `NEXT.md`, and it is what they copied by hand to re-enter until
-   they asked for the copy button (2026-09-26, B78). Anything in a fence beyond the handle's own
-   fields, on one line or several, is the prompt this rule forbids.
+   they asked for the copy button (2026-09-26, B78). **This rule covers one message: the close
+   this step prints in chat.** In it, any fenced text meant to start or steer the next session,
+   beyond the handle's own fields, on one line or several, is the prompt this rule forbids, whether
+   it sits in the `Next:` fence or in a second one. Fences in the files the wrap writes (`NEXT.md`,
+   briefs, `CHANGELOG.md`, commit messages) are not covered.
 
    Continue-or-new-session is the **only** part of the close deliberately not on disk: an action
    only they can take, not information they would need to recover.

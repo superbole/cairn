@@ -14,7 +14,8 @@ fence that holds exactly one line, and no other fence in step 9 carries any cont
 the fence holds the handle's fields and nothing else (the boundary is content, not line count), why
 the tag is `text`, that the HITL stop point goes AFTER the fence, that the fence holds no steps
 and no second line, that the prose around it stays prose, that the model is never given alone, and
-that no startable item means no fence; the ready-to-copy prohibition is still there and names the handle as the exception. In
+that no startable item means no fence; the ready-to-copy prohibition is still there, names the handle as the exception, and says which
+message it covers (the close's chat message, not fences in files the wrap writes). In
 `skills/wrap/references/incidents.md`: the B78 entry sits directly after the 2026-08-09 entry it
 qualifies, under "Step 9 -- the close", with its boundary, the tag's reason and the rejected options.
 
@@ -138,6 +139,12 @@ check("the fenced `Next:` line is said not to be that prompt",
 check("anything beyond the handle is named as the forbidden prompt, one line or several",
       "beyond the handle's own fields, on one line or several, is the prompt this rule forbids"
       in flat)
+check("the rule is scoped: the close's chat message, text that starts or steers the next session",
+      "This rule covers one message: the close this step prints in chat." in flat
+      and "any fenced text meant to start or steer the next session" in flat)
+check("...in the `Next:` fence or a second one, and not fences in files the wrap writes",
+      "whether it sits in the `Next:` fence or in a second one" in flat
+      and "Fences in the files the wrap writes" in flat and "are not covered" in flat)
 
 print("\n4. the incident record carries the reason")
 start = INCIDENTS.find("## Step 9")
