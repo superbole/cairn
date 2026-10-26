@@ -610,10 +610,21 @@ shell, and bare `python` is missing on stock Linux — so always go through `hoo
    **Open with step 8c's token line, quoted** — `CAIRN SET · 4f2c81a09b6d` — then the prose. It is
    one short line and it is the only part of the close they can check.
 
-   - **What's next, with model, effort AND attendance/mode.** *"Next: item 1 — move the remaining
-     repos. Sonnet, effort medium, AFK in Auto mode."* Never the model alone — and if the next
-     item is `HITL`, say where it will stop, so they can judge whether they have the attention for it
-     today.
+   - **What's next, with model, effort AND attendance/mode — as ONE line in a fenced block**, so
+     the app gives it a copy button (B78):
+
+     ```text
+     Next: item 1 — move the remaining repos. Sonnet, effort medium, AFK in Auto mode.
+     ```
+
+     Never the model alone. **The fence holds the handle and nothing else**: `Next:`, the item
+     number, its title, model, effort and attendance/mode. No brief link, no instructions, no steps,
+     no second line; the prose around it stays prose. Tag the fence `text`, never a shell tag: the
+     app puts a Run button on shell blocks, and this line is not a command. Start the fence at the
+     left margin in chat, not at this list's indent. If the next item is `HITL`, say where it will
+     stop in the sentence AFTER the fence, so they can judge whether they have the attention for it
+     today. If no Queue item can be started (the Queue is empty, or every item is blocked) there is
+     no handle to copy: say so in prose, no fence.
    - **The session's name** (step 8b) — one short line.
    - **Whether to continue here or start a new session:**
 
@@ -641,7 +652,14 @@ shell, and bare `python` is missing on stock Linux — so always go through `hoo
    **Do NOT paste a ready-to-copy prompt into chat.** Everything it would contain is already on
    disk, and the hook prints the queue before they type anything next session. They removed exactly
    this on 2026-08-09: *"Part of the reason of building this system was because you would give me a
-   prompt to copy at the end of a session… We're kinda back there."*
+   prompt to copy at the end of a session… We're kinda back there."* **The fenced `Next:` line above
+   is not that prompt** — it is a one-line handle (item number, title, model, effort, attendance/mode)
+   whose every field is already in `NEXT.md`, and it is what they copied by hand to re-enter until
+   they asked for the copy button (2026-09-26, B78). **This rule covers one message: the close
+   this step prints in chat.** In it, any fenced text meant to start or steer the next session,
+   beyond the handle's own fields, on one line or several, is the prompt this rule forbids, whether
+   it sits in the `Next:` fence or in a second one. Fences in the files the wrap writes (`NEXT.md`,
+   briefs, `CHANGELOG.md`, commit messages) are not covered.
 
    Continue-or-new-session is the **only** part of the close deliberately not on disk: an action
    only they can take, not information they would need to recover.
