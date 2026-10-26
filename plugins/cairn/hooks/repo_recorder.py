@@ -43,10 +43,11 @@ the hook and recorded nothing, because only absolute-shaped tokens were tried. C
 writes relative paths by default; Claude's does it less, but both harnesses had the hole. A
 token that LOOKS like a relative path (`..\\x`, `../x`, `./x`, `x/y`) is now joined onto the
 command's working directory -- the payload's `cwd`, or the project root when that is empty --
-and onto every `cd` target earlier in the same command, then put through the same git
-re-check as everything else. A bare word with no separator (`notes.txt`) is not tried: it
-names the working directory itself, which is the project's own tree in every ordinary case,
-and that is not a foreign write. Things that are path-shaped but are not paths (`origin/main`,
+and onto every `cd` target in the same command, including one that comes AFTER the token
+(a regex cannot tell which `cd` persists, so the join is over-inclusive, never ordered), then
+put through the same git re-check as everything else. A bare word with no separator
+(`notes.txt`) is not tried: it names the working directory itself, which is the project's
+own tree in every ordinary case, and that is not a foreign write. Things that are path-shaped but are not paths (`origin/main`,
 `HEAD:a/b`, `$HOME/x`, a URL, a flag) either are refused by shape below or resolve into the
 project and are dropped by `record()`'s own-project check. Same asymmetry as above: a read-only
 `git -C ../other log` is recorded too, exactly as a read-only `cd ../other` already was.
