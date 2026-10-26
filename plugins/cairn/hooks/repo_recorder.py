@@ -19,8 +19,8 @@ only ever as a best-effort GUESS, never a replacement for the structured path ab
 `bash_candidate_paths()` below is a regex over the raw command text, not a shell parser.
 It catches the common shapes -- `cd /some/repo && ...`, a heredoc or `sed -i` naming an
 absolute path directly -- and nothing else. It does NOT understand quoting, variable
-expansion, heredoc BODIES (a heredoc's literal text can contain a path-shaped string that
-was never a filesystem target), or relative paths. **State the asymmetry plainly: a false
+expansion, or heredoc BODIES (a heredoc's literal text can contain a path-shaped string that
+was never a filesystem target). **State the asymmetry plainly: a false
 positive here costs one extra clean repo listed at the next wrap; a false negative is the
 status quo (2026-08-25's actual shape) and is unchanged by this file existing.** Recording
 too much is the safe failure mode; recording too little is what B39 was filed over.
@@ -37,6 +37,20 @@ Bash, reproduced live 2026-09-05, `docs/review/orchestrator-notes.md`) is exactl
 this DOES catch: heredocs and `sed`/`python -c` one-liners overwhelmingly name an absolute
 path, because that is what `Read`/`Edit`/`Write` require and what agents default to even
 when told to prefer Bash.
+
+RELATIVE PATHS (B82). Seen live 2026-09-26: `Add-Content ..\\cursor-v1-other\\y.txt ...` fired
+the hook and recorded nothing, because only absolute-shaped tokens were tried. Cursor's agent
+writes relative paths by default; Claude's does it less, but both harnesses had the hole. A
+token that LOOKS like a relative path (`..\\x`, `../x`, `./x`, `x/y`) is now joined onto the
+command's working directory -- the payload's `cwd`, or the project root when that is empty --
+and onto every `cd` target in the same command, including one that comes AFTER the token
+(a regex cannot tell which `cd` persists, so the join is over-inclusive, never ordered), then
+put through the same git re-check as everything else. A bare word with no separator
+(`notes.txt`) is not tried: it names the working directory itself, which is the project's
+own tree in every ordinary case, and that is not a foreign write. Things that are path-shaped but are not paths (`origin/main`,
+`HEAD:a/b`, `$HOME/x`, a URL, a flag) either are refused by shape below or resolve into the
+project and are dropped by `record()`'s own-project check. Same asymmetry as above: a read-only
+`git -C ../other log` is recorded too, exactly as a read-only `cd ../other` already was.
 
 PRINTS NOTHING, EVER, AND NEVER FAILS A TOOL CALL. Exit 0 on every path -- a missing key,
 an unwritable state dir, a malformed payload, anything. A recorder that breaks `Edit` (or
@@ -84,7 +98,27 @@ _CD_RE = re.compile(
 # whether the token is really a filesystem argument, a URL, part of a comment, or text
 # inside a heredoc body; `record()` below only keeps it if it resolves to something that
 # is actually inside a git repo, which filters out the overwhelming majority of noise.
-_PATH_RE = re.compile(r'(?:[A-Za-z]:[\\/][^\s"\'<>|&;]+)|(?:/[^\s"\'<>|&;]+)')
+#
+# B82: each shape must START a token. Before, `/x` was matched in the middle of `../x`,
+# `$HOME/x` and every `origin/main`, so sixty such words used up `MAX_CANDIDATES` before
+# a real absolute target later in the same command was reached. `~/x` is its own shape
+# now (`record()` expands it); it used to be matched as `/x`, a different path.
+# A one-letter flag glued to the path (`-I/abs`, `-o/abs`, `-C/abs`) still starts one.
+_PATH_RE = re.compile(r'(?:(?<![\w])[A-Za-z]:[\\/][^\s"\'<>|&;]+)'
+                      r'|(?:(?<![\w.~$%}\-/])/[^\s"\'<>|&;]+)'
+                      r'|(?:(?<=-[A-Za-z])/[^\s"\'<>|&;]+)'
+                      r'|(?:(?<![\w.])~[\\/][^\s"\'<>|&;]+)')
+
+# A token roughly as the shell splits it (B82): a quoted run, or a run of anything that is
+# not whitespace, a command separator or a redirect.
+_TOKEN_RE = re.compile(r'"[^"]*"|\'[^\']*\'|[^\s;&|<>()]+')
+
+# Already absolute (a drive, a root, a home) -- `_PATH_RE` above has those.
+_ABSOLUTE_RE = re.compile(r'^(?:[A-Za-z]:|[\\/~])')
+
+# Characters that mean "not a literal relative path": a colon (`HEAD:a/b`, `host:x/y`, a
+# URL), an unexpanded variable (`$x`, `%x%`, `` `x ``), or a git `@{u}`-style ref.
+_NOT_A_PATH = set(':$%`{')
 
 
 def _strip_quotes(token: str) -> str:
@@ -93,22 +127,95 @@ def _strip_quotes(token: str) -> str:
     return token
 
 
-def bash_candidate_paths(command: str) -> list[str]:
-    """Best-effort absolute-path-shaped tokens in a shell command line. See module
-    docstring -- this is a regex, not a shell parser, and is meant to be over-inclusive:
-    every caller here re-checks each candidate against real git state before recording."""
+def _relative_shape(token: str) -> str | None:
+    """`token` as a relative path with `/` separators, or None if it does not look like one.
+
+    Needs a separator: a bare `notes.txt` names the working directory, which is the project's
+    own tree and not a foreign write (B82's "ruled out")."""
+    token = _strip_quotes(token)
+    if "=" in token:                     # `--out=../x`, `-Path=..\x`, `VAR=../x`
+        token = _strip_quotes(token.rsplit("=", 1)[1])
+    if not token or token.startswith("-") or _ABSOLUTE_RE.match(token):
+        return None
+    if "/" not in token and "\\" not in token:
+        return None
+    if any(ch in _NOT_A_PATH for ch in token):
+        return None
+    return token.replace("\\", "/")
+
+
+def _base(cwd) -> Path | None:
+    try:
+        return Path(str(cwd)).expanduser() if cwd else None
+    except Exception:
+        return None
+
+
+def bash_candidate_paths(command: str, cwd=None) -> list[str]:
+    """Best-effort path-shaped tokens in a shell command line. See module docstring --
+    this is a regex, not a shell parser, and is meant to be over-inclusive: every caller
+    here re-checks each candidate against real git state before recording.
+
+    With `cwd` (B82), relative tokens are joined onto it and onto EVERY `cd` target in the
+    command (a `cd` that comes after the token too: over-inclusive, never ordered), so
+    `cd ..\\a; Add-Content b\\y.txt` tries `<cwd>/../a/b/y.txt`. A relative `cd` target is
+    walked from the previous one. Without `cwd`, a relative `cd` target comes back as
+    written and is not joined; an absolute one still becomes a join base.
+
+    Each stage has its own `MAX_CANDIDATES`: cd targets, absolute shapes, relative tokens.
+    Within the relative stage, tokens starting `..` go first, because they are the only
+    ones that can leave the directory they are joined to -- sixty `src/x.py` words in a
+    `git add` must not crowd out the `..\\other\\y.txt` after them."""
     if not command:
         return []
     text = command[:MAX_COMMAND_CHARS]
+    base = _base(cwd)
     found: list[str] = []
+    dirs: list[Path] = [] if base is None else [base]
+    current = base
+    cd_starts: set[int] = set()
     for m in _CD_RE.finditer(text):
-        found.append(_strip_quotes(m.group("path")))
-        if len(found) >= MAX_CANDIDATES:
-            return found
-    for m in _PATH_RE.finditer(text):
-        found.append(m.group(0))
+        cd_starts.add(m.start("path"))
+        target = _strip_quotes(m.group("path"))
+        if _ABSOLUTE_RE.match(target):
+            current = _base(target)
+        elif current is not None and not any(ch in _NOT_A_PATH for ch in target):
+            current = current / target.replace("\\", "/")
+        else:
+            found.append(target)
+            if len(found) >= MAX_CANDIDATES:
+                break
+            continue
+        if current is None:
+            continue
+        found.append(str(current))
+        if current not in dirs:
+            dirs.append(current)
         if len(found) >= MAX_CANDIDATES:
             break
+    absolute = 0
+    for m in _PATH_RE.finditer(text):
+        found.append(m.group(0))
+        absolute += 1
+        if absolute >= MAX_CANDIDATES:
+            break
+    if not dirs:
+        return found
+    rels = []
+    for m in _TOKEN_RE.finditer(text):
+        if m.start() in cd_starts:           # already walked as a `cd` target above
+            continue
+        rel = _relative_shape(m.group(0))
+        if rel is not None and rel not in rels:
+            rels.append(rel)
+    rels.sort(key=lambda r: not r.startswith(".."))   # stable: `..` first, order kept
+    relative = 0
+    for rel in rels:
+        for d in dirs:
+            found.append(str(d / rel))
+            relative += 1
+            if relative >= MAX_CANDIDATES:
+                return found
     return found
 
 
@@ -139,7 +246,11 @@ def main() -> int:
         if tool_name in BASH_TOOLS:
             command = tool_input.get("command")
             if isinstance(command, str) and command:
-                for candidate in bash_candidate_paths(command):
+                # Relative tokens resolve against the shell's directory; Cursor sends an
+                # empty `cwd` that `harness.normalise` fills, and the project root is the
+                # last resort (B82).
+                cwd = event.get("cwd") if isinstance(event.get("cwd"), str) else ""
+                for candidate in bash_candidate_paths(command, cwd or root):
                     touched_repos.record(root, candidate, session=session, agent=agent,
                                           tool=tool_name)
     except Exception:
