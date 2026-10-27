@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 113 -->
+<!-- next-id: 114 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,26 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B114. The wrap's `Next:` handle only ever names a Queue item, even when DUE watches are the better next thing
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-27`
+**Found live 2026-10-27 in `workspace` on SBOLE-NB1.** The session opened with 10 DUE NOW watches and a
+2-item Queue. He asked to "check W32" (a due watch); it was done and wrapped. The close then said
+*"Next: Queue item 1 (airtool PROD recovery), needs a fresh Opus session"*, although 9 more watches were due and several
+were cheap, `Sonnet`, `HITL/Auto` and runnable on this very machine (W30 `run on NB1`, W25, W2). He asked:
+*"shouldn't Cairn be pointing us at doing the next watch rather?"*
+**Why it happens.** `skills/wrap` step 9 says "what's next, with model, effort and attendance/mode" and step 7 defines
+the Queue as "actionable RIGHT NOW", so the handle is read off the Queue alone. A DUE watch is by definition
+startable today (that is the watch test), but nothing tells the close to compare the two lists. Watches that name a
+machine (`run on NB1`) are the strongest case: the agent is already on that machine and is the only session that can do them.
+**Questions for the design, not answers:** (1) should the handle prefer a DUE watch that is runnable on this machine
+over a Queue item that needs a different tier, or only list it beside the Queue item? (2) Does a `HITL` Queue item
+that stops at every server change (as item 1 here does) rank below a cheap `AFK`-able watch? (3) The Queue is capped at 5 and
+sorted by priority; a due watch has no priority field, so ranking needs one or a rule (machine match, then age).
+(4) The same blind spot probably exists in `/cairn:next`'s "do N" invitation: it offers "check Wn" but the
+close never mentions it.
+**Ruled out:** moving due watches into the Queue automatically (the Queue is a deliberate cap of 5 and a watch is a
+trigger, not a priority). **Evidence:** this session's transcript, wrap close of 2026-10-27 (`workspace`, CAIRN SET be71f8fcbf89).
 
 ## B104. A wrap where NEXT.md needs no edit can never reach `CAIRN SET`, and `archive_guard` then blocks archiving
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-02` · issue `#117`
