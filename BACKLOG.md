@@ -9,7 +9,7 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B114. The wrap's `Next:` handle only ever names a Queue item, even when DUE watches are the better next thing
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-27`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-27` · issue `#136`
 **Found live 2026-10-27 in `workspace` on SBOLE-NB1.** The session opened with 10 DUE NOW watches and a
 2-item Queue. He asked to "check W32" (a due watch); it was done and wrapped. The close then said
 *"Next: Queue item 1 (airtool PROD recovery), needs a fresh Opus session"*, although 9 more watches were due and several
