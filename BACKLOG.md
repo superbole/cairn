@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 114 -->
+<!-- next-id: 115 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,25 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B115. `sync_backlog.py` hangs on SBOLE-NB1 after filing the issue, and never writes the issue number back
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-10-27` · issue `#138`
+**Found live 2026-10-27 in `cairn` on SBOLE-NB1 (Windows, Git Bash, cairn 1.67.0), filing B114.** Ran
+`CLAUDE_PROJECT_DIR=<cairn> sh <root>/hooks/run.sh tools/sync_backlog.py` from a `workspace` session, as the memory note
+on running cairn tools against a sibling repo says to. **Run 1** (120 s tool timeout) printed nothing and returned;
+afterwards `gh issue list -R superbole/cairn` showed the new issue (#136, labels `backlog, hitl`), but `BACKLOG.md` still
+had no `issue` token on B114 and the tree was clean. **Run 2** (`timeout 90`) printed nothing and exited 124. So the
+filing step worked and the step that records the number in the file, or something after it, did not finish.
+**Consequence.** The file stays the writer only if the number lands in it. Without it, the next sync would file a
+duplicate; I wrote `issue #136` by hand to stop that. A hang inside a wrap also looks like a skip, and `sync_backlog`
+is meant to never fail a wrap, so the wrap could stall instead.
+**Not yet known:** which call blocks (a `gh` call waiting on a prompt or pager, the credential store from Git Bash, the
+inbound-issues pull, or the label step); whether it reproduces on NB5 or in WSL; whether it needs `CLAUDE_PROJECT_DIR`
+pinned. `workspace`'s own sync on the same machine ran fine the same day (`backlog synced with SBole/workspace (GitLab)`),
+and that is GitLab through `glab`, so suspect the GitHub path. `gh issue list` and `gh auth status` returned quickly.
+**First step:** run it with Python's `-X faulthandler` and `GH_DEBUG=api`, or per-call timing, to find the blocking
+call; then add a per-call timeout so a hang becomes a one-line "skipped, timed out at <call>" instead of silence.
+**Ruled out:** auth (`gh auth status` is fine); the item itself (the issue was created).
 
 ## B114. The wrap's `Next:` handle only ever names a Queue item, even when DUE watches are the better next thing
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-27` · issue `#136`
