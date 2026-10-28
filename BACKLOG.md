@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 116 -->
+<!-- next-id: 120 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1472,3 +1472,24 @@ close never mentions it.
 trigger, not a priority). **Evidence:** this session's transcript, wrap close of 2026-10-27 (`workspace`, CAIRN SET be71f8fcbf89).
 
 _Synced from `BACKLOG.md` (item B114) by the reentry plugin._
+
+## B117. Weekend burn heartbeat: a dead-man's check from another machine
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28`
+**From `workspace` W18.** NB5 has no WiFi after a reboot until someone logs in (W20), so a missed weekend and the
+Discord post both vanish with it. Design is in `docs/briefs/weekend-burn-design.md` section 5: each firing comments its
+summary on one `superbole/claude-inbox` issue (allow rule exists), and a task on DeepThought or NB1 alerts by Discord if
+no comment appears by Friday 22:00. **His calls:** which machine, and a second copy of `CAIRN_DISCORD_WEBHOOK` there
+(record it in `CREDENTIALS.md`). **Ruled out:** a check on NB5 itself (dies with it), and reading Discord (no API).
+
+## B118. Weekend burn across projects: which projects, and a separate scoped token per host
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28`
+Three tiers in `docs/briefs/weekend-burn-design.md` section 4: cairn (on), other `superbole/*` repos (one fine-grained
+PAT each), CSIR GitLab repos (own task, own MR-only token, counts-only Discord line). Opt-in by a line in each project's
+`NEXT.md`. **His calls:** the repo list per tier and creating every token; nothing is widened until he does.
+CSIR detail never reaches GitHub, personal detail never reaches `pta-git2`.
+
+## B119. Weekend burn HITL: a firing files a question issue, a later run continues after the answer
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28`
+Sketch in `docs/briefs/weekend-burn-design.md` section 7, reusing `superbole/claude-inbox`: one `burn-question` issue per
+stuck item (cap 3 open), he answers from his phone, a later firing takes the answered item as a normal one. Needs allow
+rules for `gh issue create` on claude-inbox only. Related: B89, B84.

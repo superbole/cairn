@@ -3,6 +3,14 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-10-28 — Weekend burn: the trip task becomes a standing Fri 21:00 to Sun 15:00 burn (W18)
+
+- **Task rewritten** (`~/.claude/scheduled-tasks/cairn-afk-firing/SKILL.md`, outside this repo). Trip wording gone, no token-reserve logic, a cut-off run stops harmlessly and the next run recovers a dirty `afk/`/`wip/` branch. New section 4b: when no AFK item is eligible, one of groom, tests, doc-drift or audit. Slots are three tasks (`cairn-afk-fri`, `cairn-afk-firing` Saturday, `cairn-afk-sun`) because one cron cannot express the window.
+- **Allow list (B90)**: 229 logged prompts showed version-pinned plugin-cache runner paths, compound commands, `git -C` and a PowerShell side with no allow rules. `.claude/settings.json` now has wildcard and read-only rules; settings tests pass. `sync_backlog` and `git push` stay `ask`.
+- **Proposals** in `docs/briefs/weekend-burn-design.md`; backlog B117 (heartbeat), B118 (multi-project), B119 (HITL over issues). B116 committed separately from the sync.
+- `CREDENTIALS.md`: `NB5-github-2027-01-26` replaces `NB5-github-2026-10-31`.
+- **Not done:** no live firing yet when this was written; the three tasks' Auto mode and approvals are unverified until their first runs.
+
 ## 2026-10-26 — v1.67.0: every `afk/` PR merged since v1.66.0, closed out (W6)
 
 One bookkeeping pass for nine merged PRs, none of which had been closed or changelogged.
