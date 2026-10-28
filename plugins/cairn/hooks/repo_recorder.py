@@ -88,8 +88,14 @@ MAX_CANDIDATES = 25
 # "the rest of this command operates on a different repo". Anchored on a command
 # boundary (start of string, `;`, `&`, `|`, or newline) so it doesn't fire on `cd` as a
 # substring of a longer word.
+#
+# B111: also `chdir` / `pushd` / `Set-Location` / `sl` (with an optional `-Path` /
+# `-LiteralPath`), and a command that opens a quoted wrapper (`bash -c "cd ../x && ..."`),
+# so a quote counts as a boundary too.
 _CD_RE = re.compile(
-    r'(?:^|[;&\n]|\|\|)\s*cd\s+(?P<path>"[^"]+"|\'[^\']+\'|[^\s;&|]+)',
+    r'(?:^|[;&\n"\']|\|\|)\s*(?:cd|chdir|pushd|set-location|sl)\s+'
+    r'(?:-(?:literal)?path[:\s]\s*)?'
+    r'(?P<path>"[^"]+"|\'[^\']+\'|[^\s;&|"\']+)',
     re.IGNORECASE,
 )
 
@@ -120,6 +126,11 @@ _ABSOLUTE_RE = re.compile(r'^(?:[A-Za-z]:|[\\/~])')
 # URL), an unexpanded variable (`$x`, `%x%`, `` `x ``), or a git `@{u}`-style ref.
 _NOT_A_PATH = set(':$%`{')
 
+# B111: a PowerShell parameter glued to its value with a colon (`-Path:..\x`), and a leading
+# `$PWD` / `${PWD}` before a separator -- the two shapes `_NOT_A_PATH` used to refuse outright.
+_NAMED_PARAM_RE = re.compile(r'^-[A-Za-z]+:(?![\\/])(.+)$')
+_PWD_PREFIX_RE = re.compile(r'^\$(?:pwd|\{pwd\})(?=[\\/])', re.IGNORECASE)
+
 
 def _strip_quotes(token: str) -> str:
     if len(token) >= 2 and token[0] == token[-1] and token[0] in "\"'":
@@ -135,6 +146,12 @@ def _relative_shape(token: str) -> str | None:
     token = _strip_quotes(token)
     if "=" in token:                     # `--out=../x`, `-Path=..\x`, `VAR=../x`
         token = _strip_quotes(token.rsplit("=", 1)[1])
+    named = _NAMED_PARAM_RE.match(token)
+    if named:                            # B111: `-Path:..\x` -- the value after the colon
+        token = _strip_quotes(named.group(1))
+    pwd = _PWD_PREFIX_RE.match(token)
+    if pwd:                              # B111: `$PWD\..\x` is the shell's own directory
+        token = token[pwd.end():].lstrip("\\/")
     if not token or token.startswith("-") or _ABSOLUTE_RE.match(token):
         return None
     if "/" not in token and "\\" not in token:
@@ -205,9 +222,17 @@ def bash_candidate_paths(command: str, cwd=None) -> list[str]:
     for m in _TOKEN_RE.finditer(text):
         if m.start() in cd_starts:           # already walked as a `cd` target above
             continue
-        rel = _relative_shape(m.group(0))
-        if rel is not None and rel not in rels:
-            rels.append(rel)
+        tokens = [m.group(0)]
+        inner = _strip_quotes(m.group(0))
+        if inner != m.group(0) and re.search(r"[\s()'\"]", inner):
+            # B111: a quoted run with words or a call in it is a wrapped command
+            # (`-Command "..."`, `bash -c "..."`, `python -c "open('../x','w')"`): read its
+            # words too, over-inclusively.
+            tokens += [t.group(0) for t in _TOKEN_RE.finditer(inner)]
+        for tok in tokens:
+            rel = _relative_shape(tok)
+            if rel is not None and rel not in rels:
+                rels.append(rel)
     rels.sort(key=lambda r: not r.startswith(".."))   # stable: `..` first, order kept
     relative = 0
     for rel in rels:

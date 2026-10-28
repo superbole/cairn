@@ -437,5 +437,31 @@ check("with no cwd, an absolute `cd` still becomes a join base (the stated contr
 check("a bare file name is never a candidate",
       repo_recorder.bash_candidate_paths("touch notes.txt", cwd="/p/proj"), [])
 
+print("\n15. B111 -- quoted wrappers, `$PWD`, `-Path:` and `Set-Location` are read too")
+def _c111(cmd):
+    return [Path(g).as_posix() for g in repo_recorder.bash_candidate_paths(cmd, cwd="/p/proj")]
+check("a `powershell -Command \"...\"` wrapper: the relative write inside is a candidate",
+      "/p/proj/../other/y.txt" in _c111('powershell -Command "Add-Content ..\\other\\y.txt hi"'),
+      True)
+check("a `bash -c \"...\"` wrapper: the redirect target inside is a candidate",
+      "/p/proj/../other/y" in _c111('bash -c "echo hi > ../other/y"'), True)
+check("a `python -c` wrapper: the quoted path inside the call is a candidate",
+      "/p/proj/../other/y" in _c111("""python -c "open('../other/y','w')" """), True)
+check("`$PWD\\..\\other\\x` is the same path as `..\\other\\x`",
+      "/p/proj/../other/x" in _c111(r"Add-Content $PWD\..\other\x hi"), True)
+check("`-Path:..\\other\\y.txt` is read after the colon",
+      "/p/proj/../other/y.txt" in _c111(r"Set-Content -Path:..\other\y.txt hi"), True)
+check("`Set-Location ..` then a relative write joins onto the new directory",
+      "/p/proj/../sub/z.txt" in _c111("Set-Location .. ; Add-Content sub\\z.txt hi"), True)
+check("`pushd ../x` is a cd target",
+      "/p/proj/../x" in _c111("pushd ../x && touch y/z"), True)
+check("a `cd` inside a quoted wrapper is a cd target",
+      "/p/proj/../x/y/z" in _c111("bash -c 'cd ../x && touch y/z'"), True)
+check("a bare word starting like a cd (`cdrom/x`, `slow/y`) is not a cd",
+      [g for g in _c111("cp cdrom/x slow/y") if g.endswith("/p/proj")], [])
+check("`-Path:C:\\abs` stays an absolute shape, not a relative one",
+      repo_recorder.bash_candidate_paths(r"Set-Content -Path:C:\abs\f hi", cwd="/p/proj"),
+      ["C:\\abs\\f"])
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
