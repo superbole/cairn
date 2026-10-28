@@ -9,7 +9,8 @@ history; this file holds the history and no queue.
 - **Allow list (B90)**: 229 logged prompts showed version-pinned plugin-cache runner paths, compound commands, `git -C` and a PowerShell side with no allow rules. `.claude/settings.json` now has wildcard and read-only rules; settings tests pass. `sync_backlog` and `git push` stay `ask`.
 - **Proposals** in `docs/briefs/weekend-burn-design.md`; backlog B117 (heartbeat), B118 (multi-project), B119 (HITL over issues). B116 committed separately from the sync.
 - `CREDENTIALS.md`: `NB5-github-2027-01-26` replaces `NB5-github-2026-10-31`.
-- **Not done:** no live firing yet when this was written; the three tasks' Auto mode and approvals are unverified until their first runs.
+- **Test firings (same day).** Run 1 ended waiting for a background subagent: no push, no PR, no summary. The prompt now reviews inline and forbids the Agent tool, `update_plan` and ending the turn early, and recovers a stranded branch. B9 from run 1 is PR #139 (review findings posted there). Run 2 was disturbed by an attended `git switch main` in the shared checkout, then recovered and opened #140 (B111); the collision is B120. Both runs reviewed inline and passed the scrub.
+- **Still unverified:** the three tasks' stored Auto mode and approvals; the first real weekend is W12.
 
 ## 2026-10-26 — v1.67.0: every `afk/` PR merged since v1.66.0, closed out (W6)
 

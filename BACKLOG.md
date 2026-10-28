@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 120 -->
+<!-- next-id: 121 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1493,3 +1493,16 @@ CSIR detail never reaches GitHub, personal detail never reaches `pta-git2`.
 Sketch in `docs/briefs/weekend-burn-design.md` section 7, reusing `superbole/claude-inbox`: one `burn-question` issue per
 stuck item (cap 3 open), he answers from his phone, a later firing takes the answered item as a normal one. Needs allow
 rules for `gh issue create` on claude-inbox only. Related: B89, B84.
+
+## B120. An attended session and a scheduled firing share one checkout, and they destroy each other's work
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28`
+**Found in the 2026-10-28 test firings.** Firing 2 was dispatched into the cairn checkout while an attended session ran
+`git switch main` in the same directory. The firing's `afk/` branch and its commit vanished mid-run, it wrote an
+`ABORTED` summary (which the Windows poster sends to Discord), then carried on to a different item and succeeded, so one run
+produced two contradictory summaries. Nothing detects either side coming in: the firing checks a clean tree only at the
+start. **Also seen:** the first firing ended its turn waiting for a background subagent (no push, no PR, no summary, status
+"succeeded"), so run status says nothing about whether the work finished. **Options for the plan:** a dedicated worktree or
+clone for scheduled runs (the cleanest; costs a clone and a fetch per run), a lock file the attended hooks respect, or the
+firing re-checking `git branch --show-current` before each commit. A summary that is written early must not be followed by
+more work (prompt rule added 2026-10-28, unenforced). **Ruled out:** telling him not to touch the checkout during slots
+(it is the thing he cannot hold). **Related:** B84, B117, W12.
