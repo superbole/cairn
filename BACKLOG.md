@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 115 -->
+<!-- next-id: 116 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -1448,3 +1448,27 @@ Proposed: (1) a one-line "why first" on Queue item 1, so the order states its re
 `git log -1 -L '/^## Queue/,/^## [A-Z]/:NEXT.md' -s`, and flags it on its own side meanwhile
 (`scripts/portfolio-status.ps1`, its W31 Monday review). HITL/Plan because N and where the warning shows are his
 call, and (2) overlaps the existing 30-day staleness flag on watches.
+
+## B116. The wrap's `Next:` handle only ever names a Queue item, even when DUE watches are the better next thing
+`HITL` · added `2026-10-28` · issue `#137`
+**Opus 5** · effort **high** · **HITL/Plan**
+
+**Found live 2026-10-27 in `workspace` on SBOLE-NB1.** The session opened with 10 DUE NOW watches and a
+2-item Queue. He asked to "check W32" (a due watch); it was done and wrapped. The close then said
+*"Next: Queue item 1 (airtool PROD recovery), needs a fresh Opus session"*, although 9 more watches were due and several
+were cheap, `Sonnet`, `HITL/Auto` and runnable on this very machine (W30 `run on NB1`, W25, W2). He asked:
+*"shouldn't Cairn be pointing us at doing the next watch rather?"*
+**Why it happens.** `skills/wrap` step 9 says "what's next, with model, effort and attendance/mode" and step 7 defines
+the Queue as "actionable RIGHT NOW", so the handle is read off the Queue alone. A DUE watch is by definition
+startable today (that is the watch test), but nothing tells the close to compare the two lists. Watches that name a
+machine (`run on NB1`) are the strongest case: the agent is already on that machine and is the only session that can do them.
+**Questions for the design, not answers:** (1) should the handle prefer a DUE watch that is runnable on this machine
+over a Queue item that needs a different tier, or only list it beside the Queue item? (2) Does a `HITL` Queue item
+that stops at every server change (as item 1 here does) rank below a cheap `AFK`-able watch? (3) The Queue is capped at 5 and
+sorted by priority; a due watch has no priority field, so ranking needs one or a rule (machine match, then age).
+(4) The same blind spot probably exists in `/cairn:next`'s "do N" invitation: it offers "check Wn" but the
+close never mentions it.
+**Ruled out:** moving due watches into the Queue automatically (the Queue is a deliberate cap of 5 and a watch is a
+trigger, not a priority). **Evidence:** this session's transcript, wrap close of 2026-10-27 (`workspace`, CAIRN SET be71f8fcbf89).
+
+_Synced from `BACKLOG.md` (item B114) by the reentry plugin._
