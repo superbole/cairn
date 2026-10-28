@@ -362,6 +362,28 @@ auto-title alone.
 **A mechanism that leaves no evidence it ran will be reported as broken**, and cannot be defended
 without re-reading the code. That is why every step above reports in one line.
 
+### Handing work back to the session that started you
+
+A session started by another session has its final report relayed to that parent automatically (your
+wrap recap, then your last message, the first 400 characters). **That is the channel; do not
+`SendMessage` progress, results or "still running" notes.** The one exception is when the user
+asks you to pass something back, and then:
+
+- **Send ONE message, after the work has finished** — every run you started has ended, the wrap is
+  recorded. A message sent while something is still running is stale within minutes, and the
+  recipient acts on it as fact (2026-10-28: a parent wrote "run 2 still running" into its notes
+  after run 2 had finished).
+- **Put everything in the message text.** A peer can only read files inside its own session
+  folders, so a handover file in a shared notes folder may be unreadable to it. A file is for
+  detail a peer can skip, never the only copy.
+- **Re-read external state in the same turn you assert it** (the run's result, the PR, the
+  branch), and say which parts are verified and which are not.
+- **If you must send before something finishes, say so in the first line and say you will send a
+  replacement** — then do. Open the replacement by saying it supersedes the earlier message and
+  list what changed; never rely on the recipient to reconcile two versions.
+- First line is a clear one-line statement of what this is: the recipient's user sees only that
+  line until they expand it.
+
 ## How work gets done
 
 These are the mechanism's defaults. Where the profile contradicts one, the profile wins — it is

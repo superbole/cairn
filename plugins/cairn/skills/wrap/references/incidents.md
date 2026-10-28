@@ -24,6 +24,21 @@ it's handled" is never an option: telling them once is exactly what they cannot 
 
 ---
 
+## Handing work back — the early message went stale (2026-10-28)
+
+A child session (cairn, started from a `workspace` session) was asked to pass results back. It sent
+a message while a test firing was still running, and pointed to a handover file in a shared notes
+folder. The parent could not read that file (outside its session folders), so the early message was
+all it had; it wrote "run 2 still running" into its notes, held its commit waiting on a run that had
+already finished, and merged the two test runs into one story (run 1's cause attributed to run 2).
+The user spotted it and asked for a permanent fix. Rule: `rules/CLAUDE.md`, "Handing work back to
+the session that started you" — one complete message after the work finishes, everything in the
+text, a replacement says it supersedes. Rejected: a new shared channel or state file (another
+thing to keep in step, and the same unreadable-file problem); the existing relay of the final
+report already covers the normal case.
+
+---
+
 ## Step 10 — the archive offer went stranded after the wrap (2026-08-28)
 
 Step 10 asks whether to archive exactly once, right after the wrap it belongs to. On
