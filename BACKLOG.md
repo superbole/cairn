@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 121 -->
+<!-- next-id: 122 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,10 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B121. The rules reach Claude Code and Cursor but not OpenCode, or any other harness
+`Opus` · effort `high` · `HITL/Plan` · added `2026-10-28`
+Found 2026-10-28 while making "a loose thread gets its recommendation in the same reply" a standing rule (v1.68.0). Sheldon wants rules like that to hold across every AI tool he uses: Claude, Cursor, OpenCode, whatever comes next. Today `rules/CLAUDE.md` is the one source: `install_rules.py` writes it into `~/.claude/CLAUDE.md` and `tools/build_cursor.py` generates `cursor/rules/cairn.mdc` from it, so Claude Code and Cursor are covered by one edit. OpenCode is not: a search of this repo for it found nothing, and `~/.config/opencode` holds only `service.json`. **Decide first:** is a third generated target (an `AGENTS.md` block, which OpenCode and several other tools read) worth it, or is one tool-neutral `AGENTS.md` the shipped form and the Claude and Cursor files become views of it. Check what OpenCode actually loads (global rules path, hooks) before designing; Cursor's `cursor/gaps.md` is the model for recording what a harness cannot do. **Not in scope:** hooks and the orientation for OpenCode, which need their own measurement.
 
 ## B115. `sync_backlog.py` hangs on SBOLE-NB1 after filing the issue, and never writes the issue number back
 `Opus 5` · effort `high` · `HITL/Auto` · added `2026-10-27` · issue `#138`

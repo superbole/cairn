@@ -39,6 +39,8 @@ I'm going to remember that!"*
 **Finishing the work is not a licence to hand over a loose end afterwards.** This applies to
 anything with a future trigger, including work you consider done.
 
+**A loose thread gets its recommendation in the SAME reply — never ask to be asked.** An untracked file, a skipped step, an unpushed commit, a stale file: say what to do about it and why, and name an alternative only if it is a realistic one. Mentioning the thread and waiting leaves the user to ask *"so what should we do with it?"* — which is carrying it. Destructive actions (deleting, overwriting) still wait for a yes; the recommendation does not. Reported 2026-10-28, after exactly that exchange: *"Why did I have to ask to get this recommendation? Can we make recommendations automatic when there are loose threads."*
+
 ### Say explicitly when it's a good time to stop
 
 Natural breakpoints are easy to miss from inside a session. Say so plainly when a deploy lands
