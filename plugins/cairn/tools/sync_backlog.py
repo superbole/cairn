@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import re
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -54,7 +55,7 @@ try:
     import backlog_file
     import fence_scan
     import issue_host
-    from reentry_state import project_root
+    from reentry_state import project_root, project_root_source
 except Exception as exc:                                    # pragma: no cover
     print(f"backlog sync skipped: cannot import the plugin's own modules ({exc})")
     sys.exit(0)
@@ -659,13 +660,51 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--dry-run", action="store_true",
                    help="report what would change; makes read-only host calls and no write, "
                         "local or remote")
+    p.add_argument("--root", metavar="PATH", default=None,
+                   help="sync THIS project, ignoring CLAUDE_PROJECT_DIR and the session's "
+                        "stamped root (B9)")
     return p.parse_args(argv)
+
+
+def _cwd_toplevel(cwd: Path | None = None) -> Path | None:
+    """The git toplevel of CWD, or None when there is none or git cannot answer."""
+    try:
+        proc = subprocess.run(("git", "rev-parse", "--show-toplevel"), cwd=cwd or Path.cwd(),
+                              capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    out = proc.stdout.strip()
+    return Path(out) if proc.returncode == 0 and out else None
+
+
+def _root_report(root: Path, source: str, cwd_top: Path | None) -> list[str]:
+    """The lines that say WHICH project this run answers for, and warn when the shell is
+    standing in a different git repo (B9). A success line naming a repo the caller did not
+    ask for reads as a report; here it is a warning."""
+    lines = [f"backlog sync root: {root} (from {source})"]
+    if source != "--root" and cwd_top is not None:
+        try:
+            differs = cwd_top.resolve() != Path(root).resolve()
+        except OSError:
+            differs = False
+        if differs:
+            lines.append(f"  ! WARNING: this shell is inside {cwd_top}, but the sync is "
+                         f"answering for {root} ({source}). Pass --root {cwd_top} if you "
+                         f"meant the repo you are standing in.")
+    return lines
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     dry = args.dry_run
-    root = project_root() if project_root else Path.cwd()
+    if args.root:
+        root, source = Path(args.root).resolve(), "--root"
+    else:
+        root = project_root() if project_root else Path.cwd()
+        source = project_root_source() if project_root_source else "cwd"
+    for ln in _root_report(root, source, _cwd_toplevel()):
+        print(ln)
     do_push = args.push or not args.pull
     do_pull = args.pull or not args.push
 

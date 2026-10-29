@@ -923,5 +923,51 @@ check("a newline in a pulled title cannot make item 1 steal the issue",
       [(10, "Already here", 1), (11, "Hello ## 1. Stolen", 94)])
 check("...and the second sync pulls nothing", lg2, [])
 
+print("\n19. B9 - --root names the project, and the run says which one it answered for")
+check("--root is parsed", sb._parse_args(["--root", "somewhere"]).root, "somewhere")
+check("no --root defaults to None", sb._parse_args([]).root, None)
+
+fix9 = Path(tempfile.mkdtemp())
+(fix9 / "BACKLOG.md").write_text(
+    "# BACKLOG — fixture\n\n"
+    "## B5. A fresh item nobody has filed yet\n"
+    "`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-01`\n\nbody text\n",
+    encoding="utf-8")
+wrong9 = Path(tempfile.mkdtemp())          # what the session stamp would have answered with
+
+
+def _stamp_must_not_be_read():
+    raise AssertionError("project_root() consulted although --root was given")
+
+
+calls9 = []
+saved9 = (issue_host.IssueHost._run, issue_host.detect, sb.project_root)
+issue_host.IssueHost._run = fake_run_b13(calls9)
+issue_host.detect = lambda root, override="": (issue_host.GitHubHost(Path("."), "github.com"), "")
+sb.project_root = _stamp_must_not_be_read
+import io                                                  # noqa: E402
+import contextlib                                          # noqa: E402
+out9 = io.StringIO()
+try:
+    with contextlib.redirect_stdout(out9):
+        rc9 = sb.main(["--root", str(fix9)])
+finally:
+    (issue_host.IssueHost._run, issue_host.detect, sb.project_root) = saved9
+check("--root run exits 0 without asking the session stamp", rc9, 0)
+check("it synced the --root project: the number is in ITS BACKLOG.md",
+      [(i["n"], i["issue"]) for i in backlog_file.parse(fix9)], [(5, 129)])
+check("the first line names the root and says it came from --root",
+      out9.getvalue().splitlines()[0], "backlog sync root: %s (from --root)" % fix9.resolve())
+check("an explicit --root never warns about the cwd", "WARNING" in out9.getvalue(), False)
+
+rep = sb._root_report(wrong9, "session-stamp", fix9)
+check("a root that is not the shell's git repo is a WARNING naming both",
+      (len(rep), "WARNING" in rep[1], str(wrong9) in rep[1], str(fix9) in rep[1]),
+      (2, True, True, True))
+check("it suggests --root with the repo the shell is in", "--root %s" % fix9 in rep[1], True)
+check("the same root as the shell's repo is quiet",
+      len(sb._root_report(fix9, "cwd", fix9)), 1)
+check("no git repo at the cwd is quiet too", len(sb._root_report(wrong9, "env", None)), 1)
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
