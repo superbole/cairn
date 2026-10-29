@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 122 -->
+<!-- next-id: 123 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,10 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B122. "Did not finish cleanly" fires on commits made on ANOTHER machine, so a user who always wraps still sees it
+`Opus` · effort `high` · `HITL/Plan` · added `2026-10-29`
+**Reported 2026-10-29 by Sheldon, on SBOLE-NB5 in `workspace`:** the orientation said *"The last session on this machine didn't finish cleanly: 12 commits since the last wrap"*. He says it happens regularly, it makes him nervous, and he tries never to end a session without a wrap. **Cause (read in `hooks/reentry_state.py` `unwrapped_commits`, line ~431):** the count is `git rev-list <sha in .claude/.last_wrap>..HEAD`. The marker is per machine, but HEAD is the shared branch, so every commit pulled from another machine counts as "unwrapped" here. That day NB1 had committed and pushed (a wrap, plus a scheduled-task change) while NB5 held the older marker, so NB5 reported NB1's wrapped work as an unfinished session. **Not verified:** how many of the 12 were NB1's and how many NB5's own; check with `git log --format='%h %an %s' <marker>..HEAD` against the machine names. **Why it matters:** the warning is the one thing that makes him doubt a clean state, and a user who does everything right sees it anyway, so it stops carrying information. **Decide first:** (a) count only commits this machine made, which needs the machine id in the marker or the commit trailer; (b) count only commits since the marker that are NOT reachable from a wrap commit on any machine, so pulling a wrapped session clears it; (c) when a pull brings in a wrap commit, advance the marker. (b) or (c) is probably right; (a) needs a trailer on every commit. **Out of scope:** the separate "item opened, never wrapped" box, which is measured differently (`hooks/item_open.py`). Touches the same code as `dirty_tree_warning.py:144` and `session_orientation.py:790`, so fix both messages together.
 
 ## B121. The rules reach Claude Code and Cursor but not OpenCode, or any other harness
 `Opus` · effort `high` · `HITL/Plan` · added `2026-10-28`
