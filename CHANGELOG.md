@@ -3,6 +3,11 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-11-02 — v1.68.1: unknown fields-line segments survive a write (B102)
+
+- **B102 closed.** (#143). `backlog_file.write()` keeps a ` · ` segment it has no field for, so a trailing marker survives the write that adds `issue #n`. The line is still rebuilt. The marker moves to the end. D54.
+- A token separated with `-`, or sitting in the same segment as a known field, is still dropped. That remains B12.
+
 ## 2026-10-28 — v1.68.0: a loose thread gets its recommendation in the same reply
 
 - `rules/CLAUDE.md`, under "Never ask the user to remember anything": any loose thread (untracked file, skipped step, unpushed commit) is reported with what to do and why, unprompted. Destructive actions still wait for a yes. Prompted by Sheldon having to ask "so what should we do with them?" after a wrap named two untracked benchmark reports and stopped.

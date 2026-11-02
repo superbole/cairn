@@ -123,6 +123,8 @@ fields line **without it** — then printed `8 change(s)` and exited 0.
 Before: `` `Sonnet 5` - effort `medium` - `AFK/Auto` - added `2026-09-09` ``
 After:  `` `Sonnet 5` · effort `medium` · added `2026-09-09` · issue `#131` ``
 
+v1.68.1 (#143, B102) keeps a segment the parser has no field for when the separator is the middot. A hyphen-separated line, and a token mixed into a segment that also holds a known field, are still dropped. That is this item.
+
 Attendance/mode is required on every item; an item without it reads as unclassified and the next
 wrap cannot know a value was ever there. **The tool already has the right pattern and does not apply
 it here:** an unparseable item HEADING gets `backlog sync REFUSED`, no host call, nothing touched
@@ -1341,7 +1343,7 @@ hook can print `NEXT.md:<line of the heading>`, computed at print time.
 (2026-09-30, from a workspace session on NB5) **Unattended runs: three command shapes the allow list misses, and approving them doesn't carry over.** In `cairn-afk-firing` runs, `cd .claude/worktrees/<Bnn>`, `git -C <worktree> …` (with pipes to `head`/`wc`) and a `W=…;` compound all prompted. The card offered only "Allow once", with no always option, so a tool approval is NOT stored on the scheduled task for Bash, despite the tool docs, and each unattended run would stall there. Worked around in the task prompt: one branch at a time in the main checkout (`git switch -c afk/… origin/main`), no worktrees. Durable fix for `running-a-batch.md` / `.claude/settings.json` (B84/B90 family): either allow the worktree shapes, or drop worktrees from the unattended section. Also: **a run's own "permission prompts: none" line was wrong** (it hit two), so the summary can't be the detector for stalls; B49's heartbeat is the right half. And **the scheduler's `nextRunAt` already shows the NEXT slot while today's is inside its jitter window** (17:00 + 322 s showed Friday at 17:02), which looks like a skipped run and isn't.
 
 ## B102. `sync_backlog.py` drops unknown fields from an item's metadata line on issue write-back
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-30` · issue `#113`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-30` · issue `#113` · closed `2026-11-02`
 **Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
 
 (2026-09-30, from a workspace session on NB5) **`sync_backlog.py` drops unknown fields from an item's metadata line when it writes the issue number back.** workspace B72's line was `… · added `2026-09-30` · **run on NB1**`; after filing #71 it read `… · added `2026-09-30` · issue `#71``, and the machine marker was gone. Harmless there (the title says NB1), but a machine gate living only in that field would be lost silently. Fix: append ` · issue `#n`` to the line as it is, rather than regenerating it from parsed fields; add a test with an unknown trailing field.

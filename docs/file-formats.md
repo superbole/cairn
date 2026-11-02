@@ -118,6 +118,8 @@ must never fail over the backlog. Now the wrap writes the file (always, everywhe
 `tools/sync_backlog.py` reconciles with Issues whenever `gh` works. Everything the sync does is
 derived from the file, so there is no outbox to drift and an offline session loses nothing.
 
+A fields line is rebuilt from the fields the parser knows. A segment split on ` · ` that matches no known field is kept and moved to the end of the line (v1.68.1). A line split on `-`, and unknown text sharing a segment with a known field, is still dropped (B12).
+
 The traffic runs **both ways** (v1.17.0+). A sixth Queue item is filed to the backlog at the wrap;
 a wrap that ends with the Queue under three **pulls items back** until it has three, writing each
 one's brief to disk. The item stays in `BACKLOG.md` marked `queued` — it is closed only when the
