@@ -9,7 +9,7 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B128. A wrap that skips the backlog sync, and does not ask, is unfinished
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-11-02`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-11-02` · issue `#152`
 D55. Sheldon, 2026-11-02: a pause is fine, and he must not have to remember to ask for the sync. Claude Code already pauses, because `sync_backlog.py` is an ask rule (D39) and the card appears on its own. Cursor does not read `.claude/settings.json`. The wrap that morning skipped the sync and left a sentence after "good place to stop." He then had to remember the command. **Do:** `wrap_receipt.py` gains a required step. Sync did not run, and the close did not ask, and the verdict cannot look finished. The ask is in the close, before the session can be called done. Yes runs the sync. An AFK run still stops before the sync, same held go-ahead as the push (D39). **Rejected:** porting the ask list into Cursor, and a skill sentence alone (D4, D5: a checklist the agent must remember has already failed). **Checkpoint:** stop at the plan. One receipt step, both harnesses. Cursor has no permission card, so the close is the pause until it does.
 
 ## B123. An AFK run's leftover gap goes in the docs and on the issue
