@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 125 -->
+<!-- next-id: 128 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -8,20 +8,24 @@ Items marked `queued` are on the Queue right now and stay listed here until the 
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
 
+## B128. A wrap that skips the backlog sync, and does not ask, is unfinished
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-11-02`
+D55. Sheldon, 2026-11-02: a pause is fine, and he must not have to remember to ask for the sync. Claude Code already pauses, because `sync_backlog.py` is an ask rule (D39) and the card appears on its own. Cursor does not read `.claude/settings.json`. The wrap that morning skipped the sync and left a sentence after "good place to stop." He then had to remember the command. **Do:** `wrap_receipt.py` gains a required step. Sync did not run, and the close did not ask, and the verdict cannot look finished. The ask is in the close, before the session can be called done. Yes runs the sync. An AFK run still stops before the sync, same held go-ahead as the push (D39). **Rejected:** porting the ask list into Cursor, and a skill sentence alone (D4, D5: a checklist the agent must remember has already failed). **Checkpoint:** stop at the plan. One receipt step, both harnesses. Cursor has no permission card, so the close is the pause until it does.
+
 ## B123. An AFK run's leftover gap goes in the docs and on the issue
-`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-02`
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-02` · issue `#144`
 Sheldon, 2026-11-02, reviewing #143. A gap written only under "What it chose not to do" in the PR body is not recorded. The rule: every gap a firing finds is written into the cairn docs and onto the GitHub or GitLab issue. Today the firing puts it in the dossier (`docs/running-a-batch.md`, the unattended section; the firing prompt at `~/.claude/scheduled-tasks/cairn-afk-firing/SKILL.md` section 6). It cannot edit `BACKLOG.md` or run the sync, so it cannot file the issue. Docs other than `docs/decisions.md` and `README.md` are not shared files, and nothing tells the run to edit them. The attended bookkeeping pass is not required to copy the gap across. #143 was the example. The hyphen case was already B12 and was not mentioned. **Do:** the firing writes the exact doc sentence and the exact issue sentence in the dossier. If the doc is not a shared file, the firing edits it in the same PR. The attended pass writes the issue and is not finished until both exist. The rule lands in `docs/running-a-batch.md` and in the firing prompt. Checkpoint: that prompt is outside the repo, so stop before editing it.
 
 ## B124. File the scheduled-review findings that were left for the reviewer
-`Opus 5` · effort `high` · `HITL/Auto` · added `2026-11-02`
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-11-02` · issue `#145`
 Sheldon, 2026-11-02, after merging #143. He asked whether a Cursor cloud agent should harvest findings left in scheduled-review comments. No. D43: cloud agents are not oriented, and this job writes `BACKLOG.md` and issues. An unoriented pass will re-file items that already exist (#118's "session's own project is not checked" is already B108). Read 2026-11-02 from the GitHub API. Use the last word in each thread. No fix was pushed, and the rest was left for the reviewer, on #102, #103, #105, #118, #119, #125, and the fifth review on #126. #125's two holes and #131's doc mismatch were fixed in later commits. #126's later review of `a052c1c` says not to tighten those tests further. #139 leaves "the new first output line breaks positional parsers" open, and a later firing called the same PR looks-right with 2 low findings. #140 and #143 have no review comments. For each leftover, search `BACKLOG.md` and file only the ones with no item. Checkpoint: show that list and stop before adding the items.
 
 ## B122. "Did not finish cleanly" fires on commits made on ANOTHER machine, so a user who always wraps still sees it
-`Opus` · effort `high` · `HITL/Plan` · added `2026-10-29`
+`Opus` · effort `high` · `HITL/Plan` · added `2026-10-29` · issue `#146`
 **Reported 2026-10-29 by Sheldon, on SBOLE-NB5 in `workspace`:** the orientation said *"The last session on this machine didn't finish cleanly: 12 commits since the last wrap"*. He says it happens regularly, it makes him nervous, and he tries never to end a session without a wrap. **Cause (read in `hooks/reentry_state.py` `unwrapped_commits`, line ~431):** the count is `git rev-list <sha in .claude/.last_wrap>..HEAD`. The marker is per machine, but HEAD is the shared branch, so every commit pulled from another machine counts as "unwrapped" here. That day NB1 had committed and pushed (a wrap, plus a scheduled-task change) while NB5 held the older marker, so NB5 reported NB1's wrapped work as an unfinished session. **Not verified:** how many of the 12 were NB1's and how many NB5's own; check with `git log --format='%h %an %s' <marker>..HEAD` against the machine names. **Why it matters:** the warning is the one thing that makes him doubt a clean state, and a user who does everything right sees it anyway, so it stops carrying information. **Decide first:** (a) count only commits this machine made, which needs the machine id in the marker or the commit trailer; (b) count only commits since the marker that are NOT reachable from a wrap commit on any machine, so pulling a wrapped session clears it; (c) when a pull brings in a wrap commit, advance the marker. (b) or (c) is probably right; (a) needs a trailer on every commit. **Out of scope:** the separate "item opened, never wrapped" box, which is measured differently (`hooks/item_open.py`). Touches the same code as `dirty_tree_warning.py:144` and `session_orientation.py:790`, so fix both messages together.
 
 ## B121. The rules reach Claude Code and Cursor but not OpenCode, or any other harness
-`Opus` · effort `high` · `HITL/Plan` · added `2026-10-28`
+`Opus` · effort `high` · `HITL/Plan` · added `2026-10-28` · issue `#147`
 Found 2026-10-28 while making "a loose thread gets its recommendation in the same reply" a standing rule (v1.68.0). Sheldon wants rules like that to hold across every AI tool he uses: Claude, Cursor, OpenCode, whatever comes next. Today `rules/CLAUDE.md` is the one source: `install_rules.py` writes it into `~/.claude/CLAUDE.md` and `tools/build_cursor.py` generates `cursor/rules/cairn.mdc` from it, so Claude Code and Cursor are covered by one edit. OpenCode is not: a search of this repo for it found nothing, and `~/.config/opencode` holds only `service.json`. **Decide first:** is a third generated target (an `AGENTS.md` block, which OpenCode and several other tools read) worth it, or is one tool-neutral `AGENTS.md` the shipped form and the Claude and Cursor files become views of it. Check what OpenCode actually loads (global rules path, hooks) before designing; Cursor's `cursor/gaps.md` is the model for recording what a harness cannot do. **Not in scope:** hooks and the orientation for OpenCode, which need their own measurement.
 
 ## B115. `sync_backlog.py` hangs on SBOLE-NB1 after filing the issue, and never writes the issue number back
@@ -1354,12 +1358,6 @@ hook can print `NEXT.md:<line of the heading>`, computed at print time.
 
 (2026-09-30, from a workspace session on NB5) **Unattended runs: three command shapes the allow list misses, and approving them doesn't carry over.** In `cairn-afk-firing` runs, `cd .claude/worktrees/<Bnn>`, `git -C <worktree> …` (with pipes to `head`/`wc`) and a `W=…;` compound all prompted. The card offered only "Allow once", with no always option, so a tool approval is NOT stored on the scheduled task for Bash, despite the tool docs, and each unattended run would stall there. Worked around in the task prompt: one branch at a time in the main checkout (`git switch -c afk/… origin/main`), no worktrees. Durable fix for `running-a-batch.md` / `.claude/settings.json` (B84/B90 family): either allow the worktree shapes, or drop worktrees from the unattended section. Also: **a run's own "permission prompts: none" line was wrong** (it hit two), so the summary can't be the detector for stalls; B49's heartbeat is the right half. And **the scheduler's `nextRunAt` already shows the NEXT slot while today's is inside its jitter window** (17:00 + 322 s showed Friday at 17:02), which looks like a skipped run and isn't.
 
-## B102. `sync_backlog.py` drops unknown fields from an item's metadata line on issue write-back
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-30` · issue `#113` · closed `2026-11-02`
-**Triaged from INBOX.md at the 2026-10-01 wrap.** Captured verbatim:
-
-(2026-09-30, from a workspace session on NB5) **`sync_backlog.py` drops unknown fields from an item's metadata line when it writes the issue number back.** workspace B72's line was `… · added `2026-09-30` · **run on NB1**`; after filing #71 it read `… · added `2026-09-30` · issue `#71``, and the machine marker was gone. Harmless there (the title says NB1), but a machine gate living only in that field would be lost silently. Fix: append ` · issue `#n`` to the line as it is, rather than regenerating it from parsed fields; add a test with an unknown trailing field.
-
 ## B103. After a history rewrite on origin, the divergence banner invites the pull that undoes it
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-01` · issue `#114`
 **Triaged from INBOX.md at the 2026-10-01 wrap.** Sibling of B87 (orient from origin when behind). NB1 application: `SBole/workspace` W25. Captured verbatim:
@@ -1418,22 +1416,6 @@ Not done in #125 because every signal tried gave false refusals. The `next-id` m
 (B67), and an unfiled item numbered below a filed one is legitimate when two machines allocate offline.
 Candidate signal: the id is at or below origin's highest and absent from origin's file. It misses only
 when the bad heading was already pushed. **Needs B67's decision on what the marker means first.**
-
-## B111. The repo recorder still misses relative writes in a quoted wrapper, after `Set-Location`, and via `$PWD`
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-10-26` · issue `#133` · closed `2026-11-02`
-Follow-up from #131 (B82), which resolves relative paths in shell commands against the cwd and every
-`cd` target. Still missed, all silently:
-- a command wrapped in a quoted string: `powershell -Command "Add-Content ..\other\y.txt hi"`,
-  `bash -c "echo > ../other/y"`, `python -c "open('../other/y','w')"`. The whole quoted run is one
-  token whose first segment is not `..`;
-- `$PWD\..\other\x` and `Join-Path $PSScriptRoot ..\other` (refused for the `$`), and
-  `-Path:..\other\y.txt` (refused for the `:`);
-- `Set-Location ..` or `pushd ..` followed by a relative write: `_CD_RE` matches `cd` only.
-
-Cursor's review of #131 (2026-10-26) found that Cursor's `afterShellExecution` hands the hook the raw
-`command`, not a `powershell -Command` wrapper, so the wrapper case is about what an agent itself
-writes, not what the harness adds. Read-only references stay recorded (decided 2026-10-26, D53).
-Also worth deciding here: a miss gives no signal at all, which is how B82 went unseen.
 
 ## B112. Put the open `afk/` PRs in front of him: a Queue line at session start and one review page per batch
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-26` · issue `#134` · queued
@@ -1496,7 +1478,7 @@ trigger, not a priority). **Evidence:** this session's transcript, wrap close of
 _Synced from `BACKLOG.md` (item B114) by the reentry plugin._
 
 ## B117. Weekend burn heartbeat: a dead-man's check from another machine
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28` · issue `#148`
 **From `workspace` W18.** NB5 has no WiFi after a reboot until someone logs in (W20), so a missed weekend and the
 Discord post both vanish with it. Design is in `docs/briefs/weekend-burn-design.md` section 5: each firing comments its
 summary on one `superbole/claude-inbox` issue (allow rule exists), and a task on DeepThought or NB1 alerts by Discord if
@@ -1504,20 +1486,20 @@ no comment appears by Friday 22:00. **His calls:** which machine, and a second c
 (record it in `CREDENTIALS.md`). **Ruled out:** a check on NB5 itself (dies with it), and reading Discord (no API).
 
 ## B118. Weekend burn across projects: which projects, and a separate scoped token per host
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28` · issue `#149`
 Three tiers in `docs/briefs/weekend-burn-design.md` section 4: cairn (on), other `superbole/*` repos (one fine-grained
 PAT each), CSIR GitLab repos (own task, own MR-only token, counts-only Discord line). Opt-in by a line in each project's
 `NEXT.md`. **His calls:** the repo list per tier and creating every token; nothing is widened until he does.
 CSIR detail never reaches GitHub, personal detail never reaches `pta-git2`.
 
 ## B119. Weekend burn HITL: a firing files a question issue, a later run continues after the answer
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28` · issue `#150`
 Sketch in `docs/briefs/weekend-burn-design.md` section 7, reusing `superbole/claude-inbox`: one `burn-question` issue per
 stuck item (cap 3 open), he answers from his phone, a later firing takes the answered item as a normal one. Needs allow
 rules for `gh issue create` on claude-inbox only. Related: B89, B84.
 
 ## B120. An attended session and a scheduled firing share one checkout, and they destroy each other's work
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-10-28` · issue `#151`
 **Found in the 2026-10-28 test firings.** Firing 2 was dispatched into the cairn checkout while an attended session ran
 `git switch main` in the same directory. The firing's `afk/` branch and its commit vanished mid-run, it wrote an
 `ABORTED` summary (which the Windows poster sends to Discord), then carried on to a different item and succeeded, so one run
@@ -1528,3 +1510,30 @@ clone for scheduled runs (the cleanest; costs a clone and a fetch per run), a lo
 firing re-checking `git branch --show-current` before each commit. A summary that is written early must not be followed by
 more work (prompt rule added 2026-10-28, unenforced). **Ruled out:** telling him not to touch the checkout during slots
 (it is the thing he cannot hold). **Related:** B84, B117, W12.
+
+## B126. set_session_title(session_id: "self") is refused in cloud sessions
+added `2026-11-02` · issue `#142`
+Found 2026-10-31 in a Claude Code cloud session (cairn 1.68.0, superbole/bikeabout).
+
+The rules and `skills/next/SKILL.md:180` say `set_session_title(session_id: "self")` renames the current session (verified 2026-08-20 in the desktop app, see `skills/wrap/references/incidents.md:236`). In a cloud session it fails with:
+
+`session_id must be a session id from list_sessions (session_… or cse_…)`
+
+Passing the session's real id worked.
+
+**Fix:** where the rules and skills say `"self"`, add the fallback: if `"self"` is refused, use the current session's real id (in the cloud the agent can get it; in the desktop app `list_sessions` excludes the current session, which is why `"self"` exists). Record the cloud result beside the 2026-08-20 incident so the two harnesses' behaviour is both on file.
+
+## B127. Cloud sessions trip every first-run message, every session (profile template seed, rules install)
+added `2026-11-02` · issue `#141`
+Found 2026-10-31 running cairn 1.68.0 in a Claude Code cloud session on superbole/bikeabout (installed by the environment setup script: `claude plugin marketplace add superbole/cairn` + `claude plugin install cairn@superbole`; test PR superbole/bikeabout#42).
+
+A cloud session starts on a fresh container every time, so every "first run on this machine" path in the SessionStart hooks fires in **every** cloud session:
+
+1. `hooks/ensure_profile_file.py` seeds the 3061-byte profile TEMPLATE and prints: `[to the agent] Created /root/.claude/reentry-profile.md -- this machine had none. It is a TEMPLATE: tell the user it is theirs to fill in, and that REENTRY_PROFILE_SOURCE carries it between machines.` So every cloud session asks the user to fill in a profile that will be thrown away. The private profile must NOT be supplied to the cloud (it names medical history), so this prompt can never be satisfied there.
+2. `hooks/install_rules.py:316` prints `Installed the cairn rules into /root/.claude/CLAUDE.md (v1.68.0) ... They are NOT in your context yet` every session. **Unverified** whether that is true in the cloud (the reporting agent claimed the rules were already loaded, but its reasoning was wrong: the setup script installs the plugin, not the rules). Check whether CLAUDE.md written by a SessionStart hook is in that session's context before changing the message.
+
+**Candidate fix:** detect an ephemeral cloud container (Claude Code on the web sets an env var for this; believed to be `CLAUDE_CODE_REMOTE`, verify before relying on it) and stay silent on the profile seed there: say once per session at most that no profile is present, with no request to fill it in. Rules install can stay, minus a wrong "not in context" claim if (2) turns out false.
+
+**What worked, for the record:** orientation printed (`STAY QUIET`), `/cairn:next` and `/cairn:wrap` available, the wrap's NEXT.md/CHANGELOG.md edits landed on the `claude/...` branch and in the PR, and the verdict was `CAIRN SET` (baseline is stamped in the same container, so cloud wraps are fully measurable). Worth a short "Cloud sessions" section in the README with the two setup-script lines and "wrap edits ride in the issue's own PR".
+
+**Ruled out (not bugs):** `check_repos.py` printing `No record` after an Edit inside the project (the recorder only records writes OUTSIDE the project, by design); a `push_check.py` ALERT after a deliberate push (the agent ran the held-push check on a non-held push); `staged_review_guard` blocking stage+commit in one call (correct).

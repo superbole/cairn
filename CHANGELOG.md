@@ -3,6 +3,12 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-11-02 — backlog sync ran, and a skipped sync must pause the wrap (D55)
+
+- Sync against `superbole/cairn`. Filed #144 (B123), #145 (B124), #146 (B122), #147 (B121), #148 (B117), #149 (B118), #150 (B119), #151 (B120). Closed #113 (B102) and #133 (B111) and dropped those rows. Updated the bodies of #10, #56 and #83. Pulled #142 as B126 and #141 as B127.
+- The three B76 warnings name the old private-repo ids inside B27, B28 and `briefs/untrusted-text-boundary.md`. Those are migration notes. Left as written.
+- D55. A pause is required and remembering the command is not. Cursor does not load the ask list, so the close itself is the pause. Filed as B128, not queued.
+
 ## 2026-11-02 — wrap: the Cursor receipt probe, and the inbox from the #143 review
 
 - The agent shell has `CURSOR_CONVERSATION_ID`. That is the `cursor/gaps.md` probe for a measurable receipt, and it passes. B83 stays open and is queued. The receipt does not read the variable yet, so this wrap still prints `CAIRN UNKNOWN`.
