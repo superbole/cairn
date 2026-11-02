@@ -8,6 +8,7 @@ history; this file holds the history and no queue.
 - Sync against `superbole/cairn`. Filed #144 (B123), #145 (B124), #146 (B122), #147 (B121), #148 (B117), #149 (B118), #150 (B119), #151 (B120). Closed #113 (B102) and #133 (B111) and dropped those rows. Updated the bodies of #10, #56 and #83. Pulled #142 as B126 and #141 as B127.
 - The three B76 warnings name the old private-repo ids inside B27, B28 and `briefs/untrusted-text-boundary.md`. Those are migration notes. Left as written.
 - D55. A pause is required and remembering the command is not. Cursor does not load the ask list, so the close itself is the pause. Filed as B128 (#152), not queued.
+- SboleWork was `read` on `superbole/cairn`. That is why the merge button said blocked while the checks were green. He set the role to `write`, then squash-merged #143. Leave `write` while merges happen from that login.
 
 ## 2026-11-02 — wrap: the Cursor receipt probe, and the inbox from the #143 review
 
