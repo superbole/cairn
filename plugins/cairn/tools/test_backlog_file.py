@@ -627,5 +627,30 @@ check("write() keeps every family/version label (the pre-B76 write dropped `Opus
 check("...and the rewritten file still carries `Fable 5.1` verbatim",
       "`Fable 5.1` · effort `high`" in (fx15 / "BACKLOG.md").read_text(encoding="utf-8"), True)
 
+print("\n16. a fields-line segment no field accounts for survives a write (B102)")
+fx13 = fixture("unknown-field")
+(fx13 / "BACKLOG.md").write_text(
+    "# BACKLOG — T\n<!-- next-id: 3 -->\n\n"
+    "## B3. Gated item\n"
+    "`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-30` · **run on box-1**\n"
+    "body\n\n"
+    "## B4. Plain item\n"
+    "`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-30` · queued\n"
+    "body\n", encoding="utf-8")
+p13 = backlog_file.parse(fx13)
+check("unknown segment is captured", p13[0]["extra"], ["**run on box-1**"])
+check("known fields leave no extra", p13[1]["extra"], [])
+p13[0]["issue"] = 71                                   # what the sync's write-back does
+backlog_file.write(fx13, p13, "T")
+out13 = (fx13 / "BACKLOG.md").read_text(encoding="utf-8")
+check("issue number added and the unknown segment kept",
+      "`AFK/Auto` · added `2026-09-30` · issue `#71` · **run on box-1**" in out13, True)
+check("a second write is stable", backlog_file.render(backlog_file.parse(fx13), "T",
+      next_id_floor=4), out13)
+check("a bare flag and a dated closed are not mistaken for extras",
+      backlog_file._extra_segments("`Opus 5` · queued · closed `2026-10-01` · inbound"), [])
+check("a legacy dash-separated line is one known segment, no extra",
+      backlog_file._extra_segments("`Sonnet 5` - effort `medium` - added `2026-09-09`"), [])
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
