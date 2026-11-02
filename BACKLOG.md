@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 128 -->
+<!-- next-id: 130 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,21 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B129. v1.69.0 release: bookkeeping for #139, #140 and #130
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-02`
+Moved here 2026-11-02 from `superbole/claude-inbox` #16 (closed with a pointer to this item), so the 30-minute `claude-inbox-check` stops listing it. Sheldon approved it on 29 Oct. The inbox task refused it then because it pushes to main and was meant for an attended session. **Run it attended, in this checkout on NB5.**
+
+State on 29 Oct: #140 (B111) was squash-merged as `731cb46` and #139 (B9) as `099c10c`, on top of `e63b75a` (v1.68.0). #137 is closed as a duplicate of #136. #139's 4 follow-ups are noted on #109 (B98). Measured 2026-11-02: `plugin.json` is still 1.68.1, there is no v1.69.0 tag, and the checkout is level with origin. B111 no longer has a heading here, so check whether its close already landed. B116 still exists.
+
+1. `git pull --ff-only` on main.
+2. `BACKLOG.md`: close B111 (#133). Mark B9 (#56) part-done: `--root` and the root-source line landed in #139, and the rest stays with B98/#109. Remove B116 (#137, a duplicate of B114/#136).
+3. `README.md`, around line 204: change `python plugins/cairn/tools/check_install.py` to `python3 plugins/cairn/tools/check_install.py` (`py -3` on Windows), as noted in #130's PR body. Add `README.md` to the `test_skill_calls.py` Section 5 scan if it passes cleanly.
+4. CHANGELOG entries for #139 and #140, and bump both `plugin.json` files to 1.69.0. Rebuild `cairn.mdc` if the release step does that. Fold in anything merged since (#143 is the B102 replay PR from 2026-11-02) if its bookkeeping has not landed.
+5. Run the tests, commit, and push to main without force. CI must be green.
+6. Run `sync_backlog.py` once so the unnumbered items get issue numbers and #133 closes. If it hangs (#138), stop and check GitHub for duplicates before retrying.
+
+Ask Sheldon before any reset or force-push. **Why it matters:** `workspace` Queue item 4 (idle `claude-inbox-check` sessions) is blocked on this checkout being wrapped.
 
 ## B128. A wrap that skips the backlog sync, and does not ask, is unfinished
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-11-02` · issue `#152`
