@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 123 -->
+<!-- next-id: 125 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,14 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B123. An AFK run's leftover gap goes in the docs and on the issue
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-02`
+Sheldon, 2026-11-02, reviewing #143. A gap written only under "What it chose not to do" in the PR body is not recorded. The rule: every gap a firing finds is written into the cairn docs and onto the GitHub or GitLab issue. Today the firing puts it in the dossier (`docs/running-a-batch.md`, the unattended section; the firing prompt at `~/.claude/scheduled-tasks/cairn-afk-firing/SKILL.md` section 6). It cannot edit `BACKLOG.md` or run the sync, so it cannot file the issue. Docs other than `docs/decisions.md` and `README.md` are not shared files, and nothing tells the run to edit them. The attended bookkeeping pass is not required to copy the gap across. #143 was the example. The hyphen case was already B12 and was not mentioned. **Do:** the firing writes the exact doc sentence and the exact issue sentence in the dossier. If the doc is not a shared file, the firing edits it in the same PR. The attended pass writes the issue and is not finished until both exist. The rule lands in `docs/running-a-batch.md` and in the firing prompt. Checkpoint: that prompt is outside the repo, so stop before editing it.
+
+## B124. File the scheduled-review findings that were left for the reviewer
+`Opus 5` · effort `high` · `HITL/Auto` · added `2026-11-02`
+Sheldon, 2026-11-02, after merging #143. He asked whether a Cursor cloud agent should harvest findings left in scheduled-review comments. No. D43: cloud agents are not oriented, and this job writes `BACKLOG.md` and issues. An unoriented pass will re-file items that already exist (#118's "session's own project is not checked" is already B108). Read 2026-11-02 from the GitHub API. Use the last word in each thread. No fix was pushed, and the rest was left for the reviewer, on #102, #103, #105, #118, #119, #125, and the fifth review on #126. #125's two holes and #131's doc mismatch were fixed in later commits. #126's later review of `a052c1c` says not to tighten those tests further. #139 leaves "the new first output line breaks positional parsers" open, and a later firing called the same PR looks-right with 2 low findings. #140 and #143 have no review comments. For each leftover, search `BACKLOG.md` and file only the ones with no item. Checkpoint: show that list and stop before adding the items.
 
 ## B122. "Did not finish cleanly" fires on commits made on ANOTHER machine, so a user who always wraps still sees it
 `Opus` · effort `high` · `HITL/Plan` · added `2026-10-29`
@@ -734,6 +742,8 @@ command made it sync that repo to its GitLab host correctly (closed #44, filed #
   tool that calls `project_root()` with no argument and prints a verdict: `check_repos.py`,
   `issues_backlog.py`, `validate_next.py`, `measure_context.py`.
 
+**#139 (merged 2026-10-29) did (1) and (3) for `sync_backlog.py` only.** It warns when the shell is inside a different repo and tells you to pass `--root`. It still answers for the session root unless that flag is passed. (2) and (4) are open. Not closed.
+
 ## B8. `/cairn:next` and `/cairn:wrap` should tell the agent to read files with Read, not a shell chain
 `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23` · issue `#57`
 On re-entry, an agent read NEXT.md's Queue, INBOX.md and git state in ONE Bash call:
@@ -1094,16 +1104,18 @@ that is not in the team's organisation, and whether auto-refresh needs the Curso
 `superbole/cairn`. Blocked on nothing; start from `README.md`'s "Using it from Cursor".
 
 ## B83. Make the wrap receipt measurable in Cursor (today it reads `CAIRN UNKNOWN`)
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#83`
+`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#83` · queued
 **From B57 (v1.65.0), `plugins/cairn/cursor/gaps.md`.** The receipt's baseline is keyed by session id
 (B72: never machine-global). Cursor gives hooks a `session_id`, but the agent's shell, where
-`wrap_receipt.py --record` runs, has no session variable (checked 2026-09-26). So every Cursor wrap
+`wrap_receipt.py --record` runs, had no session variable (checked 2026-09-26). So every Cursor wrap
 reads `UNKNOWN`. That is honest, and D38 makes it harmless, but it is blind. Cursor processes also
 ignore any inherited Claude session id since v1.65.0, because a Cursor window launched from a Claude
 session carries that id. **Candidates:** a `beforeSubmitPrompt` hook stamps `{project → session_id}`
 and the receipt adopts it only when exactly one live Cursor session holds that project; or a probe
 finds a session variable in a later Cursor. **The constraint to respect:** B72's reverted
 machine-global stamp. Two concurrent chats in one project must not share a baseline.
+
+**Probe passed 2026-11-02, on this machine, in the agent shell.** `CURSOR_CONVERSATION_ID` is set. `wrap_receipt.py` does not read it, so this wrap still prints `CAIRN UNKNOWN`. The id is per chat, which is the shape that keeps two chats from sharing a baseline. Stops at the plan for how the receipt adopts it. Do not stamp a baseline late: that hashes the current files as session start and turns a blind receipt into a false one (B11).
 
 ## B84. "Burn tokens": a named `/cairn:burn` that schedules ONE persistent task and survives Manual
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-27` · issue `#91`
@@ -1408,7 +1420,7 @@ Candidate signal: the id is at or below origin's highest and absent from origin'
 when the bad heading was already pushed. **Needs B67's decision on what the marker means first.**
 
 ## B111. The repo recorder still misses relative writes in a quoted wrapper, after `Set-Location`, and via `$PWD`
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-10-26` · issue `#133`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-10-26` · issue `#133` · closed `2026-11-02`
 Follow-up from #131 (B82), which resolves relative paths in shell commands against the cwd and every
 `cd` target. Still missed, all silently:
 - a command wrapped in a quoted string: `powershell -Command "Add-Content ..\other\y.txt hi"`,

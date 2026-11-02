@@ -3,6 +3,14 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-11-02 — wrap: the Cursor receipt probe, and the inbox from the #143 review
+
+- The agent shell has `CURSOR_CONVERSATION_ID`. That is the `cursor/gaps.md` probe for a measurable receipt, and it passes. B83 stays open and is queued. The receipt does not read the variable yet, so this wrap still prints `CAIRN UNKNOWN`.
+- Inbox triaged. B123: a gap an AFK run leaves goes in the docs and on the issue, not only the PR. B124: file the scheduled-review findings that were left for the reviewer. Not a cloud agent (D43).
+- **B111 closed.** #140 covers the quoted wrapper, `$PWD`, `-Path:` and `Set-Location` cases, and the tests name them.
+- B9 stays open. #139 added `--root` and a warning when the shell's repo and the session root differ. The audit of the other report tools is still the item.
+- W6 re-dated to 2026-11-09. The backlog sync was not run. It would file B117 through B122 as well as close #113 and #133.
+
 ## 2026-11-02 — v1.68.1: unknown fields-line segments survive a write (B102)
 
 - **B102 closed.** (#143). `backlog_file.write()` keeps a ` · ` segment it has no field for, so a trailing marker survives the write that adds `issue #n`. The line is still rebuilt. The marker moves to the end. D54.

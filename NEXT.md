@@ -29,6 +29,10 @@ record is the one thing in a repo that cannot be re-derived from the repo.
    Brief: `BACKLOG.md` B112
    Raised 2026-10-26: merging three PRs by command skips the review, and the review should be presented to him. Agreed direction in the entry; stops at the plan. Once built, W6 shrinks to the bookkeeping.
 
+5. **Key the wrap baseline on Cursor's conversation id** — Opus 5 · high · HITL/Plan
+   Brief: `BACKLOG.md` B83
+   The agent shell has `CURSOR_CONVERSATION_ID` (measured 2026-11-02). Stops at the plan for how the receipt adopts it. Two chats in one project must not share a baseline.
+
 ## Watching
 
 **W9. GitHub Support has purged the old commit pages and PR refs** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-10-01` · check after `2026-10-15`
@@ -44,7 +48,7 @@ The real dogfooding test, and no current machine can run it — every one has ha
 all could pass while a stranger fails. When it fires, check: does the orientation print, does
 `install_rules` write the managed block, and does the plugin stay silent in a project with no `NEXT.md`.
 
-**W6. Review and merge the weekend's `afk/` PRs, then do the bookkeeping** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-11-02`
+**W6. Review and merge the weekend's `afk/` PRs, then do the bookkeeping** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-11-09`
 `cairn-afk-firing` runs Sat and Sun 09:00 on NB5 (D51) and leaves PRs on `superbole/cairn`, each with a `Scheduled review`
 comment (D49). Every PR merged up to 2026-10-26 is closed out in v1.67.0, and none is open now. For each new one: read the
 dossier against its diff (`docs/running-a-batch.md`, "The review surface"). Present it to him so he can decide and press
