@@ -139,6 +139,26 @@ def _lines(root: Path) -> list[str]:
         return []
 
 
+_BARE_FLAG_RE = re.compile(r"(?<![\w-])(queued|inbound)(?![\w-])", re.I)
+
+
+def _extra_segments(fields: str) -> list[str]:
+    """The ` · `-separated segments of a fields line that no known field accounts for (B102).
+
+    `fields_line()` re-renders the line from the parse, so a segment the parser has no field
+    for (`**run on <machine>**`) was silently dropped on the next write, including the write that
+    only adds ` · issue `#n``. A segment counts as known when any field regex matches it, so
+    a legacy line that uses another separator is one known segment and is left as it was.
+    """
+    known = (_ADDED_RE, _CLOSED_RE, _ISSUE_RE, _EFFORT_RE, _MODEL_RE, _ATTEND_RE, _BARE_FLAG_RE)
+    out = []
+    for seg in fields.split("·"):
+        seg = seg.strip()
+        if seg and not any(rx.search(seg) for rx in known):
+            out.append(seg)
+    return out
+
+
 def parse(root: Path) -> list[dict]:
     """Every item in the file, in file order. `[]` for missing or unreadable.
 
@@ -199,6 +219,7 @@ def parse(root: Path) -> list[dict]:
         it["mode"] = am.group(2).strip() if (am and am.group(2)) else None
         it["queued"] = bool(re.search(r"(?<![\w-])queued(?![\w-])", f, re.I))
         it["inbound"] = bool(re.search(r"(?<![\w-])inbound(?![\w-])", f, re.I))
+        it["extra"] = _extra_segments(f)
         body = "\n".join(it["body"])
         bm = _BRIEF_RE.search(body)
         it["brief"] = bm.group(2) if bm else None
@@ -644,6 +665,7 @@ def fields_line(it: dict) -> str:
         bits.append("inbound")
     if it.get("closed"):
         bits.append(f"closed `{it['closed']}`")
+    bits.extend(it.get("extra") or [])
     return " · ".join(bits)
 
 
