@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 130 -->
+<!-- next-id: 131 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,12 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B130. No notion of a work package: related items scatter, and the refill picks unrelated work before the package is closed
+`Opus` · effort `high` · `HITL/Plan` · added `2026-11-05`
+Reported 2026-11-05 by the user, about the previous week: when several related tasks went into the backlog, the agent and cairn steered him to unrelated items instead of closing off the one work package. Cause, as far as the mechanism goes: `BACKLOG.md` is unordered by design, the Queue is capped at 5, and the wrap's refill chooses by judgement with nothing that says "these belong together, finish them first". The case that raised it: a pentest remediation (one external deadline, a retest window, many findings).
+Workaround given that day, no code change: file the package as ONE backlog item and ONE Queue slot whose brief is the checklist (one row per sub-task with a status), so "do 1" keeps returning to the package until it is closed. Sub-tasks are not separate backlog items.
+To decide here: whether that workaround should simply be the documented rule (cheapest), or whether items get an optional `package:` field that the refill and the orientation respect (pull the rest of an open package before anything else; show "package X: 3 of 7 open" on one line). Rejected so far: GitLab milestones as the grouping, because nothing in cairn reads them, so they would not change what the next session offers. Check against how `sync_backlog.py` maps items to issues before adding a field.
 
 ## B129. v1.69.0 release: bookkeeping for #139, #140 and #130
 `Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-02`
