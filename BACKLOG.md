@@ -9,13 +9,13 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B130. No notion of a work package: related items scatter, and the refill picks unrelated work before the package is closed
-`Opus` · effort `high` · `HITL/Plan` · added `2026-11-05`
+`Opus` · effort `high` · `HITL/Plan` · added `2026-11-05` · issue `#153`
 Reported 2026-11-05 by the user, about the previous week: when several related tasks went into the backlog, the agent and cairn steered him to unrelated items instead of closing off the one work package. Cause, as far as the mechanism goes: `BACKLOG.md` is unordered by design, the Queue is capped at 5, and the wrap's refill chooses by judgement with nothing that says "these belong together, finish them first". The case that raised it: a pentest remediation (one external deadline, a retest window, many findings).
 Workaround given that day, no code change: file the package as ONE backlog item and ONE Queue slot whose brief is the checklist (one row per sub-task with a status), so "do 1" keeps returning to the package until it is closed. Sub-tasks are not separate backlog items.
 To decide here: whether that workaround should simply be the documented rule (cheapest), or whether items get an optional `package:` field that the refill and the orientation respect (pull the rest of an open package before anything else; show "package X: 3 of 7 open" on one line). Rejected so far: GitLab milestones as the grouping, because nothing in cairn reads them, so they would not change what the next session offers. Check against how `sync_backlog.py` maps items to issues before adding a field.
 
 ## B129. v1.69.0 release: bookkeeping for #139, #140 and #130
-`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-02`
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-02` · issue `#154`
 Moved here 2026-11-02 from `superbole/claude-inbox` #16 (closed with a pointer to this item), so the 30-minute `claude-inbox-check` stops listing it. Sheldon approved it on 29 Oct. The inbox task refused it then because it pushes to main and was meant for an attended session. **Run it attended, in this checkout on NB5.**
 
 State on 29 Oct: #140 (B111) was squash-merged as `731cb46` and #139 (B9) as `099c10c`, on top of `e63b75a` (v1.68.0). #137 is closed as a duplicate of #136. #139's 4 follow-ups are noted on #109 (B98). Measured 2026-11-02: `plugin.json` is still 1.68.1, there is no v1.69.0 tag, and the checkout is level with origin. B111 no longer has a heading here, so check whether its close already landed. B116 still exists.
