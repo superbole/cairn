@@ -639,6 +639,99 @@ try:
 finally:
     os.environ["CLAUDE_CONFIG_DIR"] = str(_EMPTY_CFG)
 
+print("\n29. B9 -- the report names the root it answers for, and warns when the shell is elsewhere")
+# Still under _EMPTY_CFG, so a session stamp written by project_root() lands in the temp dir.
+import reentry_state as _rs                               # noqa: E402
+_B9_ENV = ("CLAUDE_PROJECT_DIR", "CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID")
+_b9_saved = {k: os.environ.pop(k, None) for k in _B9_ENV}
+_b9_cwd = os.getcwd()
+try:
+    _b9 = Path(tempfile.mkdtemp(prefix="validate-next-b9-"))
+    repo_a, repo_b, plain = _b9 / "a", _b9 / "b", _b9 / "plain"
+    for _p in (repo_a, repo_b, plain):
+        _p.mkdir()
+    _git(repo_a, "init", "-q")
+    _git(repo_b, "init", "-q")
+    (repo_a / "sub").mkdir()
+    (repo_a / "NEXT.md").write_text(CLEAN, encoding="utf-8")
+
+    same = _rs.root_report("t", repo_a, "env", cwd=repo_a)
+    check("same repo: one line, no warning", len(same), 1)
+    check("first line names root and source",
+          same[0] == f"t root: {repo_a} (from env)", True)
+    check("shell in a subdirectory of the same repo: no warning",
+          len(_rs.root_report("t", repo_a, "session-stamp", cwd=repo_a / "sub")), 1)
+    check("root is a subdirectory, shell at its toplevel: no warning",
+          len(_rs.root_report("t", repo_a / "sub", "env", cwd=repo_a)), 1)
+
+    other = _rs.root_report("t", repo_a, "session-stamp", cwd=repo_b, hint="Pass it.")
+    check("shell in a different repo: a warning line", len(other), 2)
+    check("...naming where the shell is, the root, the source and the hint",
+          all(s in other[1] for s in ("WARNING", str(repo_b.resolve()), str(repo_a),
+                                      "session-stamp", "Pass it.")), True)
+
+    check("a root named on the command line never warns",
+          len(_rs.root_report("t", repo_a, "argument", cwd=repo_b)), 1)
+    check("a session-scoped caller (warn_on_cwd=False) never warns",
+          len(_rs.root_report("t", repo_a, "env", cwd=repo_b, warn_on_cwd=False)), 1)
+    # `plain` sits in a temp dir; only meaningful if no enclosing repo exists above it.
+    if _rs.toplevel(plain) is None:
+        check("shell outside any git repo: no warning",
+              len(_rs.root_report("t", repo_a, "env", cwd=plain)), 1)
+    check("a root that does not exist never raises",
+          len(_rs.root_report("t", _b9 / "gone", "env", cwd=repo_b)) >= 1, True)
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = vn.main([str(repo_a)])
+    out = buf.getvalue().splitlines()
+    check("PATH given: exit 0", rc, 0)
+    check("PATH given: first line is the root, from argument",
+          out[0] == f"NEXT.md validate root: {repo_a} (from argument)", True)
+    check("PATH given: verdict follows on line 2", out[1].startswith("NEXT.md validate: OK"), True)
+
+    # The B9 incident: session project A, shell cd-ed into B, no PATH.
+    os.environ["CLAUDE_PROJECT_DIR"] = str(repo_a)
+    os.chdir(repo_b)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = vn.main([])
+    out = buf.getvalue().splitlines()
+    check("no PATH: answers for the session root, from env",
+          out[0] == f"NEXT.md validate root: {repo_a} (from env)", True)
+    check("no PATH, shell in another repo: line 2 is the warning",
+          "WARNING" in out[1] and str(repo_b.resolve()) in out[1], True)
+    check("...with the validator's own hint", "Pass that repo's path" in out[1], True)
+
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        vn.main(["--json"])
+    payload = json.loads(buf.getvalue())
+    check("--json carries root_source", payload.get("root_source"), "env")
+    check("--json carries the warning in root_report", len(payload.get("root_report", [])), 2)
+
+    os.chdir(repo_a)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        vn.main([])
+    check("no PATH, shell in the session repo: no warning",
+          any("WARNING" in ln for ln in buf.getvalue().splitlines()), False)
+
+    import issues_backlog as _ib                          # noqa: E402
+    os.chdir(repo_b)
+    ib_lines = _ib.root_lines(repo_a)
+    check("issues_backlog.root_lines names the cache root",
+          ib_lines[:1] == [f"issues cache root: {repo_a} (from env)"], True)
+    check("issues_backlog.root_lines warns when the shell is in another repo",
+          len(ib_lines) == 2 and "WARNING" in ib_lines[1], True)
+finally:
+    os.chdir(_b9_cwd)
+    for k, v in _b9_saved.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
+
 if _SAVED_CFG is None:
     os.environ.pop("CLAUDE_CONFIG_DIR", None)
 else:

@@ -106,6 +106,11 @@ except Exception as exc:                                    # pragma: no cover
     print(f"repo check skipped: cannot import the plugin's own modules ({exc})")
     sys.exit(0)
 
+try:                                    # B9's root line; the check runs without it
+    from reentry_state import root_report
+except Exception:                                           # pragma: no cover
+    root_report = None                  # type: ignore[assignment]
+
 MAX_LISTED = 8
 
 
@@ -384,6 +389,16 @@ def main() -> int:
         if n_both:
             header += " (%d named path(s) also in the record, checked once)" % n_both
         print(header)
+        # B9: say which project's record this was read from. No cwd warning: the record is
+        # the SESSION's, so a shell that has drifted into another repo is not evidence of a
+        # wrong answer here (see the empty-record branch above for the same reasoning).
+        if root_report is not None:
+            try:
+                for ln in root_report("record", project_root(), project_root_source(),
+                                      warn_on_cwd=False):
+                    print(ln)
+            except Exception:
+                pass
         try:
             project = project_root().resolve().name or None
         except Exception:

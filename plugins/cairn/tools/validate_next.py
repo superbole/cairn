@@ -89,7 +89,7 @@ sys.path.insert(0, str(HERE.parent / "hooks"))
 try:
     import session_orientation as so
     import backlog_file as bf
-    from reentry_state import project_root
+    from reentry_state import project_root, project_root_source, root_report
 except Exception as exc:                                    # pragma: no cover
     print(f"NEXT.md validator skipped: cannot import the plugin's own modules ({exc})")
     sys.exit(0)
@@ -587,6 +587,12 @@ def _resolve_root(arg: str | None) -> Path:
     return p.parent if p.name.lower() == "next.md" else p
 
 
+def _root_source(arg: str | None) -> str:
+    """Where `_resolve_root(arg)` got its answer: `argument` when the caller named a path,
+    otherwise whichever of `project_root()`'s sources answered (B9)."""
+    return "argument" if arg else project_root_source()
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="validate_next.py", description=__doc__.splitlines()[0])
     ap.add_argument("path", nargs="?", default=None,
@@ -596,12 +602,17 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     root = _resolve_root(args.path)
+    source = _root_source(args.path)
+    # B9: with no PATH, this answers for the SESSION's project even when the shell has `cd`-ed
+    # into another repo. Say which root and where it came from, first, and warn on a mismatch.
+    header = root_report("NEXT.md validate", root, source,
+                         hint="Pass that repo's path to validate it instead.")
     ok, lines, counts = validate(root)
     if args.as_json:
-        print(json.dumps({"ok": ok, "root": str(root), **counts,
-                          "report": lines}, indent=2))
+        print(json.dumps({"ok": ok, "root": str(root), "root_source": source, **counts,
+                          "root_report": header, "report": lines}, indent=2))
     else:
-        print("\n".join(lines))
+        print("\n".join(header + lines))
     return 0 if ok else 1
 
 
