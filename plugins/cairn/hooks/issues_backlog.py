@@ -97,6 +97,12 @@ except Exception:                        # pragma: no cover - defensive, as ever
     state_dir = None                     # type: ignore[assignment]
     NO_WINDOW: dict = {}                 # see reentry_state.py; {} = the old flashing behaviour
 
+try:                                     # B9's root line -- optional, the cache works without it
+    from reentry_state import project_root_source, root_report
+except Exception:                        # pragma: no cover
+    project_root_source = None           # type: ignore[assignment]
+    root_report = None                   # type: ignore[assignment]
+
 try:
     import issue_host                    # GitHub via `gh`, GitLab via `glab` (v1.34.0)
 except Exception:                        # pragma: no cover - the read path does not need it
@@ -466,10 +472,26 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
+def root_lines(root: Path) -> list[str]:
+    """B9: which project this run's cache belongs to, and a warning when the shell stands in a
+    different repo. Printed only on the paths a human reads (`--report`, `--ingest`, a manual
+    run); the hook's detached `--refresh` child stays silent. Never raises."""
+    if root_report is None:
+        return []
+    try:
+        source = project_root_source() if (project_root and project_root_source) else "cwd"
+        return root_report("issues cache", root, source)
+    except Exception:
+        return []
+
+
 if __name__ == "__main__":
     args = _parse_args()
     try:
         root = project_root() if project_root else Path.cwd()
+        if args.report or args.ingest or not args.refresh:
+            for line in root_lines(root):
+                print(line)
         if args.refresh:
             line = refresh(root)
             if args.report:              # the hook's detached child never passes this
@@ -483,7 +505,7 @@ if __name__ == "__main__":
             payload = (Path(args.file).read_text(encoding="utf-8-sig") if args.file
                        else sys.stdin.read())
             print(ingest(root, args.repo, args.owner, payload, args.host))
-        else:                            # manual run: show exactly what the hook would print
+        else:                            # manual run: what the hook would print, under B9's root line
             for line in summary_lines(root):
                 print(line)
     except Exception as exc:
