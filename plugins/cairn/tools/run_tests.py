@@ -100,6 +100,20 @@ suite was already running, so the cached list built at suite start could never h
 `_real_roots` fresh -- once -- and re-classify before accepting the blame, then keep the fresh
 list as the cache for every test file after this one. The normal (nothing blamed) path never
 pays for the recompute at all.
+
+THE SUITE'S OWN CHECKOUT WAS A BLIND SPOT (B91, 2026-09-29). The checkout this suite runs in is
+itself a live worktree, so its slug is on the ignore list -- and it has to stay there: an
+orchestrator whose cwd moves into a lane creates that lane's state dir mid-run, and refusing to
+ignore it fails every run inside a live worktree. But a test child inherited this shell's
+`CLAUDE_CODE_SESSION_ID` (and `CLAUDE_PROJECT_DIR`, when set), so a test that forgot to override
+`CLAUDE_CONFIG_DIR` and called `project_root()` resolved to THIS session's project -- the checkout
+-- and wrote straight into its state dir: ignored when that dir was new, invisible when it
+already existed, and real operator state either way. `_child_env` strips the variables
+`reentry_state.project_root()` reads before `cwd()`, so the same mistake now resolves to the
+child's cwd (`tools/`, never a project root), whose slug matches no real root and is blamed.
+The ignore rule is untouched. What it cannot catch: a test that hands the checkout's path to
+`state_dir()` itself, or `chdir`s to the checkout root first -- the same name a concurrent hook
+would produce, so a name-level diff cannot tell them apart.
 """
 import hashlib
 import json
@@ -336,6 +350,27 @@ def _classify_with_refresh(names, new_temp_names, real_roots, state_base):
     return blamed, ignored, fresh_roots
 
 
+# What `reentry_state.project_root()` reads BEFORE falling back to `cwd()` (B91). Kept as a
+# literal, not imported, for the same reason as `_slug_for`: this runner must not depend on a
+# hook that may be mid-edit. If `project_root()` grows a new source, add its variable here.
+SESSION_ENV_VARS = ("CLAUDE_PROJECT_DIR", "CLAUDE_CODE_SESSION_ID", "CLAUDE_SESSION_ID")
+
+
+def _child_env(base=None):
+    """The environment a test file runs under: this process's, minus `SESSION_ENV_VARS` (B91).
+
+    Without them a test's `project_root()` answers `cwd()` -- the `tools/` directory every test
+    runs from -- never the live session's project, so a test that forgot its sandbox leaks into
+    a slug the leak check blames instead of one it ignores. `CLAUDE_CONFIG_DIR` is NOT touched:
+    sandboxing it here would hide the B74 leak this runner exists to catch (see the docstring).
+    A test that needs a session id or project dir sets its own, as the isolated ones already do.
+    """
+    env = dict(os.environ if base is None else base)
+    for name in SESSION_ENV_VARS:
+        env.pop(name, None)
+    return env
+
+
 def run_one(path):
     """Run a single test file as a subprocess; never let it raise out of here.
 
@@ -348,6 +383,7 @@ def run_one(path):
     try:
         proc = subprocess.run(
             argv, cwd=TOOLS, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT,
+            env=_child_env(),
         )
         elapsed = time.perf_counter() - start
         status = "ok" if proc.returncode == 0 else "FAIL"
