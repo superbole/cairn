@@ -219,5 +219,77 @@ check("refreshed once", len(refresh_calls3), 1)
 check("still blamed as unrecognised", blamed, [(mystery_slug, "unrecognised")])
 check("nothing ignored", ignored, [])
 
+print("\n12. B91 -- a test child does not inherit the session's project, so a forgetful test's "
+      "state dir is blamed, not hidden under the live checkout's slug")
+base_env = {"CLAUDE_PROJECT_DIR": "x", "CLAUDE_CODE_SESSION_ID": "y", "CLAUDE_SESSION_ID": "z",
+            "CLAUDE_CONFIG_DIR": "keep-me", "PATH": "keep-me-too"}
+stripped = rt._child_env(base_env)
+check("every variable project_root() reads before cwd() is gone",
+      [k for k in rt.SESSION_ENV_VARS if k in stripped], [])
+check("CLAUDE_CONFIG_DIR is left alone (sandboxing it would hide a B74 leak)",
+      stripped.get("CLAUDE_CONFIG_DIR"), "keep-me")
+check("unrelated variables are kept", stripped.get("PATH"), "keep-me-too")
+check("the caller's mapping is not mutated", len(base_env), 5)
+
+# SESSION_ENV_VARS is a hand-kept copy (the runner must not import the hook). Pin it to the
+# hook's source, so a new CLAUDE_* variable that project_root() starts reading fails here
+# instead of quietly reopening B91. CLAUDE_CONFIG_DIR is the one it must NOT strip.
+import re                                              # noqa: E402
+_hook_src = (HOOKS / "reentry_state.py").read_text(encoding="utf-8")
+_read_by_hook = set(re.findall(r'os\.environ\.get\(\s*"(CLAUDE_[A-Z_]+)"', _hook_src))
+check("control: the scan finds the variables the hook reads", "CLAUDE_PROJECT_DIR" in _read_by_hook,
+      True)
+check("every CLAUDE_* variable reentry_state reads, except CLAUDE_CONFIG_DIR, is stripped",
+      sorted(_read_by_hook - {"CLAUDE_CONFIG_DIR"} - set(rt.SESSION_ENV_VARS)), [])
+
+# End to end through run_one, the function the suite actually uses: a probe "test file" asks
+# reentry_state where its project is. The parent has a session id AND a project dir set, as a
+# Claude Code Bash step can.
+probe = TMP / "probe_root.py"
+probe.write_text(
+    "import sys\n"
+    f"sys.path.insert(0, {str(HOOKS)!r})\n"
+    "import reentry_state as r\n"
+    "print(r.project_root_source())\n"
+    "print(r.project_root())\n", encoding="utf-8")
+fake_project = TMP / "the-live-session-project"
+fake_project.mkdir(parents=True, exist_ok=True)
+_b91_saved = {k: os.environ.get(k) for k in rt.SESSION_ENV_VARS}
+os.environ["CLAUDE_PROJECT_DIR"] = str(fake_project)
+os.environ["CLAUDE_CODE_SESSION_ID"] = "b91-fake-session"
+try:
+    # Control first: the same probe run with the parent's env unchanged DOES see the session's
+    # project, so the "cwd" answer below is the strip working, not a probe that cannot see env.
+    import subprocess
+    ctl = subprocess.run((sys.executable, str(probe)), cwd=rt.TOOLS, capture_output=True,
+                         text=True, encoding="utf-8", errors="replace", timeout=60)
+    check("control: an inheriting child answers from env", ctl.stdout.splitlines()[:1], ["env"])
+    status, output, _ = rt.run_one(probe)
+    lines = output.splitlines()
+    check("run_one's child ran", status, "ok")
+    check("run_one's child answers from cwd, not the session", lines[:1], ["cwd"])
+
+    def _norm(p):
+        return os.path.normcase(str(Path(p).resolve()))
+    check("...and its project root is the tools dir it runs in",
+          len(lines) > 1 and _norm(lines[1]) == _norm(rt.TOOLS), True)
+finally:
+    for k, v in _b91_saved.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
+
+# What that buys: the tools dir's slug matches no real root, so it is blamed. The checkout's own
+# slug is still ignored -- B91 says refusing it fails every run inside a live worktree.
+worktrees = rt._git_worktree_roots(rt.ROOT)
+blamed, ignored = rt._classify_new_entries([rt._slug_for(rt.TOOLS)], [], worktrees)
+check("a leak under the tools dir's slug is blamed", [b[0] for b in blamed],
+      [rt._slug_for(rt.TOOLS)])
+if worktrees:                          # only meaningful inside a git checkout (CI and local both are)
+    own = worktrees[0]
+    blamed, ignored = rt._classify_new_entries([rt._slug_for(own)], [], worktrees)
+    check("the checkout's own slug is still ignored", (blamed, len(ignored)), ([], 1))
+
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)
