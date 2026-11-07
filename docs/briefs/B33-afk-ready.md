@@ -63,8 +63,10 @@ Recommendation: **A**. Proposed paragraph for `rules/CLAUDE.md`, to be measured 
 > **One writing working tree per repo.** A second session that will edit files takes a worktree
 > cut from `origin/main` or a separate clone; a branch is not isolation, because uncommitted files
 > are shared by every branch of one tree. A session in one project writes to another project only
-> by appending a bullet to that project's `INBOX.md`. Handing work to a second writer is a wrap
-> boundary: wrap, push, cut the worktree, hand over.
+> by appending a bullet to that project's `INBOX.md`. Take a worktree when the tree is dirty,
+> another session is known to be live in it, or `git worktree list` already shows a second
+> checkout. Handing work to a second writer is a wrap boundary: wrap, fetch, push, cut the
+> worktree from `origin/main`, hand over, end the session.
 
 ### Q2. What does the live-session marker (build 2) read?
 
@@ -89,7 +91,9 @@ for that reason.
   With more than one, name the count and the most recent age. Never name the other session's id.
 - Relay tier: **recommend it raises the tier to `RELAY FIRST`**, like the divergence banner,
   because starting work in a tree someone else is writing is the time-sensitive hazard. The
-  alternative is an informational line that leaves the tier alone.
+  alternative is an informational line that leaves the tier alone. The cost of `RELAY FIRST`: the
+  crash-and-resume false positive (Q2) then leads the first reply for up to the window, and a
+  warning that fires on a dead session teaches the reader to skip it.
 
 ### Q4. Build (3), feeding B31
 
@@ -111,7 +115,11 @@ changed by open PR #157; a new file cannot conflict with it.
   sessions' stamps whose root's `toplevel()` equals `toplevel(root)` (falling back to the resolved
   path when either is not in a git repo), excluding this session's own id, `at` within
   `window_s`. Reads the folder `reentry_state._session_root_dir()` returns. Never raises: a torn
-  file, a missing path, an unreadable folder are each skipped.
+  file, a missing path, an unreadable folder are each skipped. An `at` in the future (a clock
+  change) counts as age 0, not as negative.
+- Known false positive, accepted: a session whose `CLAUDE_PROJECT_DIR` is the main checkout but
+  which works inside a worktree by changing directory stamps the main checkout's root, so it reads
+  as live in the main tree.
 - `warning_line(root, ...) -> str | None`: the Q3 wording, or None.
 - In `session_orientation.main()`, compute it in its own `try` beside `diverged` (`:1121-1124`),
   print it in the same block as the other git banners, and apply Q3's relay-tier answer.
@@ -133,8 +141,9 @@ session-id variables set and restored in `finally`):
     Q3's answer.
 11. No session id in the environment (a bare terminal): the function still works and excludes
     nothing.
+12. A stamp whose `at` is 60 seconds in the future: counted as live, age 0.
 
-Done: the eleven tests pass, `python plugins/cairn/tools/run_tests.py --timeout=300` passes, and
+Done: the twelve tests pass, `python plugins/cairn/tools/run_tests.py --timeout=300` passes, and
 nothing is left in the real state dir.
 
 ## Stage 2 slice: the rule text (if Q1 = A)
