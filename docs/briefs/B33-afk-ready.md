@@ -81,6 +81,14 @@ false positive: after a crash and resume, the dead session's stamp is recent and
 (B11 records a retried and reopened session stamping under a new id each time). The wording below says "was active", not "is running",
 for that reason.
 
+**A larger false positive, from a clean end (added by the scheduled review).** Nothing marks a
+stamp as ended: `SessionEnd` runs only `dirty_tree_warning.py` (`plugins/cairn/hooks/hooks.json:70-78`),
+and `_stamp_session_root` only ever writes `{"root", "at"}`. So a session that closed normally a
+few minutes ago reads exactly like a live one. The commonest sequence there is, closing one
+session and opening the next in the same tree, would show the line on the new session's first
+reply every time it happens inside the window. That includes an attended session opened shortly
+after a scheduled firing finished. Q3 has to answer this before the tier is chosen.
+
 ### Q3. The window, the wording, and the relay tier
 
 - Window: **30 minutes** recommended. A stamp is rewritten every turn, so an attended session
@@ -91,9 +99,21 @@ for that reason.
   With more than one, name the count and the most recent age. Never name the other session's id.
 - Relay tier: **recommend it raises the tier to `RELAY FIRST`**, like the divergence banner,
   because starting work in a tree someone else is writing is the time-sensitive hazard. The
-  alternative is an informational line that leaves the tier alone. The cost of `RELAY FIRST`: the
-  crash-and-resume false positive (Q2) then leads the first reply for up to the window, and a
-  warning that fires on a dead session teaches the reader to skip it.
+  alternative is an informational line that leaves the tier alone. The cost of `RELAY FIRST`: both
+  false positives from Q2 (crash-and-resume, and the far commoner clean end) then lead the first
+  reply for up to the window, and a warning that fires on a dead session teaches the reader to
+  skip it.
+- Telling a clean end from a live session (needed if the tier is `RELAY FIRST`):
+  - **i. Mark the stamp ended at `SessionEnd`.** A new `SessionEnd` entry (or a line in the existing
+    one) writes `"ended": <epoch>` into this session's own `_sessions/<id>.json`; `others_live`
+    skips a stamp with `ended` set. Costs a write path in `reentry_state.py`'s stamp code (busy in
+    open PR #157 while it is open) and a `hooks.json` change. A crash still leaves no `ended`, so
+    crash-and-resume remains.
+  - **ii. Keep the line informational** (no tier change) and accept both false positives.
+  - **iii. Shorten the window** (for example 10 minutes). Narrows the clean-end case but also
+    misses a live session that has been quiet for longer.
+  - Recommendation: **i** if `RELAY FIRST` is chosen, otherwise **ii**. If i, stage 1 gains the
+    `SessionEnd` write and test 13 below.
 
 ### Q4. Build (3), feeding B31
 
@@ -142,8 +162,10 @@ session-id variables set and restored in `finally`):
 11. No session id in the environment (a bare terminal): the function still works and excludes
     nothing.
 12. A stamp whose `at` is 60 seconds in the future: counted as live, age 0.
+13. Only if Q3 picks i: another stamp, same root, 5 minutes old, with `ended` set: no line; and
+    running the `SessionEnd` hook in a fixture session sets `ended` in that session's own stamp only.
 
-Done: the twelve tests pass, `python plugins/cairn/tools/run_tests.py --timeout=300` passes, and
+Done: the twelve tests (thirteen under Q3 i) pass, `python plugins/cairn/tools/run_tests.py --timeout=300` passes, and
 nothing is left in the real state dir.
 
 ## Stage 2 slice: the rule text (if Q1 = A)
