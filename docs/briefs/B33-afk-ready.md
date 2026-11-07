@@ -104,10 +104,17 @@ after a scheduled firing finished. Q3 has to answer this before the tier is chos
   reply for up to the window, and a warning that fires on a dead session teaches the reader to
   skip it.
 - Telling a clean end from a live session (needed if the tier is `RELAY FIRST`):
-  - **i. Mark the stamp ended at `SessionEnd`.** A new `SessionEnd` entry (or a line in the existing
-    one) writes `"ended": <epoch>` into this session's own `_sessions/<id>.json`; `others_live`
-    skips a stamp with `ended` set. Costs a write path in `reentry_state.py`'s stamp code (busy in
-    open PR #157 while it is open) and a `hooks.json` change. A crash still leaves no `ended`, so
+  - **i. Mark the stamp ended at `SessionEnd`.** Write `"ended": <epoch>` into this session's own
+    `_sessions/<id>.json` from **inside `dirty_tree_warning.py`'s `SessionEnd` path, after its
+    `project_root()` call** (`dirty_tree_warning.py:180-182`), never from a separate `hooks.json`
+    entry. The reason: `project_root()` itself restamps the file as `{"root", "at"}` with
+    `write_text` (`reentry_state.py:169-170`, reached from `:207-212`), dropping every other key, and
+    a separate entry for the same event runs alongside `dirty_tree_warning.py`, so whichever write
+    lands last wins and the `ended` mark can vanish. `others_live` then treats a stamp as ended only
+    when `ended >= at`, so a resumed session that stamps again reads as live. Costs a small helper
+    for the write (in `reentry_state.py`, beside `_stamp_session_root`; `live_sessions.py` stays
+    read-only) and a few lines in
+    `dirty_tree_warning.py`; no `hooks.json` change. A crash still leaves no `ended`, so
     crash-and-resume remains.
   - **ii. Keep the line informational** (no tier change) and accept both false positives.
   - **iii. Shorten the window** (for example 10 minutes). Narrows the clean-end case but also
@@ -128,8 +135,10 @@ Fields line to paste under a new entry (or under B33 once narrowed):
 
 Files: new `plugins/cairn/hooks/live_sessions.py`, new `plugins/cairn/tools/test_live_sessions.py`,
 and a few lines in `plugins/cairn/hooks/session_orientation.py` beside `_divergence_warning`.
-**A new module rather than a function in `reentry_state.py`**, because `reentry_state.py` is
-changed by open PR #157; a new file cannot conflict with it.
+**A new module rather than a function in `reentry_state.py`**, so the read side stays apart from
+the stamp code it reads (`reentry_state.py` was busy in another open PR when this brief was
+written). Line numbers here were read at `955e504` and may have moved since; the function names
+beside them are the stable reference.
 
 - `others_live(root, *, window_s=1800, now=None) -> list[float]`: ages in seconds of other
   sessions' stamps whose root's `toplevel()` equals `toplevel(root)` (falling back to the resolved
@@ -162,8 +171,11 @@ session-id variables set and restored in `finally`):
 11. No session id in the environment (a bare terminal): the function still works and excludes
     nothing.
 12. A stamp whose `at` is 60 seconds in the future: counted as live, age 0.
-13. Only if Q3 picks i: another stamp, same root, 5 minutes old, with `ended` set: no line; and
-    running the `SessionEnd` hook in a fixture session sets `ended` in that session's own stamp only.
+13. Only if Q3 picks i: another stamp, same root, 5 minutes old, with `ended >= at`: no line; a
+    stamp with `ended < at` (a resumed session): a line. And running the real
+    `dirty_tree_warning.py` with a `SessionEnd` event, `CLAUDE_PROJECT_DIR` and a session id set,
+    leaves `ended` in that session's own stamp after the hook's own restamp, and touches no other
+    stamp.
 
 Done: the twelve tests (thirteen under Q3 i) pass, `python plugins/cairn/tools/run_tests.py --timeout=300` passes, and
 nothing is left in the real state dir.
