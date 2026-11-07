@@ -136,8 +136,13 @@ out = subprocess.run((sys.executable, str(TOOLS / "check_repos.py")),
 check("names the sibling", "sibling" in out.stdout, True)
 check("reports it as not landed", "[!!]" in out.stdout or "have work" in out.stdout, True)
 check("says the recorder found it", "found by the recorder" in out.stdout, True)
-check("does not check the project itself", "project" in out.stdout.replace(str(base), ""),
-      False)
+# B9: the `record root:` line names the project on purpose (which record was read); the
+# assertion is about the repo ROWS, so that one line is left out of the search.
+rows9 = "\n".join(ln for ln in out.stdout.splitlines() if not ln.startswith("record root:"))
+check("does not check the project itself", "project" in rows9.replace(str(base), ""), False)
+check("B9: names the record's root, from env",
+      any(ln.startswith("record root:") and ln.endswith("(from env)")
+          for ln in out.stdout.splitlines()), True)
 
 print("\n10. --no-recorded degrades to the v1.24.0 behaviour, never to silence")
 out2 = subprocess.run((sys.executable, str(TOOLS / "check_repos.py"), "--no-recorded"),

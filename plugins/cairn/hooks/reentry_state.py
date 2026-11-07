@@ -264,6 +264,49 @@ def project_root_source() -> str:
     return _resolve_project_root()[1]
 
 
+# Sources that mean "nobody named this root on the command line": `project_root()` resolved it.
+# Only these can disagree with where the caller is standing without the caller knowing.
+RESOLVED_SOURCES = ("env", "session-stamp", "cwd")
+
+
+def root_report(label: str, root: Path, source: str, *, warn_on_cwd: bool = True,
+                hint: str = "", cwd: Path | None = None) -> list[str]:
+    """The lines a REPORT tool prints first, saying which project it answers for (B9).
+
+    `label root: <root> (from <source>)`, plus a warning line when `warn_on_cwd` is set, the
+    root was RESOLVED rather than named (`source` in `RESOLVED_SOURCES`), and the shell is
+    standing inside a different git repo from the one the root belongs to. Inside a session
+    `project_root()` never reaches `cwd()`, so `cd other-repo && tool.py` answers for the
+    session's project with no sign of it; the success line then names a repo the caller did
+    not ask for, and reads as a report. B9's rule: that is a warning, not a report.
+
+    `warn_on_cwd=False` is for SESSION-scoped tools (`check_repos.py`'s record belongs to the
+    session, wherever the shell has drifted): they still say which root they used, but a
+    drifted shell is not evidence they are wrong. `hint` is appended to the warning, for a
+    tool that has a flag or argument to name the root explicitly.
+
+    Compared by git toplevel on both sides, so a root that is a subdirectory of its repo does
+    not warn against a shell standing in that same repo. Never raises: on any failure it
+    returns the first line alone.
+    """
+    lines = [f"{label} root: {root} (from {source})"]
+    if not warn_on_cwd or source not in RESOLVED_SOURCES:
+        return lines
+    try:
+        here = toplevel(cwd if cwd is not None else Path.cwd())
+        target = toplevel(Path(root)) or Path(root).resolve()
+        if here is None or here == target:
+            return lines
+    except Exception:
+        return lines
+    warning = (f"  ! WARNING: this shell is inside {here}, but this run answers for {root} "
+               f"(from {source}).")
+    if hint:
+        warning += f" {hint}"
+    lines.append(warning)
+    return lines
+
+
 def toplevel(path: Path) -> Path | None:
     """The git repo containing `path`, by walking parents for a `.git` entry.
 
