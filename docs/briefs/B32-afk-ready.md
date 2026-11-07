@@ -32,7 +32,7 @@ It says it depends on B35 (every project has an `INBOX.md`) and B56 (issue-host 
 | Append-only is assumed safe | `BACKLOG.md` B34: "`INBOX.md` is append-only and does not race"; B33: "A foreign session may only append (B32 depends on this being a rule)" | B33's rule is still unwritten, so B32's safety rests on a rule that does not exist yet. |
 | A foreign append was once committed under the wrong message | `plugins/cairn/hooks/staged_review_guard.py:4-10` | A scheduled task appended six bullets to an `INBOX.md`; the owner session committed them with `git add INBOX.md` under a message describing one line. A tool that commits in B's repo must not create the mirror image: committing the owner's uncommitted edits to `INBOX.md` under the foreign post's message. |
 | Helpers a tool can reuse | `plugins/cairn/hooks/reentry_state.py:267` `toplevel()`, `:340` `git()`, `:379` `dirty_paths()` | Enough to resolve B's root, check its state and commit, without new git plumbing. |
-| Machine name for the provenance | `plugins/cairn/hooks/machine_identity.py:91` `hostname()`, `:172` `_own_id()` | `_own_id` gives the `MACHINES.md` id when one is declared. The bullet should use that id, falling back to `hostname()` only when no table exists. |
+| Machine name for the provenance | `plugins/cairn/hooks/machine_identity.py:91` `hostname()`, `:172` `_own_id()` | `_own_id` gives the `MACHINES.md` id when one is declared (it is private and takes the host and the table from `_load_table()`, `:135`). The bullet should use that id and **omit the machine field when none is declared, never the raw `hostname()`**: the bullet is committed into B, and B may be public, so a hostname there is a disclosure. |
 
 `staged_review_guard.py` is a `PreToolUse` hook on the agent's own Bash calls. A Python tool that
 runs `git commit` in a subprocess is **not** seen by it, so the tool has to enforce its own
@@ -110,8 +110,9 @@ python plugins/cairn/tools/inbox_post.py --project <path> --note "<what> -- <why
   root, which is B36's territory; leave it out.
 - Resolve B with `toplevel()`. Refuse if it is the current session's own repo (that is an ordinary
   capture, not a foreign post).
-- Bullet: `- [from <this repo's folder name> · <machine id> · <YYYY-MM-DD>] <note>`. The note is
-  one line: refuse a newline in it.
+- Bullet: `- [from <this repo's folder name> · <machine id> · <YYYY-MM-DD>] <note>`, with the
+  `<machine id> · ` part left out when `MACHINES.md` declares no id for this host (never the raw
+  hostname). The note is one line: refuse a newline in it.
 - Append with a trailing newline, adding one first if the file does not end with one. Create the
   file only under Q1 = A's condition.
 - Apply Q2 = A's refusals before writing anything. Commit with an explicit pathspec and a message
@@ -138,8 +139,10 @@ Tests (fixtures only: throwaway git repos with a bare-repo remote under a temp d
 11. `--dry-run`: nothing written, nothing committed.
 12. The posted bullet is read back by `session_orientation._inbox_items()` as one item, so the two
     ends stay in agreement.
+13. No `MACHINES.md` id for the host: the bullet has no machine field and does not contain the
+    fixture's hostname.
 
-Done: the twelve tests pass, `python plugins/cairn/tools/run_tests.py --timeout=300` passes, and
+Done: the thirteen tests pass, `python plugins/cairn/tools/run_tests.py --timeout=300` passes, and
 the test leaves nothing in the real state dir.
 
 ## Out of scope for stage 1
