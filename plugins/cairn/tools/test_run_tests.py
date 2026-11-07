@@ -231,6 +231,17 @@ check("CLAUDE_CONFIG_DIR is left alone (sandboxing it would hide a B74 leak)",
 check("unrelated variables are kept", stripped.get("PATH"), "keep-me-too")
 check("the caller's mapping is not mutated", len(base_env), 5)
 
+# SESSION_ENV_VARS is a hand-kept copy (the runner must not import the hook). Pin it to the
+# hook's source, so a new CLAUDE_* variable that project_root() starts reading fails here
+# instead of quietly reopening B91. CLAUDE_CONFIG_DIR is the one it must NOT strip.
+import re                                              # noqa: E402
+_hook_src = (HOOKS / "reentry_state.py").read_text(encoding="utf-8")
+_read_by_hook = set(re.findall(r'os\.environ\.get\(\s*"(CLAUDE_[A-Z_]+)"', _hook_src))
+check("control: the scan finds the variables the hook reads", "CLAUDE_PROJECT_DIR" in _read_by_hook,
+      True)
+check("every CLAUDE_* variable reentry_state reads, except CLAUDE_CONFIG_DIR, is stripped",
+      sorted(_read_by_hook - {"CLAUDE_CONFIG_DIR"} - set(rt.SESSION_ENV_VARS)), [])
+
 # End to end through run_one, the function the suite actually uses: a probe "test file" asks
 # reentry_state where its project is. The parent has a session id AND a project dir set, as a
 # Claude Code Bash step can.
