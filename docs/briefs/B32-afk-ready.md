@@ -1,4 +1,4 @@
-**Not AFK-ready: B32 needs the reviewer's decision (Q1 to Q4 below). The stage 1 slice at the end becomes AFK once Q1 and Q2 are answered.**
+**Not AFK-ready: B32 needs the reviewer's decision (Q1 to Q4 below). The stage 1 slice at the end becomes AFK once Q1, Q2 and Q4 are answered.**
 
 # B32 — a finding about another project goes to that project's `INBOX.md`: groom brief
 
@@ -60,7 +60,8 @@ risk is B's own session running at the same time.
 - **A. Append, commit only `INBOX.md`, push; refuse first if any of these holds:** `INBOX.md` in B
   already has uncommitted changes (they are the owner's, and would be swept into this commit);
   anything is already staged in B; B's branch is behind its upstream after a fetch (never pull
-  unasked); B is mid-merge or mid-rebase; B's checkout is not on its default branch (a bullet
+  unasked); B's branch is ahead of its upstream (a push would publish the owner's unpushed
+  commits under a foreign post, including an unattended run's deliberately held push); B is mid-merge or mid-rebase; B's checkout is not on its default branch (a bullet
   committed to a feature branch is invisible to B's next session on `main`). On a refusal, write nothing and print the bullet so the
   caller can carry it another way. After commit, check `git diff --name-only HEAD~1 HEAD` is
   exactly `INBOX.md` before pushing.
@@ -129,9 +130,12 @@ Tests (fixtures only: throwaway git repos with a bare-repo remote under a temp d
    remote (read it back from the remote).
 2. B has `NEXT.md`, no `INBOX.md`: the file is created with one bullet.
 3. B has no `NEXT.md`: refused, nothing written.
-4. B's `INBOX.md` has uncommitted edits: refused, the edits are untouched.
+4. B's `INBOX.md` has uncommitted edits, or exists but is untracked: refused, the file is
+   untouched (one case each).
 5. Something is staged in B: refused, the index is untouched.
 6. B is behind its upstream: refused, no pull happened.
+6b. B is ahead of its upstream (an owner commit not yet pushed): refused, and the bare remote
+   still lacks the owner's commit afterwards.
 7. B is checked out on a branch other than its default: refused.
 8. Push fails (remote removed): the commit stays, the output says it was not pushed, exit non-zero.
 9. `--project` is the current repo: refused.
@@ -142,7 +146,7 @@ Tests (fixtures only: throwaway git repos with a bare-repo remote under a temp d
 13. No `MACHINES.md` id for the host: the bullet has no machine field and does not contain the
     fixture's hostname.
 
-Done: the thirteen tests pass, `python plugins/cairn/tools/run_tests.py --timeout=300` passes, and
+Done: the tests above (1 to 13, plus 6b) pass, `python plugins/cairn/tools/run_tests.py --timeout=300` passes, and
 the test leaves nothing in the real state dir.
 
 ## Out of scope for stage 1
