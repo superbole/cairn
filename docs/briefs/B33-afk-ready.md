@@ -135,6 +135,9 @@ Fields line to paste under a new entry (or under B33 once narrowed):
 
 Files: new `plugins/cairn/hooks/live_sessions.py`, new `plugins/cairn/tools/test_live_sessions.py`,
 and a few lines in `plugins/cairn/hooks/session_orientation.py` beside `_divergence_warning`.
+Only if Q3 picks i, also: a small `ended` write helper in `plugins/cairn/hooks/reentry_state.py`
+beside `_stamp_session_root`, and its call in `plugins/cairn/hooks/dirty_tree_warning.py`'s
+`SessionEnd` path after `project_root()` (see Q3 i for why it must live there); test 13 covers both.
 **A new module rather than a function in `reentry_state.py`**, so the read side stays apart from
 the stamp code it reads (`reentry_state.py` was busy in another open PR when this brief was
 written). Line numbers here were read at `955e504` and may have moved since; the function names
@@ -152,7 +155,8 @@ beside them are the stable reference.
 - `warning_line(root, ...) -> str | None`: the Q3 wording, or None.
 - In `session_orientation.main()`, compute it in its own `try` beside `diverged` (`:1121-1124`),
   print it in the same block as the other git banners, and apply Q3's relay-tier answer.
-- Read-only: the module never writes or deletes a stamp. Pruning stays `reentry_state`'s.
+- Read-only: `live_sessions.py` never writes or deletes a stamp. Pruning stays `reentry_state`'s,
+  and so does the Q3 i `ended` write, if chosen.
 
 Tests (fixtures only: a temp `CLAUDE_CONFIG_DIR`, real throwaway git repos under a temp dir, the
 session-id variables set and restored in `finally`):
