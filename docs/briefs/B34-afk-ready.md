@@ -114,10 +114,13 @@ and `plugins/cairn/hooks/hooks.json` (a payload change: routine version bump at 
   its current `_digest` (import `wrap_receipt._digest`, never re-implement) into
   `<state_dir>/_seen/<session-id>.json` as `{name: digest}`. Any other path: exit 0 at once, before
   any hashing, so the cost on ordinary reads is one process start.
-- **Check.** A `PreToolUse` entry matching `Edit|Write` runs `rewrite_guard.py --check`: for one of the
+- **Check.** A `PreToolUse` entry runs `rewrite_guard.py --check`, matching `Write` only if Q1 is B
+  (the harness already refuses a stale `Edit`, and a second guard would give one event two different
+  refusals) or `Edit|Write` if Q1 is C: for one of the
   three files, if a seen digest exists and the file's digest now differs, deny with a message naming
   the file and saying to `Read` it again. No seen digest (never read this session): allow; the
-  harness's own "read before edit" covers that.
+  harness's own "read before edit" covers that. The Record entry matches `Read|Edit|Write` under
+  either answer, so the session's own `Edit` keeps the seen digest current.
 - **Fail open.** No session id, no state dir, an unreadable or torn seen file, a hashing error: allow,
   exit 0, print nothing. Cursor (no session id, `wrap_receipt.session_id()` returns "" there): allow.
 - Prune `_seen/` on the same TTL as the baselines (`wrap_receipt._prune`).
@@ -132,7 +135,9 @@ restored in `finally`, the hook run as a subprocess with stdin closed):
 2. `Write` of `NEXT.md` after a `Read`, file unchanged: allowed.
 3. `Write` of `NEXT.md` after a `Read`, file changed on disk since: denied, message names `NEXT.md`.
 4. As 3, then a fresh `Read`: the next `Write` is allowed.
-5. The session's own `Edit` updates the seen digest, so its next `Edit` is allowed (no self-conflict).
+5. The session's own `Edit` updates the seen digest, so its next `Edit` (under Q1 C) or `Write` (under
+   Q1 B or C) is allowed (no self-conflict). Under Q1 B, add: an `Edit` of a file changed on disk is
+   not checked by this hook (no deny from it).
 6. `CHANGELOG.md` and `BACKLOG.md` behave as `NEXT.md`; `INBOX.md` is never checked.
 7. A path to `NEXT.md` in a subdirectory, or in another repo: not checked.
 8. No session id: allowed, nothing written.
