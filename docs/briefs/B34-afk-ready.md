@@ -1,4 +1,4 @@
-**Not AFK-ready: B34 needs the reviewer's decision (Q1 to Q3 below), and Q1 starts with a measurement only an attended session can make. Slice A becomes AFK once Q1 and Q2 are answered; slice B (the fetch) once Q3 is.**
+**Q1 answered 2026-11-08 (D57, D58).** Claude Code's `Write` and `Edit` already keep the other session's lines, so the session-start snapshot is not built. Cursor's `StrReplace` matches `Edit`. Cursor's `Write` does not, and the adopted rule (D58, `cursor/preamble.md`) is to replace a passage in `NEXT.md`, `BACKLOG.md`, and `INBOX.md`, not to write the whole file. Still open: shell writes to those three files. Q3, the fetch before a rewrite, was not decided. Do not build slice A.
 
 # B34 — make concurrency safety mechanical: hash at read, check before rewrite: groom brief
 

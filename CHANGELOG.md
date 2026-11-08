@@ -3,8 +3,10 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
-## 2026-11-08 — B9 closed; B91 narrowed
+## 2026-11-08 — B9 closed; B91 narrowed; B44 closed
 
+- **B44 closed.** The archive guard is the stop when the agent archives itself with a wrap still owed (D56, pointing at D36). Ending the session stays unblocked. A louder mid-session warning waits on B122.
+- B34 narrowed (D57, D58). Claude Code's file tools already refuse a stale rewrite, and Cursor's `StrReplace` matches that. The session-start hash is not built. The adopted Cursor rule is to replace a passage in `NEXT.md`, `BACKLOG.md`, and `INBOX.md`, not to write the whole file. Shell writes, and the fetch before a rewrite, stay open.
 - **B9 closed.** #157 names the root `validate_next.py`, `issues_backlog.py` and `check_repos.py` answer for, and warns when the shell is in another repo. Which root they choose is still the session's. That remains B98.
 - B91 stays open. #158 stops a test child inheriting the session project, so a leak through `project_root()` is blamed. A test that names the checkout path, or `chdir`s to it, is still ignored.
 

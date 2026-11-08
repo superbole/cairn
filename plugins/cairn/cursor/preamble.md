@@ -33,5 +33,9 @@ Cursor rules cannot import it the way the Claude Code copy does with its `@` lin
 | an `AFK` item | runs in **Claude Code**, not here: the unattended safeguards (scheduled runs, allow/deny rules, the held push) exist only there. If one is started in Cursor, say so in one line before starting. |
 | `hooks/hooks.json`, `${CLAUDE_PLUGIN_ROOT}` | `cursor/hooks.json`, `${CURSOR_PLUGIN_ROOT}`. |
 
+## The three shared files
+
+In Cursor, change `NEXT.md`, `BACKLOG.md`, and `INBOX.md` by replacing a passage, not by writing the whole file. `Write` replaces another session's lines. `StrReplace` keeps them when the passage is unchanged (D58).
+
 What cairn cannot do in Cursor yet, and how to test whether a Cursor update changed that, is
 listed in `<root>/cursor/gaps.md`. The orientation says when Cursor has changed.
