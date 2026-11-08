@@ -152,8 +152,8 @@ file is shared at the time, the text goes in the dossier instead.
   (`:196-215`). `--fetch` runs `git fetch origin <branch>` first, with `GIT_TERMINAL_PROMPT=0` and a
   per-repo timeout, as `_behind()` does (`:184`).
 - Ends with a pull list: the `(env, repo)` rows that are behind and clean, with the exact command for
-  each environment. **Never runs it.** A row that is behind AND dirty or ahead is listed separately as
-  "needs a person", never in the pull list (the entry's "stop on conflict").
+  each environment. **Never runs it.** A row that is behind and also dirty, or behind and also ahead,
+  is listed separately as "needs a person", never in the pull list (the entry's "stop on conflict").
 - Exit 0 always (advisory), same as `check_repos.py:76-78`.
 - `ssh` rows: one line `not supported yet (B36 Q4)`.
 
