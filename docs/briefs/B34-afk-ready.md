@@ -27,7 +27,7 @@ not a lock. Three files only; `INBOX.md` is append-only.
 | Piece | Where | What it means for B34 |
 |---|---|---|
 | The session-start hashes | `plugins/cairn/hooks/wrap_receipt.py:178` (`TRACKED = ("NEXT.md", "CHANGELOG.md", "BACKLOG.md", "INBOX.md")`), `:273-277` `_digest` (sha256, first 16 hex), `:280-332` `stamp_baseline` | Part (1) is already built: one write per session, at start (`:315` declines a second stamp). No new state is needed for the start snapshot. |
-| What the receipt does with them | `wrap_receipt.py:460-476` `_changed`: True when the file's hash now differs from the start | **The receipt reads "differs from session start" as evidence that THIS session did the step** (a rewritten `NEXT.md`, a `CHANGELOG.md` entry). Part (2) as filed would read the same fact as evidence that ANOTHER session did. See the main finding. |
+| What the receipt does with them | `wrap_receipt.py:460-476` `_changed` (the hash now differs from the start), used through `:565-583` `_changed_by_session` at `:709` and `:1005`: True only when the content moved AND `attribution()` (`:516-562`) puts the path in this working tree's dirty set or in a commit this tree composed since the baseline head (B122) | **The receipt reads "differs from session start, and this working tree touched it" as evidence that THIS session did the step** (a rewritten `NEXT.md`, a `CHANGELOG.md` entry); a change that arrived by a pull is already reported as not this session's (`:714-718`). Part (2) as filed would read "differs from start" as evidence that ANOTHER session did. See the main finding. |
 | The wrap writes these files itself, in order | `skills/wrap/SKILL.md` step 2 at `:76` (`CHANGELOG.md`), step 7 at `:245-256` (`NEXT.md`, "RE-READ IT FROM DISK FIRST ... edit only the parts you are changing ... prove it with `git diff`"), step 8a at `:416` (`BACKLOG.md`) | By the time the wrap rewrites `NEXT.md`, `CHANGELOG.md` already differs from the start snapshot by the wrap's own hand, and a session that worked an item has often edited `BACKLOG.md` or `NEXT.md` mid-session. |
 | Which tool calls a hook sees today | `plugins/cairn/hooks/hooks.json:14-35` (PreToolUse: `Bash`, the archive tool), `:47-57` (PostToolUse: `Edit|Write|NotebookEdit|Bash|PowerShell`, `repo_recorder.py`) | No hook sees a `Read`, and none runs before an `Edit`/`Write`. A "hash at last read" needs both. |
 | The only fetch | `plugins/cairn/hooks/session_orientation.py:654` (`git fetch origin <branch>` at session start, 8 s timeout, `:163`) | Part (3) does not exist: the wrap never fetches before step 7. Step 5 (`SKILL.md:135`) reports the ahead/behind count only after the commit. |
@@ -40,7 +40,11 @@ before the rewrite: the wrap writes `CHANGELOG.md` at step 2 (before step 7) and
 step 8a (after it), and a session that worked an item has
 usually touched `BACKLOG.md` or `NEXT.md` already. Every one of those reads as "changed since start",
 so a check built as filed fires on almost every wrap and is learned as noise. That is the opposite of
-what the receipt does with the same hashes (`_changed` treats a difference as this session's own work).
+what the receipt does with the same hashes (`_changed_by_session` treats a difference this tree made as
+this session's own work). The receipt's git attribution does not rescue part (2) either: it separates a
+pull from this tree's edits, but two sessions sharing one working tree have one dirty set and one
+reflog, so a sibling's edit in the same tree is attributed to this session too. B34's own incident (a
+second session appending and wrapping while this one worked) is that same-tree case.
 
 What part (2) needs is not "the hash at session start" but **"the hash when this session last read or
 wrote the file"**. That is a different snapshot, updated through the session, and it is the one piece
