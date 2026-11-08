@@ -3,6 +3,11 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-11-08 — B9 closed; B91 narrowed
+
+- **B9 closed.** #157 names the root `validate_next.py`, `issues_backlog.py` and `check_repos.py` answer for, and warns when the shell is in another repo. Which root they choose is still the session's. That remains B98.
+- B91 stays open. #158 stops a test child inheriting the session project, so a leak through `project_root()` is blamed. A test that names the checkout path, or `chdir`s to it, is still ignored.
+
 ## 2026-11-02 — backlog sync ran, and a skipped sync must pause the wrap (D55)
 
 - Sync against `superbole/cairn`. Filed #144 (B123), #145 (B124), #146 (B122), #147 (B121), #148 (B117), #149 (B118), #150 (B119), #151 (B120). Closed #113 (B102) and #133 (B111) and dropped those rows. Updated the bodies of #10, #56 and #83. Pulled #142 as B126 and #141 as B127.

@@ -724,7 +724,7 @@ there (a 14.x endpoint). Token scope was measured as `api`, so scope is not the 
 fix belongs in `GitLabHost`, not callers. **Related:** B7 (the same write path failing on WSL + `gh.exe`).
 
 ## B9. `sync_backlog.py` and `validate_next.py` answer for the SESSION's repo, not the one they're run in
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-23` · issue `#56`
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-23` · issue `#56` · closed `2026-11-08`
 Seen twice in one session on SBOLE-NB5, 2026-09-23. The session was opened on the private source
 repo, and `cairn` was then added as an extra directory:
 - `cd …/cairn && python plugins/cairn/tools/validate_next.py` printed **3 watches, 4 decisions**,
@@ -767,7 +767,9 @@ command made it sync that repo to its GitLab host correctly (closed #44, filed #
   tool that calls `project_root()` with no argument and prints a verdict: `check_repos.py`,
   `issues_backlog.py`, `validate_next.py`, `measure_context.py`.
 
-**#139 (merged 2026-10-29) did (1) and (3) for `sync_backlog.py` only.** It warns when the shell is inside a different repo and tells you to pass `--root`. It still answers for the session root unless that flag is passed. (2) and (4) are open. Not closed.
+**#139 (merged 2026-10-29) did (1) and (3) for `sync_backlog.py` only.** It warns when the shell is inside a different repo and tells you to pass `--root`. It still answers for the session root unless that flag is passed.
+
+**#157 (merged 2026-11-07) did (2) and (4)** for `validate_next.py`, `issues_backlog.py` and `check_repos.py`, via `reentry_state.root_report()`. `measure_context.py` never calls `project_root()`. `label_backlog.py`, and which root a tool chooses, stay with B98.
 
 ## B8. `/cairn:next` and `/cairn:wrap` should tell the agent to read files with Read, not a shell chain
 `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23` · issue `#57`
@@ -1290,6 +1292,8 @@ The per-checkout cleanup is `SBole/workspace` B69.
 ## B91. The leak detector ignores a new state dir for the suite checkout's own slug
 `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-29` · issue `#99`
 Accepted with #88 (B75), not queued. A test that writes the checkout the suite is running in is ignored, because that checkout is a real worktree. Refusing to ignore that slug fails the suite whenever it runs inside a live worktree, which is how a batch re-runs its own lanes. An unrecognised name still fails the run. Do not close this by blaming every real worktree.
+
+**Narrowed 2026-11-07 (#158).** `run_tests.py` no longer passes the session variables to test children, so a leak via `project_root()` is blamed. Still ignored: a test that names the checkout path itself, or `chdir`s to it. Left open for that residue.
 
 ## B92. sync_backlog: an interrupted run re-files items it already created, and pull then re-imports the duplicates
 added `2026-09-29` · issue `#98`
