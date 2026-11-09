@@ -48,9 +48,9 @@ The real dogfooding test, and no current machine can run it — every one has ha
 all could pass while a stranger fails. When it fires, check: does the orientation print, does
 `install_rules` write the managed block, and does the plugin stay silent in a project with no `NEXT.md`.
 
-**W6. Review and merge the weekend's `afk/` PRs, then do the bookkeeping** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-11-09`
-`cairn-afk-firing` runs Sat and Sun 09:00 on NB5 (D51) and leaves PRs on `superbole/cairn`, each with a `Scheduled review`
-comment (D49). Every PR merged up to 2026-10-26 is closed out in v1.67.0, and none is open now. For each new one: read the
+**W6. Review and merge the weekend's `afk/` PRs, then do the bookkeeping** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-11-16`
+The weekend-burn tasks (`cairn-afk-fri`, `cairn-afk-firing`, `cairn-afk-sun`, Fri 21:00 to Sun 15:00 on NB5) leave PRs on `superbole/cairn`, each with a `Scheduled review`
+comment (D49). Every PR up to 2026-11-09 is merged and its bookkeeping done (the version is B129), and none is open now. For each new one: read the
 dossier against its diff (`docs/running-a-batch.md`, "The review surface"). Present it to him so he can decide and press
 Squash and merge himself (`gh pr merge` is denied, D39). On 2026-10-26 a review with Cursor caught two bugs the scheduled
 reviews missed, so an outside review is worth it. Then one bookkeeping pass: CHANGELOG, version bump, `BACKLOG.md` closes,
@@ -72,9 +72,7 @@ Keep edits there behind a prompt. Added 2026-10-04 (`270fa88` and the next commi
 and `ask` rules keep Edit/Write there behind a prompt. Not yet seen working: the 13:41 run started before the change.
 Check that a run started after 13:44 reads the AFK prompt without prompting. Also found: the stalled 2026-10-03 17:31 run
 held the task for 20h, with no runs at all until 2026-10-04 13:41. One stalled run blocks every later run.
-
-**W12. The three weekend-burn tasks fire on schedule, in Auto, without stalling** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-10-28` · check after `2026-11-01`
-`cairn-afk-fri`, `cairn-afk-firing` (Saturday), `cairn-afk-sun`, created 2026-10-28 (W18 in `workspace`). Check `list_task_runs` for each: did the Friday 21:00 and Saturday slots run, did any stall on a prompt (read `~/.claude/permission-prompts.jsonl` after 2026-10-30), is each task set to Auto, did a groom, tests, docs or audit PR open when no AFK item was eligible, did a Sunday run after 15:00 happen (it must not). Design and open decisions: [briefs/weekend-burn-design.md](docs/briefs/weekend-burn-design.md), backlog B117 to B119.
+2026-11-07: the project-level `additionalDirectories` did not reach scheduled sessions; the folder is now in the user-level `~/.claude/settings.json` too, and a scheduled run read the AFK prompt after that.
 
 ---
 

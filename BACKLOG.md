@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 131 -->
+<!-- next-id: 132 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,10 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B131. Old `afk/` branches pile up on origin after their PRs are merged or closed
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-09`
+Seen 2026-11-07: 22 `origin/afk/*` branches while only 6 PRs were open, the oldest from 2026-09-27 (`afk/2026-09-27-99-handover`, `afk/fix-red-tests`, `afk/ubuntu-ci-counts` and the September/October numbered ones). By 2026-11-09 every afk/ PR was merged, so all of them are leftovers. PRs are squash-merged, so `git branch -r --merged` cannot be trusted to say which landed. **Do:** for each branch, look up its PR with `gh pr list --head <branch> --state all`; list merged / closed-unmerged / no PR. Delete the merged ones on his yes (deleting a remote branch is destructive; a closed-unmerged one may hold unlanded work, so name those separately). Then decide whether the firing or the merge should delete the branch itself (GitHub's "automatically delete head branches" setting is one option, his to switch on).
 
 ## B130. No notion of a work package: related items scatter, and the refill picks unrelated work before the package is closed
 `Opus` · effort `high` · `HITL/Plan` · added `2026-11-05` · issue `#153`
@@ -23,7 +27,7 @@ State on 29 Oct: #140 (B111) was squash-merged as `731cb46` and #139 (B9) as `09
 1. `git pull --ff-only` on main.
 2. `BACKLOG.md`: close B111 (#133). Mark B9 (#56) part-done: `--root` and the root-source line landed in #139, and the rest stays with B98/#109. Remove B116 (#137, a duplicate of B114/#136).
 3. `README.md`, around line 204: change `python plugins/cairn/tools/check_install.py` to `python3 plugins/cairn/tools/check_install.py` (`py -3` on Windows), as noted in #130's PR body. Add `README.md` to the `test_skill_calls.py` Section 5 scan if it passes cleanly.
-4. CHANGELOG entries for #139 and #140, and bump both `plugin.json` files to 1.69.0. Rebuild `cairn.mdc` if the release step does that. Fold in anything merged since (#143 is the B102 replay PR from 2026-11-02) if its bookkeeping has not landed.
+4. CHANGELOG entries for #139 and #140, and bump both `plugin.json` files to 1.69.0. Rebuild `cairn.mdc` if the release step does that. Fold in anything merged since (#143 is the B102 replay PR from 2026-11-02) if its bookkeeping has not landed. Added 2026-11-09: #157 (B9 report root) and #158 (B91 test env) changed the payload and are merged unreleased; their CHANGELOG lines are already in the 2026-11-08 entry, so the release only needs the version.
 5. Run the tests, commit, and push to main without force. CI must be green.
 6. Run `sync_backlog.py` once so the unnumbered items get issue numbers and #133 closes. If it hangs (#138), stop and check GitHub for duplicates before retrying.
 
@@ -402,6 +406,8 @@ state; the rest is still unwritten:
 live here?" marker at `SessionStart`, warn never block; (3) feed it into B31. **Do not build a lock**
 — a stale lock on a machine walked away from is worse than the race. **B34 is the mechanical half.**
 
+**Groomed 2026-11-07 (#163): [brief](docs/briefs/B33-afk-ready.md).** The live-session marker can reuse the `_sessions` stamps, no new state. Q1 to Q4 open; stage 1 is AFK once Q2 and Q3 are answered. Relevant to B120: stage 1 would show an attended session that a scheduled firing is active in the same tree.
+
 ## B34. Make concurrency safety MECHANICAL — stamp the file hash at read, check it before rewrite
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#32`
 Was `agent-reentry` B68 (migrated 2026-09-23). Operator's question: *"can we make it by design?"* — the
@@ -423,6 +429,7 @@ the allocation, not only the bytes. **Why a hash, not a lock:** no lifetime, no 
 **Scope: three files only**; `INBOX.md` is append-only and does not race.
 
 **Measured 2026-11-08 in Claude Code (D57).** `Write` refuses after an outside change ("File has been modified since read"). `Edit` applies only if its `old_string` is unchanged, so the other session's lines survive; otherwise it refuses. Shell writes (`sed`, `cp`, `python`, a heredoc) have no protection. Parts (1) and (2), the session-start snapshot, are not needed for Claude Code's own file tools. **Cursor, same day, scratch files outside the repo.** `Write` does not check. After a shell change it wrote the whole file and the shell's line was gone. `StrReplace` refused a `old_string` that was no longer there ("The string to replace was not found in the file"). A `StrReplace` of an unchanged line applied, and the shell's other line survived. **Decided 2026-11-08 (D58).** In Cursor, change `NEXT.md`, `BACKLOG.md`, and `INBOX.md` by replacing a passage, not by writing the whole file. The rule is new, and it lives in `cursor/preamble.md`. The session-start checksum is not built. **Still open:** shell writes to those three files, by an agent or by cairn's own tools. Part (3), the fetch before a rewrite, is still open.
+**Groomed 2026-11-08 (#165): [brief](docs/briefs/B34-afk-ready.md).** Its Q1 (measure the harness first) is answered by D57 above. Q2 and Q3 are still open; if Q3 is A, B87 also covers part (3).
 
 ## B35. Every tracked project gets the FULL file set, blank if need be — not just `NEXT.md`
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#33`
@@ -446,7 +453,7 @@ existing `check_*` / `validate_next.py` pattern. **Build:** `tools/ensure_projec
 set in `rules/CLAUDE.md` and `README.md`. A multi-repo bootstrap is the largest fan-out yet — one repo
 at a time, explicit pathspecs, report each.
 
-**Q1 decided 2026-11-08 (D59): A.** Report by default, create only with `--create`. A new `NEXT.md` is followed by the blank set in the same commit. A wrap asks once whether to create the missing files in that commit. **Q2 decided 2026-11-08 (D60): A.** Look for `docs/decisions.md`, `DECISIONS.md`, `docs/adr/`, `docs/decisions/`, and `references/incidents.md`. Create `docs/decisions.md` only when none of those exists. The search stays on those names. **Q3 decided 2026-11-08 (D61): A.** Create `BACKLOG.md` with the set, and the same question says the next sync will import the open issues. **Q4 decided 2026-11-08 (D62): A.** B32 and B37 wait until stage 1 has landed and the member repos are backfilled. After that, a missing `INBOX.md` in a member means it was never backfilled. Groom brief: `docs/briefs/B35-afk-ready.md`. Groom brief: `docs/briefs/B35-afk-ready.md`.
+**Q1 decided 2026-11-08 (D59): A.** Report by default, create only with `--create`. A new `NEXT.md` is followed by the blank set in the same commit. A wrap asks once whether to create the missing files in that commit. **Q2 decided 2026-11-08 (D60): A.** Look for `docs/decisions.md`, `DECISIONS.md`, `docs/adr/`, `docs/decisions/`, and `references/incidents.md`. Create `docs/decisions.md` only when none of those exists. The search stays on those names. **Q3 decided 2026-11-08 (D61): A.** Create `BACKLOG.md` with the set, and the same question says the next sync will import the open issues. **Q4 decided 2026-11-08 (D62): A.** B32 and B37 wait until stage 1 has landed and the member repos are backfilled. After that, a missing `INBOX.md` in a member means it was never backfilled. Groom brief: `docs/briefs/B35-afk-ready.md`.
 
 ## B36. The git sweep is per-machine-and-cwd — Windows, WSL and remote checkouts are never swept together
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#34`
@@ -457,6 +464,7 @@ and a server is not on this filesystem. Needs a project list plus a machine list
 directory listing. Report only: behind / ahead / dirty / **unreachable said as unreachable**, then
 offer a pull list; never pull unasked; stop on conflict. **Name the environment, not just the repo** —
 one repo on Windows, in WSL and on a server is three rows (B40 is why).
+**Groomed 2026-11-08 (#167): [brief](docs/briefs/B36-afk-ready.md).** Stage 1 is AFK once Q1 to Q3 are answered.
 
 ## B37. Nothing ever walks the other projects' `INBOX.md` files
 `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-04` · issue `#35`

@@ -3,6 +3,15 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-11-09 — weekend burn reviewed: W6 and W12 closed
+
+- **W12 closed.** All three weekend tasks fired. Saturday ran 6 slots and Sunday 4, the last at 13:06, before the 15:00 cut-off. No scheduled run raised a permission prompt (every prompt logged since 11-06 came from the attended session).
+- **The Friday slot did no work.** `cairn-afk-fri` and `cairn-afk-sun` only say "Read `cairn-afk-firing/SKILL.md`", and that read was refused: `additionalDirectories` named the scheduled-tasks folder in the project's `.claude/settings.json` only, and scheduled sessions did not get it. He added it to the user-level `~/.claude/settings.json`; a hand-started Friday run then read the prompt and finished (2026-11-07 21:57). Saturday was never affected because that file is its own prompt.
+- **The 6-PR cap turned the later runs into review-only runs.** Saturday filled the cap, so the hand-started Friday run only reviewed. Merging #157 and #158 that evening freed slots for Sunday.
+- **W6 closed.** All 9 PRs merged: #157 (B9), #158 (B91), and groom briefs #156 (B31), #159 (B44), #162 (B32), #163 (B33), #165 (B34), #166 (B35), #167 (B36). Brief links added under B33, B34, B36. Payload is unreleased; B129 carries the version.
+- Cursor's B35 and B31 answers (D59 to D63), left uncommitted overnight, committed unchanged as `6b99406`.
+- Filed B131 for the leftover `afk/` branches on origin.
+
 ## 2026-11-08 — B9 closed; B91 narrowed; B44 closed
 
 - **B44 closed.** The archive guard is the stop when the agent archives itself with a wrap still owed (D56, pointing at D36). Ending the session stays unblocked. A louder mid-session warning waits on B122.
