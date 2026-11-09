@@ -9,6 +9,8 @@ history; this file holds the history and no queue.
 - B34 narrowed (D57, D58). Claude Code's file tools already refuse a stale rewrite, and Cursor's `StrReplace` matches that. The session-start hash is not built. The adopted Cursor rule is to replace a passage in `NEXT.md`, `BACKLOG.md`, and `INBOX.md`, not to write the whole file. Shell writes, and the fetch before a rewrite, stay open.
 - **B9 closed.** #157 names the root `validate_next.py`, `issues_backlog.py` and `check_repos.py` answer for, and warns when the shell is in another repo. Which root they choose is still the session's. That remains B98.
 - B91 stays open. #158 stops a test child inheriting the session project, so a leak through `project_root()` is blamed. A test that names the checkout path, or `chdir`s to it, is still ignored.
+- B31 Q1 (D63). The morning list starts as neighbouring folders. Long term it adds the WSL Projects folder and workspace's non-repo programmes. A Windows neighbour list misses tier 1 `bsr-tools`.
+- B35 Q1 to Q4 are answered (D59 to D62). The file set is created with a new `NEXT.md`, or at a wrap after one ask. `docs/decisions.md` is created only when no known rationale name exists. A new `BACKLOG.md` warns that the next sync will import open issues. B32 and B37 wait until stage 1 has landed and the member repos are backfilled.
 
 ## 2026-11-02 — backlog sync ran, and a skipped sync must pause the wrap (D55)
 

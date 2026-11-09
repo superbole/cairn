@@ -1,4 +1,4 @@
-**Not AFK-ready: B35 needs the reviewer's decision (Q1 to Q4 below). Stage 1 (the report-first tool) becomes AFK once Q1, Q2 and Q3 are answered; stage 2 (the rule and README text) is attended, because it edits shared files.**
+**Q1 answered 2026-11-08 (D59): A.** Report by default, create on `--create`, at two moments only: with a new `NEXT.md`, and at a wrap after one ask. **Q2 answered 2026-11-08 (D60): A.** Look for the known rationale names and create `docs/decisions.md` only when none exists. The search stays on those names. **Q3 answered 2026-11-08 (D61): A.** Create `BACKLOG.md` with the set, and the same question says the next sync will import the open issues. **Q4 answered 2026-11-08 (D62): A.** B32 and B37 wait until stage 1 has landed and the member repos are backfilled. Q1 to Q4 are answered. Stage 1 can be built from this brief. Stage 2 (the rule and README text) stays attended, because it edits shared files.
 
 # B35 — every tracked project gets the full file set, blank if need be: groom brief
 

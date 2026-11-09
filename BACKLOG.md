@@ -343,6 +343,7 @@ its own `NEXT.md`, so the scraper is total, not best-effort. **No machine pin** 
 the Cursor half, now B57. **Do not re-merge them.**
 **Decomposed separately:** B36 (multi-environment sweep), B37 (walk other inboxes), B38 (evening wrap
 driver), B39 (a watch coming due elsewhere while you stay put — the hole "stay" leaves).
+**Q1 decided 2026-11-08 (D63).** Stage 1 is neighbouring folders only. Long term the list adds the WSL `/home/sheldonbole/Projects` folder (that half is B36) and the non-repo programmes kept in workspace. A Windows neighbour list misses tier 1 `bsr-tools`, which is WSL only and does have a `NEXT.md` there. `bfm` is tier 1 on Windows and is a neighbour. Groom brief: `docs/briefs/B31-afk-ready.md`. Q2 and Q3 are still open.
 **Open when pulled:** the input source — the old brief assumed a portfolio catalog file; the shipped
 sweep rejected that for siblings and deferred it to B36. Surfacing measured at ~483 vs ~5,437 tokens
 for the two designs considered; keep the cheap one.
@@ -377,7 +378,7 @@ an unpushed append is invisible on the other machine; say so in chat if it fails
 **Build:** (1) `tools/inbox_post.py --project <name|path> --note "..."` — append atomically, commit
 with an explicit pathspec, push, one-line report, `--issue` fallback; (2) a rule: `MISTAKES.md` is a
 pattern log, not a delivery mechanism — log AND post; (3) a wrap step cross-referencing touched repos
-against posts made. **Depends on** B35 (every project has an `INBOX.md`) and B56 (verified writes).
+against posts made. **Depends on** B35 (every project has an `INBOX.md`) and B56 (verified writes). **Waits (D62) until B35 stage 1 has landed and the member repos are backfilled.** Its own questions are still open. Groom brief: `docs/briefs/B32-afk-ready.md`.
 
 ## B33. Several sessions at once — the concurrency rules are implicit
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#31`
@@ -436,7 +437,7 @@ repos, all `NEXT.md`, **0** `INBOX.md`, 0 `BACKLOG.md`, 2 `CHANGELOG.md`.
 **The set:** `NEXT.md` (membership, unchanged), `INBOX.md`, `BACKLOG.md`, `CHANGELOG.md`, the
 rationale record — header only. **Blank means BLANK:** legacy inboxes shipped example bullets and a
 scanner counted four phantom items (see B15). **Does not change opt-in.**
-**Two enforcement questions, unanswered:** (1) *a new project appears* — no daemon; `SessionStart` is
+**Two enforcement questions:** (1) *a new project appears* — no daemon; `SessionStart` is
 silent without `NEXT.md` by contract, so creation likely happens **whoever writes `NEXT.md` writes
 all five** (a skill-side job — decide, don't assume); (2) *a fresh install on an existing tree* — no
 backfill; a report-first tool that lists missing files and creates them only when asked fits the
@@ -444,6 +445,8 @@ existing `check_*` / `validate_next.py` pattern. **Build:** `tools/ensure_projec
 (idempotent, same shape as `ensure_mistakes_file.py`), run only where `NEXT.md` exists; document the
 set in `rules/CLAUDE.md` and `README.md`. A multi-repo bootstrap is the largest fan-out yet — one repo
 at a time, explicit pathspecs, report each.
+
+**Q1 decided 2026-11-08 (D59): A.** Report by default, create only with `--create`. A new `NEXT.md` is followed by the blank set in the same commit. A wrap asks once whether to create the missing files in that commit. **Q2 decided 2026-11-08 (D60): A.** Look for `docs/decisions.md`, `DECISIONS.md`, `docs/adr/`, `docs/decisions/`, and `references/incidents.md`. Create `docs/decisions.md` only when none of those exists. The search stays on those names. **Q3 decided 2026-11-08 (D61): A.** Create `BACKLOG.md` with the set, and the same question says the next sync will import the open issues. **Q4 decided 2026-11-08 (D62): A.** B32 and B37 wait until stage 1 has landed and the member repos are backfilled. After that, a missing `INBOX.md` in a member means it was never backfilled. Groom brief: `docs/briefs/B35-afk-ready.md`. Groom brief: `docs/briefs/B35-afk-ready.md`.
 
 ## B36. The git sweep is per-machine-and-cwd — Windows, WSL and remote checkouts are never swept together
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#34`
@@ -458,8 +461,7 @@ one repo on Windows, in WSL and on a server is three rows (B40 is why).
 ## B37. Nothing ever walks the other projects' `INBOX.md` files
 `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-04` · issue `#35`
 Was `agent-reentry` B60 (migrated 2026-09-23). Orientation counts *this* project's inbox; the morning
-ask is "reconcile all the inboxes". **Blocked on B35** — measured 2026-09-04, 1 of 18 repos had an
-`INBOX.md`. Report counts and due-looking bullets per project; **read-only** — a foreign session
+ask is "reconcile all the inboxes". **Blocked on B35 (D62).** Stays blocked until B35 stage 1 has landed and the member repos are backfilled. Measured 2026-09-04, 1 of 18 repos had an `INBOX.md`. After the backfill, a missing `INBOX.md` in a member means it was never backfilled. Report counts and due-looking bullets per project; **read-only** — a foreign session
 appends and the owner triages (B32).
 
 ## B38. Evening wrap is per-session; there is no driver over the machine
