@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 132 -->
+<!-- next-id: 136 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -9,7 +9,7 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B131. Old `afk/` branches pile up on origin after their PRs are merged or closed
-`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-09`
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-09` · issue `#168`
 Seen 2026-11-07: 22 `origin/afk/*` branches while only 6 PRs were open, the oldest from 2026-09-27 (`afk/2026-09-27-99-handover`, `afk/fix-red-tests`, `afk/ubuntu-ci-counts` and the September/October numbered ones). By 2026-11-09 every afk/ PR was merged, so all of them are leftovers. PRs are squash-merged, so `git branch -r --merged` cannot be trusted to say which landed. **Do:** for each branch, look up its PR with `gh pr list --head <branch> --state all`; list merged / closed-unmerged / no PR. Delete the merged ones on his yes (deleting a remote branch is destructive; a closed-unmerged one may hold unlanded work, so name those separately). Then decide whether the firing or the merge should delete the branch itself (GitHub's "automatically delete head branches" setting is one option, his to switch on).
 
 ## B130. No notion of a work package: related items scatter, and the refill picks unrelated work before the package is closed
@@ -552,18 +552,6 @@ queue item's brief done, a version bump, a CHANGELOG entry since `.last_wrap`) w
 anti-wallpaper gate; session age / turns since `.last_wrap`. **Rejected in advance:** a louder skill
 sentence. **Read `MISTAKES.md` first** (42 entries at filing) as the evidence of which signal helps.
 
-## B44. The operator wants a hook that blocks closing a session with unwrapped work
-`Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-02` · issue `#42` · closed `2026-11-08`
-Was `agent-reentry` B43 (migrated 2026-09-23). Raised after `dirty_tree_warning.py` warned correctly
-mid-session: can the warning become a block? **Read that hook's header first** — *"NEVER BLOCKS. A
-Stop hook that traps a session is worse than a dirty tree … a session that cannot end is a session
-with no `NEXT.md` to resume from"* — and the incident behind it in `skills/wrap/references/incidents.md`.
-**Candidates short of a block:** a louder warning (today's de-dupes to "worse than last time", which
-may be too quiet to read as urgent); or use the archive offer as the harder stop, since it is read at
-a moment of attention rather than mid-task. Needs a plan: it changes the moment of leaving.
-
-**Closed 2026-11-08 (D56).** The archive guard (D36) is the stop for an agent archiving itself while a wrap is still owed. Ending the session is not blocked. A louder mid-session warning waits on B122, because that warning counts the other machine's commits. Groom brief: `docs/briefs/B44-afk-ready.md`.
-
 ## B45. `MISTAKES.md` is written and never read
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#43`
 Was `agent-reentry` B62 (migrated 2026-09-23). The file exists on every machine and `/cairn:wrap`
@@ -736,54 +724,6 @@ used returned **13.12.15** (mid-2021) against `glab` 1.116.0, and `personal_acce
 there (a 14.x endpoint). Token scope was measured as `api`, so scope is not the risk. **Watch for:**
 `--yes` unsupported (would hang, not fail), `issue note` on a closed issue, `#` in label colours. Any
 fix belongs in `GitLabHost`, not callers. **Related:** B7 (the same write path failing on WSL + `gh.exe`).
-
-## B9. `sync_backlog.py` and `validate_next.py` answer for the SESSION's repo, not the one they're run in
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-23` · issue `#56` · closed `2026-11-08`
-Seen twice in one session on SBOLE-NB5, 2026-09-23. The session was opened on the private source
-repo, and `cairn` was then added as an extra directory:
-- `cd …/cairn && python plugins/cairn/tools/validate_next.py` printed **3 watches, 4 decisions**,
-  which are the private repo's counts. With the root passed explicitly it printed **0 and 0**,
-  which is correct for `cairn`.
-- `cd …/cairn && python <plugin>/tools/sync_backlog.py` printed `backlog synced with
-  superbole/agent-reentry`. So `cairn`'s B8 has **not** been filed as an issue yet.
-
-Probably the project root comes from the session's project dir (`CLAUDE_PROJECT_DIR` or
-equivalent) before `cwd`. Not checked. The private repo filed the validate half as B139. A wrong
-repo in a sync is worse than a wrong count: it writes to a different issue host. **Fix direction:**
-prefer the git root of `cwd`, and print the root being used on the first line (sync already names
-the repo; validate does not).
-
-**Seen again 2026-09-28 (NB5), and it cost a false diagnosis.** A session opened on `cairn` ran the
-wrap's sync from `cd …/workspace`. It printed nothing inside a 100 s timeout, and the agent blamed `glab`
-as unconfigured, from a stale memory. In fact `glab` was logged in and fast, and `--dry-run` showed the
-sync answering for `superbole/cairn`. **Working workaround:** `CLAUDE_PROJECT_DIR='<repo path>'` in front of the
-command made it sync that repo to its GitLab host correctly (closed #44, filed #64–#66).
-
-**Merged in 2026-09-23 from `agent-reentry` B139 and B133**, which were the same defect, filed twice:
-- **The cause is confirmed, not probable.** `validate_next.py` falls back to `project_root()`, and
-  `sync_backlog.py` does `root = project_root() if project_root else Path.cwd()`.
-  `reentry_state.project_root()` resolves `CLAUDE_PROJECT_DIR` → this session's stamp → `cwd()`, in
-  that order, so **inside a session `cwd` is unreachable and `cd` has no effect at all.** That
-  ordering is right for hooks, which must answer for their own project. The defect is that a
-  **report tool** inherits it silently.
-- **The worse instance was a real sync against the wrong remote:** run from inside a sibling repo, it
-  printed `backlog synced with <this repo> (GitHub): ... no changes.` The sibling's three new items
-  were never filed, and it was only noticed because someone read the repo name. The workaround,
-  `CLAUDE_PROJECT_DIR=<path> python .../sync_backlog.py`, works, but steering a tool by setting an
-  internal env var is not an interface.
-- **The remedy is already established practice:** v1.35.0 made `check_repos.py` print the root it
-  resolved, *"because it can resolve the wrong one when the shell's cwd has drifted"*.
-- **Fix:** (1) add `--root PATH` to `sync_backlog.py` (validate already takes a PATH), taking
-  precedence over `project_root()`. (2) Every report tool prints the root it used, and where it came
-  from: `project_root_source()` already returns `env` / `session-stamp` / `cwd` and nothing prints
-  it. (3) **A success line naming a repo the caller didn't ask for is a warning, not a report** —
-  that applies when cwd sits inside a different git repo from the resolved root. (4) Audit every
-  tool that calls `project_root()` with no argument and prints a verdict: `check_repos.py`,
-  `issues_backlog.py`, `validate_next.py`, `measure_context.py`.
-
-**#139 (merged 2026-10-29) did (1) and (3) for `sync_backlog.py` only.** It warns when the shell is inside a different repo and tells you to pass `--root`. It still answers for the session root unless that flag is passed.
-
-**#157 (merged 2026-11-07) did (2) and (4)** for `validate_next.py`, `issues_backlog.py` and `check_repos.py`, via `reentry_state.root_report()`. `measure_context.py` never calls `project_root()`. `label_backlog.py`, and which root a tool chooses, stay with B98.
 
 ## B8. `/cairn:next` and `/cairn:wrap` should tell the agent to read files with Read, not a shell chain
 `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23` · issue `#57`
@@ -1576,3 +1516,99 @@ A cloud session starts on a fresh container every time, so every "first run on t
 **What worked, for the record:** orientation printed (`STAY QUIET`), `/cairn:next` and `/cairn:wrap` available, the wrap's NEXT.md/CHANGELOG.md edits landed on the `claude/...` branch and in the PR, and the verdict was `CAIRN SET` (baseline is stamped in the same container, so cloud wraps are fully measurable). Worth a short "Cloud sessions" section in the README with the two setup-script lines and "wrap edits ride in the issue's own PR".
 
 **Ruled out (not bugs):** `check_repos.py` printing `No record` after an Edit inside the project (the recorder only records writes OUTSIDE the project, by design); a `push_check.py` ALERT after a deliberate push (the agent ran the held-push check on a non-held push); `staged_review_guard` blocking stage+commit in one call (correct).
+
+## B133. /cairn:closeout — a coordinator-run backlog close-out (proven on ai-coach, 206→125 issues)
+added `2026-11-09` · issue `#164`
+Proven on `forge-ai-coach`, 2026-11-04 to 11-07: **206 open issues down to 125, 11 revs deployed (314–324), with little of Sheldon's time.** His verdict: *"this has worked very well to kill a lot of issues without too much of my time"*, plus *"How do we do this again?"* This issue is the playbook until it becomes a skill (`/cairn:closeout`), and it lists the cairn defects the run exposed.
+
+#### The shape
+
+1. **One coordinating parent session that never does the work.** It starts child sessions, reads only their ~400-character turn notes, runs the backlog sync, and keeps the plan. Its own context stayed small for four days.
+2. **Wave 0, verify before fixing (one child, AFK).** An agent per backlog item checks whether the claim is still true, whether the stated cause is what the code does, whether the scope is right, and whether it still serves the aim. Two adversarial refuters must agree before anything closes. Result on 201 items: 16 closed, 81 rewritten (cause or scope wrong), 28 kept after a refuter objected, 76 still true. **Closing comes from fixing, not from verifying.** The value of Wave 0 is the 81 corrected entries and a theme grouping. It also triages stale watches (46 checked: 27 closed, 10 re-scoped).
+3. **A wave-plan file:** themes, the files each touches, a collision table, and which pairs can run in parallel. Hot files (`reply_handler.py`, `gateway.py`, `weekly_planner.py` here) force themes to run one at a time.
+4. **Wave 1, one child per theme**, in its own worktree, each ending in merge, deploy and wrap. Two or three at once only where the collision table allows.
+5. **Wave 2, a keep-or-close sitting with the user** for the HITL/Plan ideas. These are not defects.
+6. **The user's calls arrive mid-flight.** A child that needs the user stops, and the parent relays it in one line. Decisions get their own small child session.
+
+#### Rules that made it work
+
+- **Every child brief ends with what the final message opens with** (items closed, left open and why, revs deployed). That makes the 400-character note enough for the parent.
+- **Children never run `sync_backlog.py`.** The parent runs it once, after merges, with nothing else merging. See the defects below.
+- **Put the coordinator's remaining plan on disk at the start**, as a `NEXT.md` watch. Here it lived only in the parent session for three days (W135 was written late).
+- **Pace against the weekly allowance, not the 5-hour window.** Three Opus children at once exhausted a 5-hour window; one theme child costs about 10–15% of the weekly allowance. Pause with a dated watch at the reset.
+- **The verify fan-out runs in waves of about 30, one script at a time, under a 95% ceiling**, with a `STATE.md` resume file and a self-scheduled resume after each reset. On 09-03, 179 agents launched at once all died within about 100 seconds. In this run, each verifier cost about 9% of a 5-hour window and each refuter about 7%.
+- **A turn started by a child's note cannot start a session**, only propose a card. The user clicking each next wave turned out to be a good checkpoint, so keep it.
+
+#### Defects it exposed (cairn's to fix)
+
+- **#155:** `sync_backlog.py` resolves to the main checkout even from a worktree, and its read-modify-write spans minutes. It twice overwrote another child's closes mid-merge. It also makes the wrap receipt and the archive guard measure the wrong tree.
+- **Watch numbers collide between parallel children.** Two children both created W133. Backlog items have a `next-id` marker, but watches have no allocator.
+- **`next-id` is not enforced.** A session filed B257–B258 without bumping it (logged in MISTAKES.md). The sync or a hook should refuse that.
+- **The sync silently defers a closed item until a CHANGELOG entry names it (B45),** and says so only in a line that is easy to miss.
+- **A dirty main checkout blocks every worktree's deploy** (ai-coach fixed its own guard as B260; the general point is the same as #155).
+
+#### What to build
+
+A `/cairn:closeout` skill that turns the above into steps: starting the coordinator, the Wave 0 brief and the refute stage (the scripts are in `forge-ai-coach` `dev/workflows/backlog_verification.js` and `watch_audit.js`), the wave-plan template with a collision table, the child-brief template, the sync-after-merge rule, the pacing rule and the dated pause watch. The ai-coach run's artefacts, for reference: `docs/sweeps/2026-11-04_wave_plan.md`, `logs/backlog_verify/STATE.md` (gitignored), and NEXT.md W135.
+
+## B134. A brief does not list the decisions it must respect, so the agent re-derives them
+added `2026-11-09` · issue `#161`
+Moved from superbole/forge-ai-coach B183 (it is a cairn plugin change, not an ai-coach one). The ai-coach entry, verbatim:
+
+`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30` · issue `#228`
+Brief: none yet — the evidence is here.
+
+From the 2026-09-30 `/insights` review (189 sessions): the most common friction was "wrong approach" (25),
+and several cases were rules already recorded in `docs/decisions.md` (dropping the PM commute leg on a
+test day, copying the Intervals zone column unchecked, re-investigating the HR-step-to-Garmin mapping).
+Adding them to CLAUDE.md was rejected: they are on disk, and duplicating them grows the always-loaded
+context. **This is a cairn change, not an ai-coach one**: brief shape is set by cairn's `/cairn:wrap` step
+3, which already asks a brief to carry "the reasoning behind decisions already made" but only as prose
+about this session; ai-coach's `wrap-session` `## Briefs` is path-only and `/review-day` writes no briefs.
+Fix: in cairn wrap step 3, require a `**Prior decisions:**` line naming the rationale-record rows the
+brief must not reopen (or `none`), filled in when the brief is written — the shape ai-coach briefs
+132/134/135/137 already use ad hoc and 140/144/145 omit. Consider letting cairn B22's candidate (3) read
+that line. File in cairn, link back to this issue, close here.
+
+## B135. The auto-push hook fires on every Bash commit, not just after a deploy
+added `2026-11-09` · issue `#160`
+Moved from superbole/forge-ai-coach B144 (it is a cairn plugin change, not an ai-coach one). The ai-coach entry, verbatim:
+
+`Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-07` · issue `#188`
+`.claude/settings.json`'s `PostToolUse` block declares two `git push` hooks gated
+`"if": "Bash(flyctl deploy*)"` and `"if": "PowerShell(flyctl deploy*)"` — *"Pushing to remote
+after deploy..."*. Observed twice on 2026-09-07, in the rev 265 session, with **no deploy in
+either tool call**: `git commit` alone left `git ls-remote origin main` already at the new SHA,
+and `git reflog show refs/remotes/origin/main` reads `update by push` for both. No git hook
+exists (`.git/hooks/` holds only `.sample` files) and no `push.*` config is set, so the
+`PostToolUse` entry is the only candidate and its `if` predicate is not gating what it says.
+
+**Why it matters beyond tidiness.** The reentry attendance contract says an `AFK` item *"commits
+locally and STOPS before the push"*, and an `HITL` item stops where it needs Sheldon. Rev 265 was
+run as `HITL/Auto` and the push was deliberately held — he was told a decision point existed
+before the code left the machine, and it did not. **An agent cannot honour a held push against a
+hook that fires after its own tool call.** Either the `if` is fixed, or the contract for this
+repo has to say the push is automatic; a rule that the harness silently overrides is worse than
+no rule. Logged in `~/.claude/MISTAKES.md` (2026-09-07).
+
+Check the `if` key is a supported predicate in this Claude Code version at all before assuming a
+syntax error — if it is silently ignored on an unrecognised key, every conditional hook in that
+file is unconditional, including the two `predeploy_*` ones, and `predeploy_staleness_check.py`
+is the blocking one that B138 is already about.
+
+**2026-11-05 verification:** proposed already fixed but a refuter disagreed, so it stays open: Refuted.
+The symptom survives on a narrower path. postdeploy_push.py:20-22 pushes whenever _is_deploy_command() is
+true. That function (predeploy_staleness_check.py:224-227) is true for ANY command naming 'flyctl deploy'
+unless it starts with git/grep/rg, and its own self-test asserts 'cd x && flyctl deploy' -> True (:241).
+So a commit like `cd <repo> && git commit -m "... flyctl deploy ..."` triggers the push. On a clean tree
+ahead of origin (an AFK held-push state) nothing blocks it first, so held commits get pushed. Re-scoped to
+that path: only an actual deploy command may trigger the push.
+
+## B136. From a git worktree, sync_backlog and wrap_receipt act on the MAIN checkout
+added `2026-11-09` · issue `#155`
+Found 2026-11-06 in ai-coach (Wave 1 session T1, worktree .claude/worktrees/silly-varahamihira-621809).
+
+- tools/sync_backlog.py, run with cwd = the worktree, read and rewrote the MAIN checkout's BACKLOG.md, not the worktree's. It read the file at start and wrote at the end (~5+ min of host calls later). The main checkout was fast-forwarded in between, so the write reverted 8 'closed' stamps another session had merged (issues #113 #114 #194 #215 #224 #251 #253 #281 stayed open, and the file un-closed them). That is a lost update even without worktrees: the read-modify-write spans the whole network phase.
+- wrap_receipt.py --record reads the main checkout's .claude/.last_wrap (45890b19) while HEAD is the worktree's (10e01022), so the marker step reads SKIP after a correct stamp in the worktree. It also attributes NEXT.md/CHANGELOG/commit to 'merge origin/main' when the last commit is a merge, though this session's own commits precede it.
+
+Fix shapes: resolve the project root with git rev-parse --show-toplevel from cwd, not --git-common-dir. In sync_backlog, re-read the file just before writing and apply only its own changes (drop closed items, add issue numbers), or refuse if the file changed since the read. The same project's predeploy guard has the same root bug (ai-coach B260, issue #301 there).
