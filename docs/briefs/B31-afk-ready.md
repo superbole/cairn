@@ -1,4 +1,4 @@
-**Q1 answered 2026-11-08 (D63).** Stage 1 is neighbouring folders only. Long term: those neighbours, the WSL `/home/sheldonbole/Projects` folder (B36), and the non-repo programmes in workspace. A Windows neighbour list misses tier 1 `bsr-tools`. Q2 and Q3 are still open. Stage 1 stays attended until they are answered.
+**Q1 answered 2026-11-08 (D63).** Stage 1 is neighbouring folders only. Long term: those neighbours, the WSL Projects folder (`~/Projects`, B36), and the non-repo programmes in workspace. A Windows neighbour list misses tier 1 `bsr-tools`. Q2 and Q3 are still open. Stage 1 stays attended until they are answered.
 
 # B31 groom: cross-project roll-up (the morning chooser)
 
