@@ -347,7 +347,7 @@ its own `NEXT.md`, so the scraper is total, not best-effort. **No machine pin** 
 the Cursor half, now B57. **Do not re-merge them.**
 **Decomposed separately:** B36 (multi-environment sweep), B37 (walk other inboxes), B38 (evening wrap
 driver), B39 (a watch coming due elsewhere while you stay put — the hole "stay" leaves).
-**Q1 decided 2026-11-08 (D63).** Stage 1 is neighbouring folders only. Long term the list adds the WSL `/home/sheldonbole/Projects` folder (that half is B36) and the non-repo programmes kept in workspace. A Windows neighbour list misses tier 1 `bsr-tools`, which is WSL only and does have a `NEXT.md` there. `bfm` is tier 1 on Windows and is a neighbour. Groom brief: `docs/briefs/B31-afk-ready.md`. Q2 and Q3 are still open.
+**Q1 decided 2026-11-08 (D63).** Stage 1 is neighbouring folders only. Long term the list adds the WSL Projects folder (`~/Projects`, that half is B36) and the non-repo programmes kept in workspace. A Windows neighbour list misses tier 1 `bsr-tools`, which is WSL only and does have a `NEXT.md` there. `bfm` is tier 1 on Windows and is a neighbour. Groom brief: `docs/briefs/B31-afk-ready.md`. Q2 and Q3 are still open.
 **Open when pulled:** the input source — the old brief assumed a portfolio catalog file; the shipped
 sweep rejected that for siblings and deferred it to B36. Surfacing measured at ~483 vs ~5,437 tokens
 for the two designs considered; keep the cheap one.
