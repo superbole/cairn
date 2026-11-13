@@ -31,6 +31,11 @@ import issue_host                                      # noqa: E402
 import sync_backlog as sb                              # noqa: E402
 import label_backlog as lb                             # noqa: E402
 
+# The shell's repo is pinned to "none" for every section: a sync whose resolved root is not the
+# shell's repo now REFUSES (v1.69.0), and these sections stub the root to a fixture while the
+# test runs from wherever it was started. The refusal has its own section, which sets this.
+sb._cwd_toplevel = lambda cwd=None: None
+
 fails = []
 
 
@@ -961,10 +966,39 @@ check("the first line names the root and says it came from --root",
 check("an explicit --root never warns about the cwd", "WARNING" in out9.getvalue(), False)
 
 rep = sb._root_report(wrong9, "session-stamp", fix9)
-check("a root that is not the shell's git repo is a WARNING naming both",
-      (len(rep), "WARNING" in rep[1], str(wrong9) in rep[1], str(fix9) in rep[1]),
+check("a root that is not the shell's git repo is a REFUSAL naming both",
+      (len(rep), "REFUSED" in rep[1], str(wrong9) in rep[1], str(fix9) in rep[1]),
       (2, True, True, True))
 check("it suggests --root with the repo the shell is in", "--root %s" % fix9 in rep[1], True)
+
+# The refusal end to end (2026-11-13). A worktree shell, a session stamp naming the main
+# checkout: main() must stop before the parse, the host and the write. It used to warn and go on,
+# and rewrote the main checkout's BACKLOG.md from a stale copy under a parallel session.
+(wrong9 / "BACKLOG.md").write_text((fix9 / "BACKLOG.md").read_text(encoding="utf-8"),
+                                   encoding="utf-8")
+before9 = {d: (d / "BACKLOG.md").read_bytes() for d in (fix9, wrong9)}
+calls9r = []
+saved9r = (issue_host.IssueHost._run, issue_host.detect, sb.project_root,
+           sb.project_root_source, sb._cwd_toplevel)
+issue_host.IssueHost._run = fake_run_b13(calls9r)
+issue_host.detect = lambda root, override="": (issue_host.GitHubHost(Path("."), "github.com"), "")
+sb.project_root = lambda: wrong9
+sb.project_root_source = lambda: "session-stamp"
+sb._cwd_toplevel = lambda cwd=None: fix9 if cwd is None else None
+out9r = io.StringIO()
+try:
+    with contextlib.redirect_stdout(out9r):
+        rc9r = sb.main([])
+finally:
+    (issue_host.IssueHost._run, issue_host.detect, sb.project_root,
+     sb.project_root_source, sb._cwd_toplevel) = saved9r
+check("a stamp root in another repo exits 0 (a wrap never fails over the backlog)", rc9r, 0)
+check("... and REFUSES, naming both paths and --root",
+      ("REFUSED" in out9r.getvalue(), str(wrong9) in out9r.getvalue(),
+       "--root %s" % fix9 in out9r.getvalue()), (True, True, True))
+check("... with no host call at all", calls9r, [])
+check("... and neither BACKLOG.md touched",
+      {d: (d / "BACKLOG.md").read_bytes() for d in (fix9, wrong9)} == before9, True)
 check("the same root as the shell's repo is quiet",
       len(sb._root_report(fix9, "cwd", fix9)), 1)
 check("no git repo at the cwd is quiet too", len(sb._root_report(wrong9, "env", None)), 1)

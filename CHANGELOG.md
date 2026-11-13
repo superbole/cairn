@@ -3,6 +3,13 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-11-13 — v1.69.0: the backlog sync refuses a root that is not the shell's repo
+
+- `tools/sync_backlog.py` now REFUSES, where it used to warn and go on, when its root was resolved (session stamp, `CLAUDE_PROJECT_DIR`, cwd) rather than named by `--root` and is not in the git repo the shell stands in. It names both paths and the `--root` for each, reads and writes nothing, and exits 0 so a wrap still never fails over the backlog. `--root` behaves as before. D64.
+- Why: on 2026-11-13 a worktree session in another project ran the sync with no `--root`. The stamp answered with the main checkout, the warning printed, and the run rewrote the main checkout's `BACKLOG.md` from a stale copy while a parallel session was editing it. Two items' updates were reverted and #335 was filed as a duplicate of #334.
+- Repos are compared by git toplevel on both sides, so a project in a subdirectory of its repo is not refused. Test: `test_sync_flags.py` section 19, end to end through `main()`. Wrap step 8a says what the new `REFUSED` means.
+- This release also ships #139 (B9) and #140 (B111), merged after v1.68.1. B129's other bookkeeping steps are still open.
+
 ## 2026-11-09 — weekend burn reviewed: W6 and W12 closed
 
 - **W12 closed.** All three weekend tasks fired. Saturday ran 6 slots and Sunday 4, the last at 13:06, before the 15:00 cut-off. No scheduled run raised a permission prompt (every prompt logged since 11-06 came from the attended session).

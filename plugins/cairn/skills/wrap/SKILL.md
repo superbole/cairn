@@ -464,6 +464,9 @@ shell, and bare `python` is missing on stock Linux — so always go through `hoo
      it would delete them; it made no host call and touched nothing. Fix the headings to
      `## Bn. Title`, keeping every word of the body, then re-run. Found 2026-09-03 in
      `~/Projects/workspace`: 13 headings, 0 parsed, 206 lines one write from gone.
+     **The other `REFUSED` is about the root:** the session's project is not the git repo the
+     shell is standing in (a worktree, or a `cd`). Nothing was read or written. Re-run with the
+     `--root` it names for the repo you mean; never re-run without one hoping it picks the other.
    - **Make the labels exist first** if this repo has never synced — idempotent, cheap:
 
      ```bash
