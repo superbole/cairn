@@ -125,12 +125,19 @@ the text goes in the dossier.
   `check_repos.inspect`, `wrap_receipt.receipt_used`, `wrap_receipt.last_receipt`,
   `wrap_receipt.orientation_line`.
 - Project list per Q2 A. Before any `git` call in a root: it exists, has `.git`, and has `NEXT.md`.
-  A record whose root fails that is a row reading `skipped: <reason>` and nothing runs in it.
+  A root with no `NEXT.md` (a session started in a parent folder, or a repo not in the system) is
+  dropped without a row and counted in one trailing line, `<n> other folder(s) had sessions but no
+  NEXT.md`: silence is what "not in the system" means everywhere else, and a row per such folder
+  would repeat every evening. A root that no longer exists is a row reading `skipped: gone`. A
+  project known only from `stop-*.json` has no root (`check_exits.py:51-62`), so it is a row by its
+  slug reading `root unknown (no session has ended there yet)` and nothing runs for it.
 - One row per project:
   - wrapped?: `never` when `receipt_used()` is false; otherwise the last receipt's verdict and time,
-    plus `orientation_line()`'s text when it is not `None` (that is what separates "commits made
-    here since the wrap" from "commits pulled since the wrap"). Never `unwrapped_commits()`, for
-    the B122 reason in the table.
+    plus `orientation_line()`'s text when the verdict is `SET` and the line is not `None` (that is
+    what separates "commits made here since the wrap" from "commits pulled since the wrap"). For any
+    other verdict, do not use `orientation_line()`'s text: it says "did not record a completed wrap"
+    for every verdict other than `SET` and `UNKNOWN`, `NOT DUE` included (`wrap_receipt.py:1142-1144`). Never
+    `unwrapped_commits()`, for the B122 reason in the table.
   - clean?: `inspect()["dirty"]`, with up to `MAX_LISTED` paths.
   - pushed?: `inspect()["unpushed"]`, or its note (`no upstream branch`).
   - A row needs a wrap when its last receipt is not `SET`/`NOT DUE`, or `orientation_line()` says
@@ -145,15 +152,18 @@ never the real `~/.claude/`):
 
 1. No exit records: one line saying so, exit 0.
 2. Two projects with records inside the window and one outside: two rows, plus the current project.
-3. A record whose root is gone, and one whose root has `.git` but no `NEXT.md`: each a `skipped`
-   row, and no `git` process runs in the second (assert with a wrapped `git` helper or by giving
-   the fixture repo a `core.fsmonitor` hook that writes a file, which must not appear).
+3. A record whose root is gone is a `skipped: gone` row. A record whose root has `.git` but no
+   `NEXT.md` has no row, is counted in the trailing line, and no `git` process runs in it (assert
+   with a wrapped `git` helper or by giving the fixture repo a `core.fsmonitor` hook that writes a
+   file, which must not appear). A project with only a `stop-*.json` is a `root unknown` row.
 4. A project with a `SET` receipt at HEAD, clean and pushed: reads as done, not in "needs a wrap".
 5. The same project after a local commit: needs a wrap, and the row carries `orientation_line()`'s
    "HEAD has moved" text.
 6. The same project after a fast-forward pull only: not "needs a wrap" (the B122 case), and the row
    says the commits arrived by pull.
-7. A project that has never recorded a receipt: wrapped? reads `never`, not `OPEN`.
+7. A project that has never recorded a receipt: wrapped? reads `never`, not `OPEN`. A project
+   whose last receipt is `NOT DUE`, clean and pushed: reads as done, with no "did not record a
+   completed wrap" text.
 8. Dirty, ahead, and no-upstream fixtures each give the right column.
 9. A push to the bare origin inside the window: named in the pull line; a push older than the
    window is not.
@@ -187,3 +197,9 @@ The plugin source cites "B38" for a different subject: `hooks/issue_host.py:206`
 landed 2026-09-05. A reader following "B38" from those files lands on this entry. Same drift as the
 B36 brief's finding 2. Not changed here (not this brief's files); the attended pass can decide
 whether to annotate them with the old repo's name.
+
+A possible defect, read from the code and not reproduced: `wrap_receipt.orientation_line()`
+(`:1142-1144`) prints "the previous session did not record a completed wrap" for every verdict
+other than `SET` and `UNKNOWN`, so a session whose wrap legitimately recorded `NOT DUE` (which
+`main()` treats as success, `:1267`) would trigger that line at the next session start. Worth a
+backlog entry if a test confirms it.
