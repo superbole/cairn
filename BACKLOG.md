@@ -18,7 +18,7 @@ Reported 2026-11-05 by the user, about the previous week: when several related t
 Workaround given that day, no code change: file the package as ONE backlog item and ONE Queue slot whose brief is the checklist (one row per sub-task with a status), so "do 1" keeps returning to the package until it is closed. Sub-tasks are not separate backlog items.
 To decide here: whether that workaround should simply be the documented rule (cheapest), or whether items get an optional `package:` field that the refill and the orientation respect (pull the rest of an open package before anything else; show "package X: 3 of 7 open" on one line). Rejected so far: GitLab milestones as the grouping, because nothing in cairn reads them, so they would not change what the next session offers. Check against how `sync_backlog.py` maps items to issues before adding a field.
 
-## B129. v1.69.0 release: bookkeeping for #139, #140 and #130
+## B129. Release bookkeeping for #139, #140 and #130
 `Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-02` · issue `#154`
 Moved here 2026-11-02 from `superbole/claude-inbox` #16 (closed with a pointer to this item), so the 30-minute `claude-inbox-check` stops listing it. Sheldon approved it on 29 Oct. The inbox task refused it then because it pushes to main and was meant for an attended session. **Run it attended, in this checkout on NB5.**
 
