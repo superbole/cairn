@@ -116,7 +116,7 @@ Fields line to paste under a new entry (or under B38 once narrowed):
 `` `Sonnet 5` · effort `medium` · `AFK/Auto` ``
 
 Files: new `plugins/cairn/tools/evening.py`, new `plugins/cairn/tools/test_evening.py`. No change
-to any existing file. A payload change, so it gets the routine version bump at the attended pass.
+to any existing code file (the only existing file touched is `docs/guide.md`, below). A payload change, so it gets the routine version bump at the attended pass.
 `docs/guide.md` gains one paragraph naming the tool; if that file is busy or shared at the time,
 the text goes in the dossier.
 
@@ -141,7 +141,10 @@ the text goes in the dossier.
   - clean?: `inspect()["dirty"]`, with up to `MAX_LISTED` paths.
   - pushed?: `inspect()["unpushed"]`, or its note (`no upstream branch`).
   - A row needs a wrap when its last receipt is not `SET`/`NOT DUE`, or `orientation_line()` says
-    commits were made here after the wrap, or it is dirty, or it is ahead.
+    commits were made here after the wrap, or it is dirty, or it is ahead. A `never` row (no
+    receipt recorded) needs a wrap only when it is dirty or ahead: with no receipt there is no
+    verdict to fall short of, and flagging every such project every evening would be noise. If the
+    reviewer prefers `never` to always count, that is a one-line change and test 7 changes with it.
 - Footer: the Q5 A pull line, or `nothing pushed from this machine in the last <N>h`.
 - Exit 0 always (advisory), like `check_exits.py:269`.
 - Read only: never writes a state file, a receipt, a marker or a repo file. Never fetches.
@@ -161,7 +164,8 @@ never the real `~/.claude/`):
    "HEAD has moved" text.
 6. The same project after a fast-forward pull only: not "needs a wrap" (the B122 case), and the row
    says the commits arrived by pull.
-7. A project that has never recorded a receipt: wrapped? reads `never`, not `OPEN`. A project
+7. A project that has never recorded a receipt: wrapped? reads `never`, not `OPEN`; clean and
+   pushed it is not in "needs a wrap", dirty it is. A project
    whose last receipt is `NOT DUE`, clean and pushed: reads as done, with no "did not record a
    completed wrap" text.
 8. Dirty, ahead, and no-upstream fixtures each give the right column.
