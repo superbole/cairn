@@ -678,20 +678,37 @@ def _cwd_toplevel(cwd: Path | None = None) -> Path | None:
     return Path(out) if proc.returncode == 0 and out else None
 
 
+def _foreign_root(root: Path, source: str, cwd_top: Path | None) -> bool:
+    """True when the root was RESOLVED (not named by `--root`) and belongs to a different git
+    repo from the one the shell is standing in. Compared by git toplevel on both sides, so a
+    project that is a subdirectory of its repo is not foreign to a shell in that same repo.
+    No git repo at the cwd is not a mismatch: there is nothing to disagree with."""
+    if source == "--root" or cwd_top is None:
+        return False
+    try:
+        target = _cwd_toplevel(Path(root)) or Path(root).resolve()
+        return cwd_top.resolve() != target.resolve()
+    except OSError:
+        return False
+
+
 def _root_report(root: Path, source: str, cwd_top: Path | None) -> list[str]:
-    """The lines that say WHICH project this run answers for, and warn when the shell is
-    standing in a different git repo (B9). A success line naming a repo the caller did not
-    ask for reads as a report; here it is a warning."""
+    """The lines that say WHICH project this run answers for, and REFUSE when the shell is
+    standing in a different git repo (B9; a refusal since v1.69.0).
+
+    This was a warning until 2026-11-13. A worktree session in another project ran the sync with no
+    `--root`; the session stamp answered with the main checkout, the warning printed, and the
+    run went ahead anyway: it rewrote the main checkout's BACKLOG.md from a stale copy while a
+    parallel session was editing it (two items' updates reverted) and filed a duplicate issue.
+    An agent reads past a warning. A sync rewrites the whole file, so the only safe answer to
+    "which repo?" being in doubt is to write nothing until the caller names it."""
     lines = [f"backlog sync root: {root} (from {source})"]
-    if source != "--root" and cwd_top is not None:
-        try:
-            differs = cwd_top.resolve() != Path(root).resolve()
-        except OSError:
-            differs = False
-        if differs:
-            lines.append(f"  ! WARNING: this shell is inside {cwd_top}, but the sync is "
-                         f"answering for {root} ({source}). Pass --root {cwd_top} if you "
-                         f"meant the repo you are standing in.")
+    if _foreign_root(root, source, cwd_top):
+        lines.append(f"backlog sync REFUSED: this shell is inside {cwd_top}, but the {source} "
+                     f"root is {root}. A sync rewrites BACKLOG.md, so it will not guess which "
+                     f"one you meant. Nothing was read or written. Re-run with "
+                     f"--root {cwd_top} for the repo you are standing in, or --root {root} "
+                     f"if you really meant that one.")
     return lines
 
 
@@ -703,8 +720,11 @@ def main(argv: list[str] | None = None) -> int:
     else:
         root = project_root() if project_root else Path.cwd()
         source = project_root_source() if project_root_source else "cwd"
-    for ln in _root_report(root, source, _cwd_toplevel()):
+    report = _root_report(root, source, _cwd_toplevel())
+    for ln in report:
         print(ln)
+    if len(report) > 1:
+        return 0        # refused; exit 0 because a wrap must never fail over the backlog
     do_push = args.push or not args.pull
     do_pull = args.pull or not args.push
 
