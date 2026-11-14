@@ -56,8 +56,8 @@ after the "It doesn't guess" bullet. Text, to paste as is:
 ```
 
 Tests: none needed for a prose bullet; run `python plugins/cairn/tools/run_tests.py --timeout=300`
-anyway, because `test_payload_clean.py` scans a public file set that may include `docs/guide.md`
-(not checked by this firing).
+anyway, because `docs/guide.md` is on `test_payload_clean.py`'s `PUBLIC_SET` (line 62), so the
+new bullet is scanned for personal references. The text above names no real path or person.
 
 Done: the bullet is in `docs/guide.md`, the suite passes, and B40 is narrowed to stage 2 in
 `BACKLOG.md` by the attended pass (shared file). Optional, same pass: replace
@@ -89,7 +89,10 @@ tree while two config dirs still disagree; B36 is where cross-environment report
   one line naming the old path. Read only. This catches a **move** (same folder name, new parent)
   only: a **rename** changes the name half of the slug too, so nothing on disk links the two, and
   a rename stays silent unless the old `last_exit.json` roots are compared by remote URL, which
-  is a larger design.
+  is a larger design. It also has a false positive: different repos with the same folder name
+  share the name prefix, so after one `workspace` checkout is deleted, the first session in an
+  unrelated new `workspace` checkout elsewhere would report a "move" that never happened. The line must say
+  "possibly moved" and name the old path, never assert it.
 - **B. Migrate**: rename the old state directory to the new slug. Writes on a guess about identity.
 - **C. Nothing.**
 
