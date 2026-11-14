@@ -140,11 +140,15 @@ the text goes in the dossier.
     `unwrapped_commits()`, for the B122 reason in the table.
   - clean?: `inspect()["dirty"]`, with up to `MAX_LISTED` paths.
   - pushed?: `inspect()["unpushed"]`, or its note (`no upstream branch`).
-  - A row needs a wrap when its last receipt is not `SET`/`NOT DUE`, or `orientation_line()` says
+  - A row needs a wrap when its last receipt is `OPEN`, or `orientation_line()` says
     commits were made here after the wrap, or it is dirty, or it is ahead. A `never` row (no
     receipt recorded) needs a wrap only when it is dirty or ahead: with no receipt there is no
     verdict to fall short of, and flagging every such project every evening would be noise. If the
     reviewer prefers `never` to always count, that is a one-line change and test 7 changes with it.
+    An `UNKNOWN` receipt is treated the same way as `never`: the row prints `UNKNOWN` as is, and
+    the project needs a wrap only when it is dirty or ahead. `UNKNOWN` means the steps could not be
+    measured, not that one was skipped; counting it as needing a wrap would relay it as `OPEN`,
+    which the rules forbid.
 - Footer: the Q5 A pull line, or `nothing pushed from this machine in the last <N>h`.
 - Exit 0 always (advisory), like `check_exits.py:269`.
 - Read only: never writes a state file, a receipt, a marker or a repo file. Never fetches.
@@ -167,7 +171,8 @@ never the real `~/.claude/`):
 7. A project that has never recorded a receipt: wrapped? reads `never`, not `OPEN`; clean and
    pushed it is not in "needs a wrap", dirty it is. A project
    whose last receipt is `NOT DUE`, clean and pushed: reads as done, with no "did not record a
-   completed wrap" text.
+   completed wrap" text. A project whose last receipt is `UNKNOWN`, clean and pushed: the row
+   shows `UNKNOWN`, never `OPEN`, and it is not in "needs a wrap"; the same project dirty is.
 8. Dirty, ahead, and no-upstream fixtures each give the right column.
 9. A push to the bare origin inside the window: named in the pull line; a push older than the
    window is not.
