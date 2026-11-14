@@ -123,10 +123,12 @@ Fields line to paste under a new entry (or under B45 once narrowed):
 `` `Sonnet 5` · effort `medium` · `AFK/Auto` ``
 
 Files: new `plugins/cairn/tools/mistakes_review.py`, new `plugins/cairn/tools/test_mistakes_review.py`.
-No change to any existing code file. Two one-line doc updates, in the same PR if neither is busy or
-shared at the time, otherwise in the dossier: `docs/file-formats.md:199-201` (the review tool now
-exists, and the `yours`/`user` drift below) and `ensure_mistakes_file.py:10-11` (the docstring's
-"no review step yet"). A payload change, so it gets the routine version bump at the attended pass.
+No change to any existing code file's behaviour. Two one-line updates, in the same PR if neither is
+busy or shared at the time, otherwise in the dossier: `docs/file-formats.md:199-201` (the review tool
+now exists, and the `yours`/`user` drift below) and the module docstring of the hook
+`plugins/cairn/hooks/ensure_mistakes_file.py:10-11` ("no categorisation or review step yet"). The
+second is an existing code file: docstring text only, the `HEADER` string at `:30-47` must stay
+byte-identical, because test 1 parses it and every machine's existing file already carries it. A payload change, so it gets the routine version bump at the attended pass.
 
 - `mistakes_review.py [PATH] [--all] [--json]`. `PATH` defaults to `$CLAUDE_CONFIG_DIR/MISTAKES.md`,
   else `~/.claude/MISTAKES.md`, resolved the same way as `ensure_mistakes_file._config_dir()`.
@@ -142,7 +144,8 @@ exists, and the `yours`/`user` drift below) and `ensure_mistakes_file.py:10-11` 
     first field, the category the last, and everything between is the project, so a project name
     that itself contains ` - ` (or a hyphenated name next to a ` - ` separator) stays whole.
   - A `## review <YYYY-MM-DD>` heading is a review mark (Q4), not an entry. "New" is by position
-    (above the newest mark, since the log is newest first). As a cross-check, an entry BELOW the
+    (above the topmost mark, since the log is newest first; "newest mark" below means the topmost
+    one). As a cross-check, an entry BELOW the
     newest mark whose date is later than the mark's is listed as `out of order` and counted as new,
     so an entry appended at the bottom by mistake is not hidden as already reviewed.
   - Any other `## ` heading outside a fence is listed as `unparsed` with its line number, never
