@@ -24,6 +24,21 @@ it's handled" is never an option: telling them once is exactly what they cannot 
 
 ---
 
+## Step 3 — a brief did not name the decisions it had to respect (2026-09-30, B134)
+
+A review of 189 sessions in another project found "wrong approach" was the most common friction
+(25 cases), and several of them re-derived a rule that was already a row in that project's
+`docs/decisions.md`. The brief asked for "the reasoning behind decisions already made", but only as
+prose about the session that wrote it, so nothing pointed the agent starting the item at the rows
+that applied. Some of that project's briefs had started carrying a
+`**Prior decisions:**` line ad hoc and later ones omitted it; nothing in the wrap asked for it.
+Rule: step 3, every brief names the rows it must not reopen, or says `none`. Rejected: copying the rules into
+`CLAUDE.md` (they are on disk already, and it grows the always-loaded context every session pays
+for); copying the rows into the brief (two copies of a reason drift, and the record stops being the
+one place it lives).
+
+---
+
 ## Handing work back — the early message went stale (2026-10-28)
 
 A child session (cairn, started from a `workspace` session) was asked to pass results back. It sent
