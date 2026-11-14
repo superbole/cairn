@@ -96,7 +96,12 @@ tree while two config dirs still disagree; B36 is where cross-environment report
   path comes from `last_exit.json`'s `root`, which only SessionEnd writes
   (`dirty_tree_warning.py:163-168`); a session that was killed and never ended leaves no `root`,
   so a move made after such a session stays silent. The name prefix is truncated to 32 characters (`reentry_state.py:512`), so compare the slug's
-  name half exactly, not as a string prefix of the folder name. This catches a **move** (same folder name, new parent)
+  name half exactly, not as a string prefix of the folder name. Consider only directories named
+  `<name>-<10 hex>` under `reentry-state/`: the same folder holds non-project siblings
+  (`_sessions`, `_scheduled_tasks` from `scheduled_task_watch.py:184-192`, `_cursor` from
+  `cursor_drift.py:57-59`). Split the name half at the LAST hyphen, since a sanitised name can
+  itself contain hyphens, and note that sanitising maps every other character to `-`, so
+  `my.repo` and `my-repo` share a name half (one more source of the false positive below). This catches a **move** (same folder name, new parent)
   only: a **rename** changes the name half of the slug too, so nothing on disk links the two, and
   a rename stays silent unless the old `last_exit.json` roots are compared by remote URL, which
   is a larger design. It also has a false positive: different repos with the same folder name
