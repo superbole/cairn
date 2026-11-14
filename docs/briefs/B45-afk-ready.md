@@ -59,7 +59,10 @@ Recommendation: **A**, with B as a thin wrapper only if the reviewer wants a typ
 
 - **A. The tool groups mechanically, the agent clusters by meaning.** The tool prints counts by
   category and project, and lists candidate repeats: entries that share two or more uncommon words
-  (lower-cased, five letters or more, minus a short stop list). The agent reads those groups and
+  (lower-cased, five letters or more, minus a short stop list). "Uncommon" also means rare in this
+  log: a word found in more than a quarter of the entries considered (for example `session` or
+  `commit` in a log of agent mistakes) never counts, or nearly every pair would group and the list
+  would be noise. The agent reads those groups and
   the entries and decides which are the same mistake. Deterministic, no dependencies.
 - **B. The tool clusters fully (similarity scoring, thresholds).** More code, and still wrong on
   paraphrase; the agent would re-check every cluster anyway.
@@ -90,7 +93,11 @@ orientation the user already reads.
 
 - **A. A review heading inside `MISTAKES.md` itself**: `## review <YYYY-MM-DD> -- <n> entries -- <outcome>`
   added at the top by the attended review, with one line naming the change proposed and where it
-  went (or `no change`). Entries above the newest review heading are new. Travels with the file,
+  went (or `no change`). "At the top" means exactly where step 6a puts a new entry: directly above
+  the newest entry, which is below the header's closing `---` when the header is present, never
+  above the `# Mistakes` title. A mark placed above the header would sit above every entry the
+  wrap appends afterwards, so by position they would all read as reviewed. Entries above the
+  newest review heading are new. Travels with the file,
   readable by a person, needs no state file, and the log stays append-only (nothing is edited).
 - **B. A state file under `~/.claude/reentry-state/`.** Invisible to a person reading the log, and
   the state dir is keyed per project path (B40), which is the wrong key for a global file.
@@ -179,7 +186,8 @@ Tests (fixtures only: temp files and a temp `CLAUDE_CONFIG_DIR`; never the real 
 7. An entry body containing a fenced block with a `## 2026-...` line inside it: not an entry.
 8. A malformed heading (`## 2026-13-45 something`) is `unparsed` with its line number.
 9. Two entries that share two uncommon words are grouped and the words printed; two that share only
-   stop words or short words are not.
+   stop words or short words are not; in a fixture of eight entries where one long word appears in
+   five of them, two entries sharing that word plus one other uncommon word are not grouped.
 10. A file with no header that separates entries with `---`, and a file with an entry written
     above the `# Mistakes` title: every entry parses in both.
 11. An entry below the newest review mark but dated after it: listed as `out of order`, counted
