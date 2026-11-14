@@ -29,8 +29,8 @@ it's handled" is never an option: telling them once is exactly what they cannot 
 A review of 189 sessions in another project found "wrong approach" was the most common friction
 (25 cases), and several of them re-derived a rule that was already a row in that project's
 `docs/decisions.md`. The brief asked for "the reasoning behind decisions already made", but only as
-prose about the session that wrote it, so the rows that applied were never pointed at and the agent
-starting the item never read them. Some of that project's briefs had started carrying a
+prose about the session that wrote it, so nothing pointed the agent starting the item at the rows
+that applied. Some of that project's briefs had started carrying a
 `**Prior decisions:**` line ad hoc and later ones omitted it; nothing in the wrap asked for it.
 Rule: step 3, every brief names the rows it must not reopen, or says `none`. Rejected: copying the rules into
 `CLAUDE.md` (they are on disk already, and it grows the always-loaded context every session pays
