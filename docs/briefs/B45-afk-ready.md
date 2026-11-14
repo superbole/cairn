@@ -138,6 +138,9 @@ exists, and the `yours`/`user` drift below) and `ensure_mistakes_file.py:10-11` 
   - An entry heading is `## <YYYY-MM-DD> <sep> <project> <sep> <category>`, where `<sep>` is ` -- `,
     ` — ` or ` - `. Category is matched case-insensitively against `agent`, `user`, `yours`
     (counted as `user`), `process`; anything else is kept and counted as `other: <word>`.
+    Split on the FIRST separator after the date and the LAST separator in the line: the date is the
+    first field, the category the last, and everything between is the project, so a project name
+    that itself contains ` - ` (or a hyphenated name next to a ` - ` separator) stays whole.
   - A `## review <YYYY-MM-DD>` heading is a review mark (Q4), not an entry. "New" is by position
     (above the newest mark, since the log is newest first). As a cross-check, an entry BELOW the
     newest mark whose date is later than the mark's is listed as `out of order` and counted as new,
@@ -164,7 +167,8 @@ Tests (fixtures only: temp files and a temp `CLAUDE_CONFIG_DIR`; never the real 
    inside its fence is not counted.
 2. Header plus three entries in the documented shape: three entries, counts by category and project
    correct.
-3. Separators ` -- `, ` — ` and ` - `, and a CRLF file with a BOM: all parse.
+3. Separators ` -- `, ` — ` and ` - `, and a CRLF file with a BOM: all parse. A heading
+   `## 2026-10-02 - site - api - agent` parses as project `site - api`, category `agent`.
 4. Category `yours` counts as `user`; an unknown category is `other: <word>`.
 5. A `## review 2026-10-01` mark between entries: the default shows only the entries above it, and
    its date; `--all` shows every entry; the mark is never counted as an entry.
