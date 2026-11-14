@@ -89,7 +89,13 @@ tree while two config dirs still disagree; B36 is where cross-environment report
   one line naming the old path. Read only. "No state" means no files in the slug directory, not a
   missing directory: `state_dir()` creates the directory on every call
   (`reentry_state.py:518`), so the check must run before any hook has called it this session, or
-  test for files. The name prefix is truncated to 32 characters (`:512`), so compare the slug's
+  test for files. Testing for files is not enough on its own either: the same SessionStart stamps
+  this session's wrap baseline into `<slug>/wrap_baseline/` (`session_orientation.py:1028`, via
+  `wrap_receipt.py:234-240`), so after that line a brand-new slug already has a file. Either run
+  the check before line 1028, or ignore `wrap_baseline/` when deciding the slug is empty. The old
+  path comes from `last_exit.json`'s `root`, which only SessionEnd writes
+  (`dirty_tree_warning.py:163-168`); a session that was killed and never ended leaves no `root`,
+  so a move made after such a session stays silent. The name prefix is truncated to 32 characters (`reentry_state.py:512`), so compare the slug's
   name half exactly, not as a string prefix of the folder name. This catches a **move** (same folder name, new parent)
   only: a **rename** changes the name half of the slug too, so nothing on disk links the two, and
   a rename stays silent unless the old `last_exit.json` roots are compared by remote URL, which
