@@ -35,10 +35,6 @@ record is the one thing in a repo that cannot be re-derived from the repo.
 
 ## Watching
 
-**W9. GitHub Support has purged the old commit pages and PR refs** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-10-01` · check after `2026-10-15`
-Ticket sent 2026-10-01 (confirmation email received). Check that `https://github.com/superbole/cairn/commit/5d2cd6a` returns 404 and
-`git ls-remote origin 'refs/pull/8*/head' 'refs/pull/90/head'` no longer lists PRs #84 to #90 at old commits. If not, it waits on Support's reply in his email. Brief: [briefs/purge-github-residue.md](briefs/purge-github-residue.md).
-
 **W2. The empty-Queue backlog offer (v1.18.0) fires in a genuinely NEW session** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-08-28` · check after `the next new session in a project whose Queue is empty`
 
 **W3. The orphan warning (v1.20.0) fires on a real abandoned item** — `Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-08-28` · check after `a session that starts an item and ends without a wrap, on v1.20.0 or later`

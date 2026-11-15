@@ -3,6 +3,11 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-11-15 — W9 closed: GitHub Support purged the old commit pages and PR refs
+
+- Checked 2026-11-15 from SBOLE-NB1: `https://github.com/superbole/cairn/commit/5d2cd6a` returns 404 (unauthenticated `curl`), and `git ls-remote origin refs/pull/84/head` … `refs/pull/90/head` lists none of them.
+- No plugin change; bookkeeping only. The Support ticket from 2026-10-01 needs no further reply.
+
 ## 2026-11-13 — v1.69.0: the backlog sync refuses a root that is not the shell's repo
 
 - `tools/sync_backlog.py` now REFUSES, where it used to warn and go on, when its root was resolved (session stamp, `CLAUDE_PROJECT_DIR`, cwd) rather than named by `--root` and is not in the git repo the shell stands in. It names both paths and the `--root` for each, reads and writes nothing, and exits 0 so a wrap still never fails over the backlog. `--root` behaves as before. D64.
