@@ -51,7 +51,9 @@ Do not renumber.
    project's own `.claude/hooks/session_orientation.py` if it has one, else the plugin's
    `hooks/session_orientation.py` under the install directory `/plugin` will show you. If it prints
    nothing, read `NEXT.md` and `INBOX.md` directly — an empty queue is a real answer, a broken hook
-   is not.
+   is not. **Read `NEXT.md`, `INBOX.md` and `BACKLOG.md` with the Read/Grep tools** (offset/limit
+   for one section), and run each `git` command as its own plain call — never chained behind a `cd`
+   (a chain prompts for permission even when every part is read-only).
 
    **Never re-orient mid-session.** Orientation text reappearing in a running session is a
    compaction refilling your context, not a new session. If they ask *"where were we?"* mid-session,
