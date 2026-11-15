@@ -46,7 +46,7 @@ all could pass while a stranger fails. When it fires, check: does the orientatio
 
 **W6. Review and merge the weekend's `afk/` PRs, then do the bookkeeping** — `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-26` · check after `2026-11-16`
 The weekend-burn tasks (`cairn-afk-fri`, `cairn-afk-firing`, `cairn-afk-sun`, Fri 21:00 to Sun 15:00 on NB5) leave PRs on `superbole/cairn`, each with a `Scheduled review`
-comment (D49). Every PR up to 2026-11-09 is merged and its bookkeeping done (the version is B129), and none is open now. For each new one: read the
+comment (D49). Every PR up to 2026-11-09 is merged and its bookkeeping done (the version is B129). Open on 2026-11-15: #170, #172 to #176 (weekend burn), and #177 (B85), #178 (B8), #179 (B21) from an attended-start batch; #179 changed five older test fixtures, read that first. For each new one: read the
 dossier against its diff (`docs/running-a-batch.md`, "The review surface"). Present it to him so he can decide and press
 Squash and merge himself (`gh pr merge` is denied, D39). On 2026-10-26 a review with Cursor caught two bugs the scheduled
 reviews missed, so an outside review is worth it. Then one bookkeeping pass: CHANGELOG, version bump, `BACKLOG.md` closes,

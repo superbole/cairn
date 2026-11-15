@@ -3,7 +3,13 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
-## 2026-11-15 — W9 closed: GitHub Support purged the old commit pages and PR refs
+## 2026-11-15 — W9 closed; three-lane batch opened #177 (B85), #178 (B8), #179 (B21)
+
+- Batch started attended, run unattended: three Sonnet lanes in worktrees, one `afk/` PR each, none merged, no shared file touched. B85, B8 and B21 stay open in `BACKLOG.md` until their PRs merge (W6 does the review and bookkeeping).
+- #177 (B85): `check_repos.py` compares an `afk/` branch with `origin/<branch>`; `docs/running-a-batch.md` creates lanes with `--no-track`. CI green.
+- #178 (B8): both skills say to read state files with Read/Grep and run git as plain calls; incident rows added. A proposed `rules/CLAUDE.md` line is in the PR body, not applied. CI green.
+- #179 (B21): the orphaned-pointer report counts only structured pointers (link, `blocked by`, arrow, Queue line); 158 hits on this checkout went to 0. It changed five older test fixtures, and `Blocked on Bn` is not yet matched. Read it first.
+- This wrap's `check_repos.py` flagged the three lane worktrees `[!!] no upstream branch`: each local HEAD equals its `origin/afk/…` branch and is clean. That false alarm is the B85 shape, from the installed v1.69.0, which predates #177.
 
 - Checked 2026-11-15 from SBOLE-NB1: `https://github.com/superbole/cairn/commit/5d2cd6a` returns 404 (unauthenticated `curl`), and `git ls-remote origin refs/pull/84/head` … `refs/pull/90/head` lists none of them.
 - No plugin change; bookkeeping only. The Support ticket from 2026-10-01 needs no further reply.
