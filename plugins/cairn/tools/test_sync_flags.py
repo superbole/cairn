@@ -347,7 +347,7 @@ fix76 = Path(tempfile.mkdtemp())
 (fix76 / "CHANGELOG.md").write_text(
     "## 2026-09-01\n- did B46 (see B46 for detail)\n", encoding="utf-8")
 (fix76 / "docs").mkdir()
-(fix76 / "docs" / "notes.md").write_text("still tracking B46 here\n", encoding="utf-8")
+(fix76 / "docs" / "notes.md").write_text("blocked by B46 here\n", encoding="utf-8")
 
 report76 = sb.orphaned_pointers_report(fix76, {46})
 check("cites B76 in the header line", "B76" in report76[0], True)
@@ -370,7 +370,7 @@ check("a dropped id that never appears anywhere produces no report",
 check("no BACKLOG.md file in this fixture means no BACKLOG.md hit either",
       any(ln.strip().startswith("· BACKLOG.md") for ln in report76[1:]), False)
 
-(fix76 / "docs" / "notes.md").write_text("only a longer number appears here: B460\n",
+(fix76 / "docs" / "notes.md").write_text("blocked by B460\n",
                                          encoding="utf-8")
 check("B460 is not mistaken for the dropped id 46 (word boundary correctness)",
       any("notes.md" in ln for ln in sb.orphaned_pointers_report(fix76, {46})), False)
@@ -542,23 +542,22 @@ check("a DIFFERENT BACKLOG.md item's 'blocked by B87' line still fires — BACKL
       any("BACKLOG.md" in ln and "B87" in ln for ln in report92), True)
 check("NEXT.md's live 'blocked by B87' Queue line still fires",
       any("NEXT.md" in ln for ln in report92), True)
-check("README.md asserting B87 is 'still open work' still fires",
-      any("README.md" in ln for ln in report92), True)
-check("a brief still pointing readers at B87 still fires",
-      any("x.md" in ln for ln in report92), True)
+check("README.md naming B87 in a sentence is a citation (B21) -- no hit",
+      any("README.md" in ln for ln in report92), False)
+check("a brief saying 'see B87 for the design' is a citation (B21) -- no hit",
+      any("x.md" in ln for ln in report92), False)
 # `docs/wrap-receipt-design.md` is deliberately NOT on the excluded-path list (a normal docs/
 # file, not docs/decisions.md or under docs/review/) and its one line has no closing token
 # either -- so it is exactly the case the item's spec calls out as correctly STILL firing: a
 # real citation the path rule alone does not catch. Left undone on purpose; see the dossier's
 # "What was left undone" section for why a token guess was rejected as the primary fix.
 check("docs/wrap-receipt-design.md (not on the path exclusion list, no closing token) "
-      "still fires -- a known, accepted gap, not a bug",
-      any("wrap-receipt-design.md" in ln for ln in report92), True)
-check("precision on this realistic post-close fixture: exactly 5 hit lines (NEXT.md, "
-      "BACKLOG.md's cross-item line, README.md, the brief, and the one accepted-gap doc) "
-      "plus the one header line -- CHANGELOG.md, docs/decisions.md and the archived dossier "
-      "no longer count, though the id appears in every one of those files too",
-      len(report92) - 1, 5)
+      "is a prose citation, so B21's shape rule now silences it -- the old accepted gap",
+      any("wrap-receipt-design.md" in ln for ln in report92), False)
+check("precision on this realistic post-close fixture: exactly 2 hit lines (NEXT.md's "
+      "Queue line and BACKLOG.md's cross-item `blocked by` line) plus the one header line -- "
+      "the README sentence, the brief, the design doc and every history file no longer count",
+      len(report92) - 1, 2)
 
 print("\n14. B76's ORIGINAL case still fires loudly: ids named as OPEN work in NEXT.md")
 fix76b = Path(tempfile.mkdtemp())
@@ -711,7 +710,7 @@ check("no phantom item was pulled back in", backlog_file.parse(fix16), [])
 
 print("\n17. B13 — `fixed` is a closing word too: a line saying B46 was fixed is a citation")
 fix17 = Path(tempfile.mkdtemp())
-(fix17 / "NEXT.md").write_text("- B46 fixed in the last release\n- still waiting on B46\n",
+(fix17 / "NEXT.md").write_text("- B46 fixed in the last release\n- blocked by B46\n",
                                encoding="utf-8")
 report17 = sb.orphaned_pointers_report(fix17, {46})
 check("the 'fixed' line is exempt", any("fixed" in ln for ln in report17), False)
@@ -1002,6 +1001,44 @@ check("... and neither BACKLOG.md touched",
 check("the same root as the shell's repo is quiet",
       len(sb._root_report(fix9, "cwd", fix9)), 1)
 check("no git repo at the cwd is quiet too", len(sb._root_report(wrong9, "env", None)), 1)
+
+print("\n19. B21 -- the id's SYNTACTIC POSITION decides: pointer shapes fire, citation shapes do not")
+fix21 = Path(tempfile.mkdtemp())
+(fix21 / "docs").mkdir()
+pointer_lines21 = {
+    "link-text": "- see the item [B46](BACKLOG.md) for detail",
+    "link-target": "- brief: [the plan](briefs/B46.md)",
+    "blocked-by field": "**D2. Q** · added `2026-09-01` · blocked by B46",
+    "blocked-by list": "- thing · blocked by W1, B46",
+    "arrow": "**D3. Q** — answer: `here` · → B46",
+    "arrow with path": "**D4. Q** · → `BACKLOG.md B46`",
+    "ascii arrow": "- thing -> BACKLOG.md B46",
+}
+citation_lines21 = {
+    "Related:": "**Related:** B46, B6 (same mechanism)",
+    "see": "Raised again later; see B46 for the history.",
+    "same as": "This is the same as B46 but for Cursor.",
+    "family as": "Same family as B46.",
+    "parenthesised": "The old reader (B46) did this differently.",
+    "plain sentence": "B46 was the first attempt and it is why we do this.",
+    "a longer id": "blocked by B460",
+}
+for label, ln in pointer_lines21.items():
+    (fix21 / "docs" / "p.md").write_text(ln + "\n", encoding="utf-8")
+    check("pointer shape reported: " + label,
+          any("p.md:1" in x for x in sb.orphaned_pointers_report(fix21, {46})), True)
+for label, ln in citation_lines21.items():
+    (fix21 / "docs" / "p.md").write_text(ln + "\n", encoding="utf-8")
+    check("citation shape NOT reported: " + label,
+          sb.orphaned_pointers_report(fix21, {46}), [])
+(fix21 / "docs" / "p.md").unlink()
+(fix21 / "NEXT.md").write_text(
+    "## Queue\n1. **Old item B46** — Opus · high\n\n## Watching\n"
+    "1. a numbered line outside the Queue about B46\n", encoding="utf-8")
+rep21 = sb.orphaned_pointers_report(fix21, {46})
+check("Queue-section list line fires", any("NEXT.md:2" in x for x in rep21), True)
+check("the same numbered shape outside ## Queue does not", any("NEXT.md:5" in x for x in rep21),
+      False)
 
 print("\n%s" % ("ALL PASS" if not fails else "FAILED: %s" % fails))
 sys.exit(1 if fails else 0)

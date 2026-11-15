@@ -212,6 +212,32 @@ def _is_historical_path(rel: str) -> bool:
     return False
 
 
+def _is_pointer_line(ln: str, n: int, in_queue: bool) -> bool:
+    """B21: True when id `Bn` sits in a STRUCTURED position on this line (a pointer), False when
+    it sits inside a sentence (a citation).
+
+    Pointer shapes: a markdown link naming the id (in the link text or the target); a
+    `blocked by Bn` field (the id directly after `blocked by`, alone or in a comma/`and`/`+`
+    list of ids); an `-> Bn` / `→ [path] Bn` arrow; any numbered list line inside NEXT.md's
+    `## Queue` section. Everything else -- `Related: Bn`, `see Bn`, `same as Bn`, `family as
+    Bn`, a parenthesised mention, plain prose -- is a citation: the record that the item
+    existed, which is not ours to delete or to warn about. An exact question about the line's
+    shape, not prose-sniffing; a wrong "pointer" costs one warning line, a wrong "citation"
+    would hide a real stale pointer, so every shape here is one a pointer is genuinely written in.
+    """
+    b = rf"\bB{n}\b"
+    if in_queue and re.match(r"^\s*\d+\.\s", ln):
+        return True
+    if re.search(rf"\[[^\]]*{b}[^\]]*\]\([^)]*\)", ln) or re.search(rf"\]\([^)]*{b}[^)]*\)", ln):
+        return True
+    if re.search(rf"\bblocked by\s+(?:`?[A-Za-z]\d+`?\s*(?:,|and|\+|/)?\s*)*`?{b}", ln,
+                 re.IGNORECASE):
+        return True
+    if re.search(rf"(?:→|->)\s*`?(?:[\w./\-]+\s+)?{b}", ln):
+        return True
+    return False
+
+
 def orphaned_pointers_report(root: Path, dropped_ids: set[int]) -> list[str]:
     """Log lines for B76: warn about anything else in the repo still pointing at an id this
     sync is about to drop from `BACKLOG.md`.
@@ -236,6 +262,9 @@ def orphaned_pointers_report(root: Path, dropped_ids: set[int]) -> list[str]:
     `backlog_file.write()` regenerates the file — so only that one line is skipped; a
     DIFFERENT item's `blocked by Bn` line is exactly the live case worth keeping BACKLOG.md in
     the scan for.
+
+    B21: of what is left, only a line where the id sits in a STRUCTURED position counts
+    (`_is_pointer_line`); the id inside a sentence is a citation and is not reported.
 
     REPORTS, NEVER REWRITES — same reasoning as B23: a tool editing prose it does not
     understand is a much larger blast radius than a line telling a human where to look.
@@ -266,7 +295,11 @@ def orphaned_pointers_report(root: Path, dropped_ids: set[int]) -> list[str]:
         except Exception:
             continue
         is_backlog = rel.lower() == "backlog.md"
+        is_next = rel.lower() == "next.md"
+        in_queue = False
         for i, ln in enumerate(lines, start=1):
+            if is_next and re.match(r"^#{1,6}\s", ln):
+                in_queue = bool(re.match(r"^#{1,6}\s*Queue\b", ln, re.IGNORECASE))
             for n in sorted(dropped_ids):
                 if not re.search(rf"\bB{n}\b", ln):
                     continue
@@ -274,6 +307,8 @@ def orphaned_pointers_report(root: Path, dropped_ids: set[int]) -> list[str]:
                     continue                             # the dropped item's own heading
                 if _CLOSING_TOKEN_RE.search(ln):
                     continue                             # a citation, not a live pointer
+                if not _is_pointer_line(ln, n, in_queue):
+                    continue                             # B21: id inside a sentence = citation
                 hits.append(f"  · {rel}:{i} — still names B{n}, which this sync is about "
                             f"to drop: {ln.strip()[:80]}")
     if not hits:
