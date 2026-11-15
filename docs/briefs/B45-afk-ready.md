@@ -67,7 +67,12 @@ Recommendation: **A**, with B as a thin wrapper only if the reviewer wants a typ
   and never exclude a word found in three entries or fewer. Without the floor, a log of fewer than
   eight entries groups nothing at all (any shared word is already in more than a quarter), and a
   mistake repeated three times in ten entries, the very pattern the review exists to find,
-  would have its shared words excluded. The agent reads those groups and
+  would have its shared words excluded. The cut-off still hides the LARGEST repeats: in a log of
+  42 entries a word shared by 11 of them is excluded, and in a log of 12 a word shared by 4 is, yet
+  a mistake that recurs that often is the one most worth designing against. So the excluded words
+  are never dropped silently: the tool prints them in their own section, each with its entry count
+  and the dates of the entries that contain it, and the agent decides whether any of them is a
+  repeat rather than vocabulary. The agent reads those groups and
   the entries and decides which are the same mistake. Deterministic, no dependencies.
 - **B. The tool clusters fully (similarity scoring, thresholds).** More code, and still wrong on
   paraphrase; the agent would re-check every cluster anyway.
@@ -171,7 +176,10 @@ byte-identical, because test 1 parses it and every machine's existing file alrea
   3. Candidate repeats per Q2 A: groups of two or more entries sharing two or more uncommon words,
      each entry shown as `<date> <project> <category>: <first line of body>`. The words that matched
      are printed with the group, so the agent can see why it was grouped.
-  4. `unparsed` headings, if any.
+  4. Common words: every word Q2 A excluded as too frequent, with its entry count and the dates of
+     the entries containing it, most frequent first. Never omitted when non-empty: it is where a
+     very frequent repeat shows up.
+  5. `unparsed` headings, if any.
 - `--json` carries the same data.
 - Exit 0 always. A missing or unreadable file is one line saying so. Read only: never writes the log,
   a state file or anything else.
@@ -192,7 +200,8 @@ Tests (fixtures only: temp files and a temp `CLAUDE_CONFIG_DIR`; never the real 
 8. A malformed heading (`## 2026-13-45 something`) is `unparsed` with its line number.
 9. Two entries that share two uncommon words are grouped and the words printed; two that share only
    stop words or short words are not; in a fixture of eight entries where one long word appears in
-   five of them, two entries sharing that word plus one other uncommon word are not grouped; in a
+   five of them, two entries sharing that word plus one other uncommon word are not grouped, and
+   that word is listed under common words with count 5 and the five dates; in a
    fixture of six entries, three that share two uncommon words ARE grouped (the floor); and with a
    review mark above two of twelve entries, the default output and `--all` exclude the same words.
 10. A file with no header that separates entries with `---`, and a file with an entry written
