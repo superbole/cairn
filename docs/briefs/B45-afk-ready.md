@@ -178,7 +178,11 @@ byte-identical, because test 1 parses it and every machine's existing file alrea
      are printed with the group, so the agent can see why it was grouped.
   4. Common words: every word Q2 A excluded as too frequent, with its entry count and the dates of
      the entries containing it, most frequent first. Never omitted when non-empty: it is where a
-     very frequent repeat shows up.
+     very frequent repeat shows up. In the default mode, list only the common words found in at
+     least one entry since the last review, and show two counts, `<new> new / <total> in all`, with
+     the dates of the new entries only; `--all` lists every common word with all its dates. Without
+     this, a repeat already reviewed (and perhaps already designed against) is printed again at
+     every review, and a word found only in old entries is noise.
   5. `unparsed` headings, if any.
 - `--json` carries the same data.
 - Exit 0 always. A missing or unreadable file is one line saying so. Read only: never writes the log,
@@ -203,7 +207,10 @@ Tests (fixtures only: temp files and a temp `CLAUDE_CONFIG_DIR`; never the real 
    five of them, two entries sharing that word plus one other uncommon word are not grouped, and
    that word is listed under common words with count 5 and the five dates; in a
    fixture of six entries, three that share two uncommon words ARE grouped (the floor); and with a
-   review mark above two of twelve entries, the default output and `--all` exclude the same words.
+   review mark above two of twelve entries, the default output and `--all` exclude the same words;
+   in that twelve-entry fixture, a common word found only below the mark is absent from the
+   default's common-words section and present under `--all`, and one found in a new entry shows
+   `1 new / <total> in all` with only the new entry's date.
 10. A file with no header that separates entries with `---`, and a file with an entry written
     above the `# Mistakes` title: every entry parses in both.
 11. An entry below the newest review mark but dated after it: listed as `out of order`, counted
