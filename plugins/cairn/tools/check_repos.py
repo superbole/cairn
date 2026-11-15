@@ -116,6 +116,18 @@ MAX_LISTED = 8
 
 def _unpushed(root: Path) -> tuple[int | None, str | None]:
     """(commits ahead of upstream, note). None means the question has no answer here."""
+    # B85: an `afk/` lane branch is created from origin/main, so its upstream (if tracking
+    # was not turned off) is origin/main and `@{upstream}..HEAD` counts the PR's own commits
+    # forever. For these branches the honest comparison is with origin/<same branch>.
+    branch = git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
+    if branch and branch.startswith("afk/"):
+        remote = "origin/" + branch
+        if git(root, "rev-parse", "--verify", "--quiet", "refs/remotes/" + remote) is None:
+            return None, "afk branch has no %s (never pushed, or deleted after merge)" % remote
+        count = git(root, "rev-list", "--count", remote + "..HEAD")
+        if count is None or not count.isdigit():
+            return None, "could not count against %s" % remote
+        return int(count), None
     upstream = git(root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
     if not upstream:
         # A repo with no remote-tracking branch is not broken -- plenty of local-only
