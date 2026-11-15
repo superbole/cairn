@@ -1297,3 +1297,12 @@ brief link still read `OPEN` on their own — the exact cry-wolf `archive_guard.
 refusing to act on (D36). `verdict()` now tests `_usable(base) is None` first and returns
 `UNKNOWN` before it looks at any step; the baseline-independent gaps still show in the reasons,
 just marked as current state rather than as this session's doing.
+
+## Procedure preamble — a chained read of NEXT.md, INBOX.md and git state raised a prompt (2026-09-23, B8)
+
+Same incident as `/cairn:next` step 1: a `cd … && sed …; cat …; git log …` chain, every part
+read-only, still prompted for permission at the first step of re-entry. The wrap reads the same
+files and runs the same `git` commands, so the same one-line rule sits ahead of its step 1: Read/Grep
+for `NEXT.md`, `INBOX.md` and `BACKLOG.md`, each `git` command its own plain call, never chained
+behind a `cd`. It contradicts nothing here: step 1 says only `git status`, and the explicit
+pathspec and diff-review rules in step 4 are about staging, not reading.
