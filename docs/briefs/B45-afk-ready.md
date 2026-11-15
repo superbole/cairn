@@ -175,7 +175,12 @@ byte-identical, because test 1 parses it and every machine's existing file alrea
   2. Counts by category, then by project, largest first.
   3. Candidate repeats per Q2 A: groups of two or more entries sharing two or more uncommon words,
      each entry shown as `<date> <project> <category>: <first line of body>`. The words that matched
-     are printed with the group, so the agent can see why it was grouped.
+     are printed with the group, so the agent can see why it was grouped. In the default mode,
+     group over EVERY entry in the file but print only the groups that contain at least one new
+     entry, showing the group's older members too, marked `reviewed`. A new entry that repeats a
+     mistake the last review already saw is the strongest signal the log can give (the change made
+     then did not hold), and grouping only the new entries would hide it; with three new entries
+     it would usually group nothing at all. `--all` prints every group.
   4. Common words: every word Q2 A excluded as too frequent, with its entry count and the dates of
      the entries containing it, most frequent first. Never omitted when non-empty: it is where a
      very frequent repeat shows up. In the default mode, list only the common words found in at
@@ -210,7 +215,9 @@ Tests (fixtures only: temp files and a temp `CLAUDE_CONFIG_DIR`; never the real 
    review mark above two of twelve entries, the default output and `--all` exclude the same words;
    in that twelve-entry fixture, a common word found only below the mark is absent from the
    default's common-words section and present under `--all`, and one found in a new entry shows
-   `1 new / <total> in all` with only the new entry's date.
+   `1 new / <total> in all` with only the new entry's date; and a new entry sharing two uncommon
+   words with one entry below the mark is printed by default as a group of two, the older member
+   marked `reviewed`, while a group made only of entries below the mark appears under `--all` only.
 10. A file with no header that separates entries with `---`, and a file with an entry written
     above the `# Mistakes` title: every entry parses in both.
 11. An entry below the newest review mark but dated after it: listed as `out of order`, counted
