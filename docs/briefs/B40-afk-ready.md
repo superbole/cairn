@@ -22,7 +22,7 @@ brief already cites B40 at `docs/briefs/B36-afk-ready.md:35`).
 
 | Piece | Where | What it means for B40 |
 |---|---|---|
-| The key | `plugins/cairn/hooks/reentry_state.py:507-522` `state_dir(root)`: slug = sanitised `root.name` (32 chars) + the first 10 hex of `sha1(str(root.resolve()).lower())`, under `$CLAUDE_CONFIG_DIR` or `~/.claude`, then `reentry-state/<slug>` | Two things split state: a different **config dir** (WSL has its own `~/.claude`), and a different **resolved path string**. Case is folded (`.lower()`), so a case-only difference does not split. |
+| The key | `plugins/cairn/hooks/reentry_state.py:507-522` `state_dir(root)`: slug = sanitised `root.name` (32 chars) + the first 10 hex of `sha1(str(root.resolve()).lower())`, under `$CLAUDE_CONFIG_DIR` or `~/.claude`, then `reentry-state/<slug>` | Two things split state: a different **config dir** (WSL has its own `~/.claude`), and a different **resolved path string**. Only the hash half folds case (`.lower()`, `:513`). The name half is `root.name` of the root as given (`:512`), not resolved or lowered, and the root comes from `CLAUDE_PROJECT_DIR` or the cwd as typed (`project_root()`, `:222-245`). So the same folder reached as `...\Cairn` and as `...\cairn` gets two slugs with the same hash half: a case-only difference in the folder's own name DOES split. |
 | A second fallback silo | `reentry_state.py:515-516`: when the config dir is not writable, the same slug under `tempfile.gettempdir()` | A session that once fell back to the temp dir wrote its markers where the next normal session never looks. Not mentioned in the entry. |
 | What lives in `state_dir()` | callers: `item_open.py:107`, `archive_offer.py:86,91`, `dirty_tree_warning.py:98,159`, `repo_sweep.py:248,318`, `session_orientation.py:797`, `touched_repos.py:90`, `staged_review_guard.py:111`, `wrap_receipt.py:235,944`, `issues_backlog.py:149` | The wrap **receipt** and its session-start baseline, item-open markers, the archive offer, Stop/SessionEnd breadcrumbs (`last_exit.json`, `stop-*.json`), the sibling-sweep cache, touched-repo records, the staged-review stamp and the issue cache. All per-path. |
 | What does NOT live there | `reentry_state.py:21-25` and `:48`: `.claude/.last_wrap` is written into the working tree by the wrap skill (gitignored) | The wrap **marker** belongs to the working tree, not the path. A WSL session looking at the same tree through `/mnt/c/...` sees the same `.last_wrap`, so its "N commits since the last wrap" count matches Windows, while its receipt (`CAIRN SET`/`OPEN`) does not: the two views disagree with each other about one tree. A separate clone has its own of both. |
@@ -47,7 +47,8 @@ after the "It doesn't guess" bullet. Text, to paste as is:
   `~/.claude/reentry-state/`, filed by the folder's full path. Anything that changes that path or
   that `~/.claude` gives the same repo a separate memory: the repo opened from Windows and from WSL
   (WSL has its own `~/.claude`, and `/mnt/c/...` is a different path anyway), a second clone, a
-  checkout on a server, or the same folder after you move or rename it. Your files travel through
+  checkout on a server, the same folder after you move or rename it, or the folder opened with its
+  name typed in different case (`Cairn` and `cairn`). Your files travel through
   git; this memory does not. So a wrap in one copy does not close another, and nothing tells you.
   The one exception is the wrap marker, `.claude/.last_wrap`, which lives inside the working tree:
   two views of the same folder share it, which is why a WSL session on `/mnt/c/...` can agree with
@@ -101,7 +102,10 @@ tree while two config dirs still disagree; B36 is where cross-environment report
   (`_sessions`, `_scheduled_tasks` from `scheduled_task_watch.py:184-192`, `_cursor` from
   `cursor_drift.py:57-59`). Split the name half at the LAST hyphen, since a sanitised name can
   itself contain hyphens, and note that sanitising maps every other character to `-`, so
-  `my.repo` and `my-repo` share a name half (one more source of the false positive below). This catches a **move** (same folder name, new parent)
+  `my.repo` and `my-repo` share a name half (one more source of the false positive below). Two
+  slugs with the SAME hash half and name halves that differ only in case are one folder reached
+  with different case (see the table's first row); that case is exact, not a guess, and the line
+  may say so plainly. This catches a **move** (same folder name, new parent)
   only: a **rename** changes the name half of the slug too, so nothing on disk links the two, and
   a rename stays silent unless the old `last_exit.json` roots are compared by remote URL, which
   is a larger design. It also has a false positive: different repos with the same folder name
