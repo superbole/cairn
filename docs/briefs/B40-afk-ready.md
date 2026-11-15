@@ -104,8 +104,11 @@ tree while two config dirs still disagree; B36 is where cross-environment report
   itself contain hyphens, and note that sanitising maps every other character to `-`, so
   `my.repo` and `my-repo` share a name half (one more source of the false positive below). Two
   slugs with the SAME hash half and name halves that differ only in case are one folder reached
-  with different case (see the table's first row); that case is exact, not a guess, and the line
-  may say so plainly. This catches a **move** (same folder name, new parent)
+  with different case (see the table's first row), but only on a case-insensitive file system
+  (Windows, default macOS). The hash half lowers the whole path (`reentry_state.py:513`), so on a
+  case-sensitive one (Linux, WSL's own file system) `/x/Cairn` and `/x/cairn` are two different
+  folders whose slugs still share a hash half. Say it plainly on Windows only; elsewhere use the
+  same "possibly" wording as below. This catches a **move** (same folder name, new parent)
   only: a **rename** changes the name half of the slug too, so nothing on disk links the two, and
   a rename stays silent unless the old `last_exit.json` roots are compared by remote URL, which
   is a larger design. It also has a false positive: different repos with the same folder name
