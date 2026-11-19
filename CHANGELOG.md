@@ -3,6 +3,13 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-11-19 — v1.70.0: `pdf-to-md` skill added
+
+- New skill `skills/pdf-to-md/` (`SKILL.md` + `scripts/pdf2md.py`): converts any PDF to lean local Markdown plus an index so it is not read into context as page images. Moved in from a hand-installed copy in `~/.claude/skills/` on one machine so a fix reaches every machine through the plugin (workspace B123, W78).
+- Header and footer stripping is a generic repetition check (lines repeated on most pages; short pages do not vote; repeated table headers are kept), not a rule for any one organisation. The one organisation name in `SKILL.md` was reworded.
+- Password-protected PDFs exit 3 and the user runs `--ask-password` in their own terminal; the agent never sees the password. Needs `pymupdf4llm` (user-site pip); without it the script falls back to `pdftotext`.
+- Claude Code only: no Cursor pointer skill was added.
+
 ## 2026-11-15 — W9 closed; three-lane batch opened #177 (B85), #178 (B8), #179 (B21)
 
 - Batch started attended, run unattended: three Sonnet lanes in worktrees, one `afk/` PR each, none merged, no shared file touched. B85, B8 and B21 stay open in `BACKLOG.md` until their PRs merge (W6 does the review and bookkeeping).
