@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 136 -->
+<!-- next-id: 137 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -9,7 +9,7 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B137. Cairn's per-call hooks add about 4s to every Bash call on Windows
-`Opus` · effort `high` · `AFK/Auto` · added `2026-11-21`
+`Opus` · effort `high` · `AFK/Auto` · added `2026-11-21` · issue `#182`
 Found 2026-11-20 by `/doctor` on DeepThought (`workspace` W15 baseline). Timings come from hook attachment entries in the 50 most recent transcripts across all projects (2026-05-24 to 2026-11-20). Successful runs with empty output are not persisted, so the sample sizes are small. The per-call cost applies to every call, though, not only the logged ones.
 
 | Hook (event, matcher) | Script | Logged runs | Median | Worst |
