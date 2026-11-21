@@ -8,6 +8,28 @@ Items marked `queued` are on the Queue right now and stay listed here until the 
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
 
+## B137. Cairn's per-call hooks add about 4s to every Bash call on Windows
+`Opus` · effort `high` · `AFK/Auto` · added `2026-11-21`
+Found 2026-11-20 by `/doctor` on DeepThought (`workspace` W15 baseline). Timings come from hook attachment entries in the 50 most recent transcripts across all projects (2026-05-24 to 2026-11-20). Successful runs with empty output are not persisted, so the sample sizes are small. The per-call cost applies to every call, though, not only the logged ones.
+
+| Hook (event, matcher) | Script | Logged runs | Median | Worst |
+|---|---|---|---|---|
+| PreToolUse `Bash` | `staged_review_guard.py` | 12 (+2 PowerShell) | 1.9s | 2.8s |
+| PostToolUse `Edit\|Write\|NotebookEdit\|Bash\|PowerShell` | `repo_recorder.py` | 10 (+2 PowerShell) | 2.3s | 3.9s |
+| SessionStart `startup\|resume` | `session_orientation.py` | 181 | 4.5s | 209s |
+| Stop | `dirty_tree_warning.py` | 119 | 0.6s | 1.6s |
+
+There were no timeouts, so none of these is hanging. Stop is fast, so the cost is not simply `sh run.sh` plus a Python start (Stop goes through the same launcher). That points at work inside the two per-call scripts, such as git subprocesses and imports. This is a hypothesis; nothing was profiled. Separately, SessionStart `compact` has hit 233s, but cairn's SessionStart matcher is `startup|resume`, so that run is probably another plugin's (ponytail is the other one installed). Not checked.
+
+Why it matters: about 4s on every Bash call is minutes per session, and an AFK run makes hundreds of calls.
+
+**Do:** profile both per-call scripts on Windows (`python -X importtime`, and time each git subprocess). Then pick fixes:
+- `repo_recorder`: make it `async: true` if nothing reads its output synchronously. Check `test_repo_recorder.py` and the wrap receipt first.
+- `staged_review_guard`: return before any git call unless the command contains `git commit`. A cheap string check in the launcher, or at the top of the script before its imports, would do it.
+- `session_orientation`: find what took 209s in the worst case. A network fetch in the sibling sweep is the likely suspect; it should be time-boxed.
+
+Re-measure with the same transcript scan and record before and after in the CHANGELOG. This is a local change: commit, then stop before the push.
+
 ## B131. Old `afk/` branches pile up on origin after their PRs are merged or closed
 `Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-11-09` · issue `#168`
 Seen 2026-11-07: 22 `origin/afk/*` branches while only 6 PRs were open, the oldest from 2026-09-27 (`afk/2026-09-27-99-handover`, `afk/fix-red-tests`, `afk/ubuntu-ci-counts` and the September/October numbered ones). By 2026-11-09 every afk/ PR was merged, so all of them are leftovers. PRs are squash-merged, so `git branch -r --merged` cannot be trusted to say which landed. **Do:** for each branch, look up its PR with `gh pr list --head <branch> --state all`; list merged / closed-unmerged / no PR. Delete the merged ones on his yes (deleting a remote branch is destructive; a closed-unmerged one may hold unlanded work, so name those separately). Then decide whether the firing or the merge should delete the branch itself (GitHub's "automatically delete head branches" setting is one option, his to switch on).
