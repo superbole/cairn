@@ -194,6 +194,33 @@ check("update is `issue update`, not gh's `issue edit`", calls[0][:2], ("issue",
 check("update uses --description", "--description" in calls[0], True)
 check("update NEVER passes --description-file (B58)", "--description-file" in calls[0], False)
 
+print("\n3b. GitHub re-body goes over stdin, never as a path (B7)")
+# A Windows gh.exe under WSL cannot open a Linux path. The REAL `_run` is used, with Python
+# standing in for gh, so what the child actually reads is what gets asserted.
+BODY = "line one\nem dash — done\n" + "x" * 40_000      # past Windows' argv limit
+seen = {}
+saved_subprocess_run = ih.subprocess.run
+
+
+def _spy(argv, **kw):
+    seen["argv"] = argv[1:]
+    child = saved_subprocess_run(
+        (sys.executable, "-c", "import sys; print(sys.stdin.buffer.read().hex())"),
+        **kw)
+    seen["read"] = bytes.fromhex(child.stdout.strip())
+    return child
+
+
+ih.subprocess.run = _spy
+try:
+    result = ih.GitHubHost(Path(".")).update(5, body=BODY)
+finally:
+    ih.subprocess.run = saved_subprocess_run
+check("update succeeded", result, (True, ""))
+check("argv names stdin, not a file",
+      seen["argv"], ("issue", "edit", "5", "--body-file", "-"))
+check("the child reads the exact UTF-8 bytes, LF kept", seen["read"], BODY.encode("utf-8"))
+
 calls, run = recorder()
 with _Patch(run):
     gl.add_labels(19, ["backlog", "hitl"])
