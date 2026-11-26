@@ -425,10 +425,11 @@ to open them. An inbox that never empties stops being read — the same failure 
 fires in a routine state. Emptying it is what makes a non-empty `docs/review/` mean *someone owes
 this a read*.
 
-**Be warned that archiving is a manual job today.** Moving a dossier breaks every pointer to it, so
-the move has to repoint the queue, the backlog, the changelog and the docs in the same commit, and
-you grep for the old path afterwards to prove none dangle. Making that a tool rather than a careful
-habit is a known open item, not a solved problem.
+**Use the tool, not your hands.** Moving a dossier breaks every pointer to it, so the move has to
+repoint the queue, the backlog, the changelog and the docs in the same commit.
+`plugins/cairn/tools/archive_reviews.py` does that. It is a dry run until you pass `--apply`, takes
+only accepted dossiers (HEAD 0 commits ahead of `origin/main`, or the commits you name with
+`--accepted`), reports whatever points at nothing so you can fix it, and leaves the commit to you.
 
 ## Syncing the backlog to an issue tracker (optional)
 

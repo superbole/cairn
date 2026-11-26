@@ -316,8 +316,9 @@ read."*
 
 **Moving a dossier breaks every pointer to it, which is B76 by hand.** So repoint
 `NEXT.md`, `BACKLOG.md`, `CHANGELOG.md`, `docs/` and the two `incidents.md` files in the same
-commit as the move, and grep for `docs/review/` afterwards to prove none dangle. B90 exists to
-make this a tool rather than a careful habit.
+commit as the move. `plugins/cairn/tools/archive_reviews.py` does both: it is a dry run until you
+pass `--apply`, it takes only accepted dossiers (HEAD 0 ahead of `origin/main`, or the shas named
+with `--accepted`), and it lists what points at nothing, to fix by hand. It does not commit.
 
 **Not everything in there is a dossier.** `docs/review/user-guide.md` is a standing reference that
 a Queue item cites; it stays. The test is whether the file describes *one run* — if it does, it
