@@ -3,6 +3,10 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-11-27 — B138 and B139 filed (no code)
+
+- Backlog only: B138 (guard hook for shell writes outside the working directory, after the read block was swapped for a write block) and B139 (`log_mistake` tool so no agent reads `MISTAKES.md`). Nothing built.
+
 ## 2026-11-19 — v1.70.0: `pdf-to-md` skill added
 
 - New skill `skills/pdf-to-md/` (`SKILL.md` + `scripts/pdf2md.py`): converts any PDF to lean local Markdown plus an index so it is not read into context as page images. Moved in from a hand-installed copy in `~/.claude/skills/` on one machine so a fix reaches every machine through the plugin (workspace B123, W78).

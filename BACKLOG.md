@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 137 -->
+<!-- next-id: 139 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,76 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B139. `log_mistake`: a tool that prepends one entry to `~/.claude/MISTAKES.md`, so no agent reads the file to learn its format
+`Sonnet` · effort `medium` · `AFK/Auto` · added `2026-11-27`
+Raised 2026-11-27 by the session that swapped Sheldon's read block for a write block (see B138). Agents keep running `head -30 ~/.claude/MISTAKES.md` before adding an entry, to see the format and to put the entry at the top. That costs tokens every time and, under a read block, a permission prompt that holds the task up (his words that day: a permission that waits for him "can hold a task up"). With the write block the Edit tool can no longer change `MISTAKES.md` at all (it is outside every working directory, `outsideWritesBlocked`), so wrap step 6a's "append at the TOP" now fails with Edit. A shell write is the only route left.
+
+**Do:** add `plugins/cairn/tools/log_mistake.py`: one call, arguments in, one entry out, the file never read by the agent:
+`log_mistake.py --repo <name> --who agent|sheldon|process --what "<what went wrong>" --lesson "<lesson>" [--date YYYY-MM-DD] [--machine <id>]`
+- Prepends the entry directly above the first existing `## ` entry (newest first). If there is no `## ` entry yet, append after the header. If the file is missing, create it with the standard header; the header text is what the plugin already writes on a fresh machine, so reuse that code, do not copy it.
+- Honours `CLAUDE_CONFIG_DIR` (default `~/.claude`), same as wrap step 6a.
+- Date defaults to today. The existing format has no machine slot, so record `--machine` only when passed, as the last words of the entry (decide in the build, say which in the CHANGELOG).
+- Writes atomically (temp file in the same folder, then replace), re-reading the file immediately before the write, so two sessions logging at once cannot lose an entry.
+- Prints the heading line it wrote, nothing else. Non-zero exit with a one-line reason on a bad `--who` or an empty `--what`.
+
+**The exact format** (measured 2026-11-27 from the top of `~/.claude/MISTAKES.md`; it is looser than the wrap skill's own example, which shows two lines and no Lesson):
+
+```
+## 2026-11-27 -- workspace -- agent
+<one paragraph, one line, no wrapping: what went wrong, plainly, 2 to 4 sentences.> **Lesson:** <one or two sentences: what changes next time.>
+```
+
+- Heading is `## YYYY-MM-DD -- <repo> -- <agent|sheldon|process>`. The wrap skill's text says `user` for the second category, but the file's own header and every entry use `sheldon`. The tool accepts `sheldon` and rejects `user`, or maps `user` to `sheldon` (pick one, say so in the CHANGELOG, and fix the skill text).
+- One blank line before the heading, one paragraph body, one blank line after. Older entries vary (some have no Lesson, one has a blank line after the heading, `process` entries sometimes say `Pattern:`); the tool always writes the form above.
+- File header (do not touch): `# Mistakes`, then a paragraph, then `Categories: **agent** ..., **sheldon** ..., **process** ...`.
+
+**In the same change:**
+1. `skills/wrap/SKILL.md` step 6a: replace the format description and example with "run `log_mistake.py` with these arguments, one call; never read or edit the file". Keep the category definitions and the "skip silently if nothing went wrong" sentence.
+2. `rules/CLAUDE.md`, the `MISTAKES.md` bullet: say to log with the tool the moment a mistake is caught, and that no agent reads the file to learn the format.
+3. Rebuild the Cursor rule (`tools/build_cursor.py`, `cairn.mdc`) and check `test_cursor_build.py`. Grep `skills/next/SKILL.md` and both `references/incidents.md` for any other place that sends an agent to open the file for its format.
+4. Incident row: the write-block swap left Edit unable to write the file; the tool is the fix.
+5. `test_log_mistake.py`, in a temp dir, never the real file: fresh file; existing file (new entry lands above the previous top entry, the rest byte-identical); missing file; bad `--who`; `CLAUDE_CONFIG_DIR` override; a Windows path.
+
+**Tie to B138:** the guard must not ask for this tool. The tool writes through Python, so the command text is `python3 .../log_mistake.py ...` with no outside path in a write position, and no exemption is needed; B138's tests should prove that. The tool is useful without B138, because it removes the read.
+
+**Verified vs not:** the file's top entries and wrap step 6a were read 2026-11-27. Nothing was built or run. Not checked: whether any other plugin or skill also writes the file.
+
+## B138. A guard hook for shell writes outside the working directory, now that the read block is gone
+`Opus` · effort `high` · `AFK/Auto` · added `2026-11-27`
+Raised 2026-11-27 by the session that swapped Claude Code's read block for a write block. Measured on NB5, Claude Code 2.1.330. Sheldon changed `~/.claude/settings.json` from `"blockReadsOutsideWorkingDirectories": true` to `"blockWritesOutsideWorkingDirectories": true`, because 15 of 15 permission prompts in his start-day routine came from the read block, and at least 10 of those were compound commands that never left the folder (pipes through `sed`/`awk`/`sort`, a python heredoc, a `.ps1` script, `$env:` paths). A fresh-session test in auto mode then showed:
+- reads outside the folder run unasked (intended);
+- the Write tool into a sibling repo is refused (`outsideWritesBlocked`);
+- a shell redirect (`echo ... > /c/Users/SheldonBole/Projects/octopod/x.txt`) **ran unasked**, approved only by the auto-mode classifier.
+
+So the read block had been the only guard on shell writes into sibling repos, and the swap removed it. He chose to keep the swap and have cairn add a guard. Decision record in his `workspace` repo, `docs/decisions.md`: 2026-11-27 (the swap) and 2026-11-07 (option c). NB1 gets the same swap on Tuesday 2026-12-01, so the guard should land before then if possible.
+
+**Ask:** a PreToolUse hook on `Bash` and `PowerShell` that **asks** (permission decision `ask`, never `deny`) when a command writes outside the session's working directory and its `additionalDirectories`. Plain reads must never ask: that is the whole point of the swap. Precedent for the hook shape and launcher: `plugins/cairn/hooks/staged_review_guard.py` (same event, same `run.sh` launcher). Read it and its test first. Reuse its input parsing and its "return before doing any work unless the command matches" shape, because B137 measured these per-call hooks at about 2s each on Windows.
+
+**Write shapes to detect** (an outside path must appear as the target):
+- redirects `>`, `>>`, `2>`, `&>`, `>|` (not `>&2`, `2>&1`, `/dev/null`, `NUL`);
+- `tee`, `tee -a`, `dd of=`;
+- `cp`, `mv`, `rm`, `rmdir`, `mkdir`, `touch`, `ln`, `install`, `chmod`, `truncate`, `sed -i`, `perl -i`, and the destination of `rsync`/`robocopy`;
+- `git -C <other repo>` (and `--git-dir`/`--work-tree`) with a write verb: `add`, `commit`, `checkout`, `switch`, `reset`, `restore`, `merge`, `rebase`, `cherry-pick`, `stash`, `clean`, `push`, `pull`, `fetch`, `branch -d/-D`, `tag`; and `cd <other repo> && git <write verb>` (a `cd` re-roots the whole session);
+- `wsl cp`/`wsl mv`/`wsl sh -c` with a redirect, and paths under `/mnt/c/...`;
+- PowerShell: `Out-File`, `Set-Content`, `Add-Content`, `Copy-Item`, `Move-Item`, `Remove-Item`, `New-Item`, `Rename-Item`, `Clear-Content`, `Tee-Object`, their aliases (`sc`, `ac`, `cp`, `copy`, `mv`, `move`, `rm`, `del`, `ni`, `ri`), the `>`/`>>` operators, and `[IO.File]::Write*`;
+- `python`/`node` one-liners and heredocs are not parsed, except when an outside path literally sits beside an obvious write call (`open(..., 'w')`, `write_text`, `shutil.`, `os.remove`) and that is cheap to see.
+
+**"Outside" means:** the target resolves (after `~`, `$HOME`, `$env:USERPROFILE`, `/c/...` vs `C:\...` vs `/mnt/c/...` normalisation, `..` collapse, case-insensitive on Windows) to somewhere not under the session's working directory or any `additionalDirectories`. Read both from the hook input and `settings.json`/`settings.local.json`; verify what the hook payload actually carries, do not assume. Relative paths resolve against the hook's `cwd`.
+
+**Exempt:** `~/.claude/MISTAKES.md` and `~/.claude/CREDENTIALS.md` (cairn itself tells agents to write both; `CLAUDE_CONFIG_DIR` respected), the session scratchpad and temp directory, `/dev/null` and `NUL`. B139's `log_mistake.py` writes through Python, so its command text has no outside path and needs no special case; add a test that proves it.
+
+**Unknown, decide in the build:** how far a regex can parse compound commands (pipes, `&&`, `;`, subshells, quoting, `$(...)`, heredocs, variables like `$dest`). Rule: when a variable or substitution hides the target, do **not** ask; ask only when an outside path **literally appears** in a write position. A miss falls back to the auto-mode classifier, which is what runs today. Prefer false negatives to false positives: the swap exists because 15 of 15 prompts were noise, and a guard that asks on ordinary commands brings that back. Measure before shipping: run the guard over the last few hundred Bash/PowerShell calls in real transcripts (all projects) and count asks; every ask must be a real outside write. Record the count in the CHANGELOG.
+
+**Other constraints:**
+- The ask message names the outside target and the verb, in one line.
+- Fail open: any parse error, missing field or exception returns no decision and never blocks work.
+- Register in `hooks/hooks.json` beside `staged_review_guard`. Add to the Cursor build only if Cursor reads PreToolUse hooks (check; the unattended safeguards are Claude Code only, per the rules text).
+- Check what an AFK firing does with an `ask` decision: an unattended run stalls on it. If AFK needs `deny` instead, that is a separate decision for Sheldon, not made here; state it in the plan.
+- `test_shell_write_guard.py`: every verb above in an inside and an outside form, quoting, `~`, `/c/` vs `C:\`, `cd x && git commit`, plain-read pipelines that must stay silent (`sed`, `awk`, `sort`, `python - <<EOF`, a `.ps1` script, `$env:` paths), and the two exempt files.
+- After the build, in a fresh session: the same `echo ... > /c/Users/SheldonBole/Projects/octopod/x.txt` must ask, and a `head` of that file must not. Delete the test file afterwards.
+
+**Why it matters:** with the read block gone, only the auto-mode classifier stands between an agent in one repo and a shell write into a sibling repo. He works in several repos at once and cannot hold which agent touched what; the write block closes only the Write/Edit tools. **Related:** B137 (per-call hook cost), B139 (the MISTAKES tool). **Not verified:** nothing was built; every claim about the test is from the 2026-11-27 session's report, not re-run here.
 
 ## B137. Cairn's per-call hooks add about 4s to every Bash call on Windows
 `Opus` · effort `high` · `AFK/Auto` · added `2026-11-21` · issue `#182`
