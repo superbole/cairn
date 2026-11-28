@@ -1010,6 +1010,7 @@ pointer_lines21 = {
     "link-target": "- brief: [the plan](briefs/B46.md)",
     "blocked-by field": "**D2. Q** · added `2026-09-01` · blocked by B46",
     "blocked-by list": "- thing · blocked by W1, B46",
+    "blocked-on field": "- thing · Blocked on B46",
     "arrow": "**D3. Q** — answer: `here` · → B46",
     "arrow with path": "**D4. Q** · → `BACKLOG.md B46`",
     "ascii arrow": "- thing -> BACKLOG.md B46",

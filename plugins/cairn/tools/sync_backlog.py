@@ -230,7 +230,7 @@ def _is_pointer_line(ln: str, n: int, in_queue: bool) -> bool:
         return True
     if re.search(rf"\[[^\]]*{b}[^\]]*\]\([^)]*\)", ln) or re.search(rf"\]\([^)]*{b}[^)]*\)", ln):
         return True
-    if re.search(rf"\bblocked by\s+(?:`?[A-Za-z]\d+`?\s*(?:,|and|\+|/)?\s*)*`?{b}", ln,
+    if re.search(rf"\bblocked (?:by|on)\s+(?:`?[A-Za-z]\d+`?\s*(?:,|and|\+|/)?\s*)*`?{b}", ln,
                  re.IGNORECASE):
         return True
     if re.search(rf"(?:→|->)\s*`?(?:[\w./\-]+\s+)?{b}", ln):
