@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 143 -->
+<!-- next-id: 149 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -9,19 +9,19 @@ Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to t
 file is the writer and Issues is the copy that survives a lost machine.
 
 ## B140. `wrap_receipt.py` `orientation_line()` reports a legitimate `NOT DUE` wrap as unfinished
-`Opus` · effort `high` · `HITL/Plan` · added `2026-11-28`
+`Opus` · effort `high` · `HITL/Plan` · added `2026-11-28` · issue `#189`
 Found by the B38 brief (docs/briefs/B38-afk-ready.md), confirmed by reading the code, NOT tested. In `plugins/cairn/hooks/wrap_receipt.py` `orientation_line()` (around line 1142), `if state != "SET":` returns "the previous session did not record a completed wrap" for a last verdict of `NOT DUE`. A session that correctly had nothing to wrap therefore looks unfinished at the next session start, which is the false alarm the user cannot hold an explanation for. Next step: reproduce with a recorded `NOT DUE` receipt, then decide whether `NOT DUE` is treated like `SET` there.
 
 ## B141. The no-baseline note says SessionStart "never ran" on a resume, but it does run on resume
-`Sonnet` · effort `medium` · `AFK/Auto` · added `2026-11-28`
+`Sonnet` · effort `medium` · `AFK/Auto` · added `2026-11-28` · issue `#190`
 Found by the B11 brief. `plugins/cairn/hooks/wrap_receipt.py` (around line 1193, the no-baseline note) says "SessionStart never ran for it here (a --resume or a crash-restart)", but `plugins/cairn/hooks/hooks.json` runs SessionStart on `startup|resume`, so a resume is not a case where it never ran. The wording sends the reader to the wrong cause. Fix the wording (a crash-restart, or a baseline stamped for a different directory), and check the matching text in the skills and docs.
 
 ## B142. Old `agent-reentry` ids are still cited for different items; the user category has two names
-`Sonnet` · effort `medium` · `AFK/Auto` · added `2026-11-28`
+`Sonnet` · effort `medium` · `AFK/Auto` · added `2026-11-28` · issue `#191`
 Ids from the old `agent-reentry` numbering still sit in this repo and now name other items. "B38" in `plugins/cairn/hooks/issue_host.py` (lines 206, 244, 260) and `plugins/cairn/tools/check_install.py` (line 207) means the old gh-not-on-PATH fix, not this repo's B38 (evening wrap driver). "B62" in `plugins/cairn/hooks/wrap_receipt.py` (lines 35-36) and `plugins/cairn/skills/wrap/references/incidents.md`, and "B63" in `docs/decisions.md` D33 (also `check_install.py` lines 78, 371, 374), likewise. Fix: qualify each as `agent-reentry Bn` or repoint it. Also: the user category is called `yours` in `docs/file-formats.md` (line 191) but `user` everywhere else; pick one. Found by the 2026-11-28 batch review.
 
 ## B139. `log_mistake`: a tool that prepends one entry to `~/.claude/MISTAKES.md`, so no agent reads the file to learn its format
-`Sonnet` · effort `medium` · `AFK/Auto` · added `2026-11-27`
+`Sonnet` · effort `medium` · `AFK/Auto` · added `2026-11-27` · issue `#192`
 Raised 2026-11-27 by the session that swapped Sheldon's read block for a write block (see B138). Agents keep running `head -30 ~/.claude/MISTAKES.md` before adding an entry, to see the format and to put the entry at the top. That costs tokens every time and, under a read block, a permission prompt that holds the task up (his words that day: a permission that waits for him "can hold a task up"). With the write block the Edit tool can no longer change `MISTAKES.md` at all (it is outside every working directory, `outsideWritesBlocked`), so wrap step 6a's "append at the TOP" now fails with Edit. A shell write is the only route left.
 
 **Do:** add `plugins/cairn/tools/log_mistake.py`: one call, arguments in, one entry out, the file never read by the agent:
@@ -55,7 +55,7 @@ Raised 2026-11-27 by the session that swapped Sheldon's read block for a write b
 **Verified vs not:** the file's top entries and wrap step 6a were read 2026-11-27. Nothing was built or run. Not checked: whether any other plugin or skill also writes the file.
 
 ## B138. A guard hook for shell writes outside the working directory, now that the read block is gone
-`Opus` · effort `high` · `AFK/Auto` · added `2026-11-27`
+`Opus` · effort `high` · `AFK/Auto` · added `2026-11-27` · issue `#193`
 Raised 2026-11-27 by the session that swapped Claude Code's read block for a write block. Measured on NB5, Claude Code 2.1.330. Sheldon changed `~/.claude/settings.json` from `"blockReadsOutsideWorkingDirectories": true` to `"blockWritesOutsideWorkingDirectories": true`, because 15 of 15 permission prompts in his start-day routine came from the read block, and at least 10 of those were compound commands that never left the folder (pipes through `sed`/`awk`/`sort`, a python heredoc, a `.ps1` script, `$env:` paths). A fresh-session test in auto mode then showed:
 - reads outside the folder run unasked (intended);
 - the Write tool into a sibling repo is refused (`outsideWritesBlocked`);
@@ -292,23 +292,6 @@ nothing checks that `.gitignore` still contains the line.
 2. **The checker should report ignored files that match a banned pattern** — a count and the
    pattern name, not a scan — so the operator learns the guard is `.gitignore`, not the tool.
 **Related:** B30 (a `~` directory in a repo, fixed by trusting the same unchecked file).
-
-## B21. The dangling-pointer warning cannot tell a stale pointer from a historical citation
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#19` · closed `2026-11-28`
-Was `agent-reentry` B92 (migrated 2026-09-23). **Partially fixed 2026-09-08, 48 → 26 lines, precision
-still 0.** `sync_backlog.py` now excludes known-historical paths (`CHANGELOG.md`, `docs/decisions.md`,
-`docs/review/**`, `skills/*/references/incidents.md`) and drops lines carrying
-`closed`/`shipped`/`dropped`, and deliberately *widened* to `BACKLOG.md`. Measured on the original
-case after the change: **26 still reported, 0 real** — 13 `BACKLOG.md` prose cross-references
-(`**Related:** Bn`), 10 in a design doc whose subject is the id, 3 in `skills/wrap/SKILL.md`.
-Earlier live instances: 0/22, 0/6, then 0/11 minutes later — **the warning grows with how well the
-close was documented.**
-
-**The discriminator that would finish it is a shape, not a path list.** A *pointer* is structured —
-a markdown link naming the id, a `blocked by Bn` field, a `## Queue` line, `→ Bn`. A *citation* is
-the id inside a sentence, after `Related:`, `see`, `same as`, `family as`, or in parentheses. Test
-the id's syntactic position — an exact question about the line, not prose-sniffing. Keep the path
-exclusions as the belt. **Do not fix this by deleting the citations** — they are the record.
 
 ## B22. A NEW decision can contradict an OLD one, and nothing notices
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-08` · issue `#20`
@@ -834,29 +817,6 @@ there (a 14.x endpoint). Token scope was measured as `api`, so scope is not the 
 `--yes` unsupported (would hang, not fail), `issue note` on a closed issue, `#` in label colours. Any
 fix belongs in `GitLabHost`, not callers. **Related:** B7 (the same write path failing on WSL + `gh.exe`).
 
-## B8. `/cairn:next` and `/cairn:wrap` should tell the agent to read files with Read, not a shell chain
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23` · issue `#57` · closed `2026-11-28`
-On re-entry, an agent read NEXT.md's Queue, INBOX.md and git state in ONE Bash call:
-`cd /c/…/agent-reentry && sed -n '/^## Queue/,/^## Decisions/p' NEXT.md; ls INBOX.md 2>/dev/null && cat INBOX.md; git log --oneline -3; git status -sb | head -3`.
-Every piece of it is read-only and auto-allowed on its own, but the chain (a `cd` combined with
-`git`, plus `;`, `&&`, a pipe and a redirect) still brought up an **"Allow Claude to run …?"**
-prompt. He asked how to stop it (2026-09-23, `agent-reentry` on SBOLE-NB5). A prompt at the very
-first step of re-entry is the attention cost this plugin exists to remove.
-
-**Fix:** one line in each skill's Procedure — *read `NEXT.md`, `INBOX.md` and `BACKLOG.md` with the
-Read/Grep tools (offset/limit for one section); run each `git` command as its own plain call; never
-chain them behind a `cd`.* Consider the same line in `rules/CLAUDE.md` under "How work gets done",
-since sessions that never load a skill read these files too.
-
-**Ruled out:**
-- **An allowlist rule** — no `permissions.allow` pattern can match an arbitrary compound
-  command, and the prompt comes from the `cd`+`git` combination, not from any single command.
-  (`agent-reentry` got a read-only MCP allowlist the same day; it doesn't cover this case.)
-- **A per-project memory** — saved in `agent-reentry`, but it loads only there.
-
-**Check:** SKILL.md rule changes need an `incidents.md` check in the same commit (this repo's
-CLAUDE.md, if carried over from `agent-reentry`).
-
 ## B3. "Commits since the last wrap" ignores wraps made on another machine
 `Opus 5` · effort `high` · `HITL/Auto` · added `2026-09-23` · issue `#3`
 `reentry_state.unwrapped_commits()` counts `rev-list <.last_wrap>..HEAD`, and `.claude/.last_wrap`
@@ -1236,19 +1196,6 @@ Manual stall in a row (2026-09-06, 2026-09-25, 2026-09-27).
    user-facing.
 **Ruled out:** `defaultMode` in the project file (D39: `auto` is ignored there). Push notifications as
 the reminder (blocked on the work account). A cloud routine (GitHub blocked on the work account).
-
-## B85. `check_repos.py` reports every pushed `afk/` worktree as "1 unpushed"
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-27` · issue `#92` · closed `2026-11-28`
-**Seen at the 2026-09-27 batch's wrap.** `check_repos.py` flagged all seven `afk/2026-09-27-*` worktrees as
-`[!!] … 1 unpushed` (afk-02 as 2), and then said *"Do NOT write a CHANGELOG entry saying this work landed"*.
-Every branch was in fact identical to its remote: `git ls-remote origin refs/heads/<branch>` matched each
-local HEAD. **Cause:** `docs/running-a-batch.md` and the task prompts create lanes with
-`git worktree add … -b afk/… origin/main`, which sets each branch's **upstream to `origin/main`**. So
-`@{u}..HEAD` counts the PR's own commits, and a pushed PR branch looks unpushed forever. **Fix, either or both:**
-create lane branches with `--no-track` (the push stays `git push origin afk/<branch>`); and in
-`check_repos.py`, for an `afk/` branch, compare HEAD with `origin/<same branch>`, not `@{u}`. **Why it
-matters:** it's the wrap's gate on the CHANGELOG, so a false `[!!]` there either blocks an honest entry or
-teaches the next agent to ignore the gate.
 
 ## B86. Team install for colleagues who use Claude Code only
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-28` · issue `#93` · queued
@@ -1660,25 +1607,6 @@ Proven on `forge-ai-coach`, 2026-11-04 to 11-07: **206 open issues down to 125, 
 
 A `/cairn:closeout` skill that turns the above into steps: starting the coordinator, the Wave 0 brief and the refute stage (the scripts are in `forge-ai-coach` `dev/workflows/backlog_verification.js` and `watch_audit.js`), the wave-plan template with a collision table, the child-brief template, the sync-after-merge rule, the pacing rule and the dated pause watch. The ai-coach run's artefacts, for reference: `docs/sweeps/2026-11-04_wave_plan.md`, `logs/backlog_verify/STATE.md` (gitignored), and NEXT.md W135.
 
-## B134. A brief does not list the decisions it must respect, so the agent re-derives them
-added `2026-11-09` · issue `#161` · closed `2026-11-28`
-Moved from superbole/forge-ai-coach B183 (it is a cairn plugin change, not an ai-coach one). The ai-coach entry, verbatim:
-
-`Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30` · issue `#228`
-Brief: none yet — the evidence is here.
-
-From the 2026-09-30 `/insights` review (189 sessions): the most common friction was "wrong approach" (25),
-and several cases were rules already recorded in `docs/decisions.md` (dropping the PM commute leg on a
-test day, copying the Intervals zone column unchecked, re-investigating the HR-step-to-Garmin mapping).
-Adding them to CLAUDE.md was rejected: they are on disk, and duplicating them grows the always-loaded
-context. **This is a cairn change, not an ai-coach one**: brief shape is set by cairn's `/cairn:wrap` step
-3, which already asks a brief to carry "the reasoning behind decisions already made" but only as prose
-about this session; ai-coach's `wrap-session` `## Briefs` is path-only and `/review-day` writes no briefs.
-Fix: in cairn wrap step 3, require a `**Prior decisions:**` line naming the rationale-record rows the
-brief must not reopen (or `none`), filled in when the brief is written — the shape ai-coach briefs
-132/134/135/137 already use ad hoc and 140/144/145 omit. Consider letting cairn B22's candidate (3) read
-that line. File in cairn, link back to this issue, close here.
-
 ## B135. The auto-push hook fires on every Bash commit, not just after a deploy
 added `2026-11-09` · issue `#160`
 Moved from superbole/forge-ai-coach B144 (it is a cairn plugin change, not an ai-coach one). The ai-coach entry, verbatim:
@@ -1721,3 +1649,98 @@ Found 2026-11-06 in ai-coach (Wave 1 session T1, worktree .claude/worktrees/sill
 - wrap_receipt.py --record reads the main checkout's .claude/.last_wrap (45890b19) while HEAD is the worktree's (10e01022), so the marker step reads SKIP after a correct stamp in the worktree. It also attributes NEXT.md/CHANGELOG/commit to 'merge origin/main' when the last commit is a merge, though this session's own commits precede it.
 
 Fix shapes: resolve the project root with git rev-parse --show-toplevel from cwd, not --git-common-dir. In sync_backlog, re-read the file just before writing and apply only its own changes (drop closed items, add issue numbers), or refuse if the file changed since the read. The same project's predeploy guard has the same root bug (ai-coach B260, issue #301 there).
+
+## B144. BACKLOG.md next-id marker holds the highest id used, but its name says next
+added `2026-11-28` · issue `#186`
+`Sonnet` · effort `medium` · `AFK/Auto`
+
+In `hooks/backlog_file.py`, `<!-- next-id (quoted): N -->` is a floor: `read_next_id_marker()` returns N, `next_id()` returns max(items, marker, origin) + 1, and `write()` stores the highest id spent. So `next-id (quoted): 167` means B167 is taken and B168 is next. The name reads the other way.
+
+On 2026-11-23 an agent read it as "next free", called the sync's 167 an off-by-one and hand-edited it to 168 (reverted). An earlier hand edit in the same repo left it at 165 when the highest item was B164, which suggests the same misreading. The over-read is harmless (the floor only rises and wastes an id); an under-read would reuse an id.
+
+Fix (user's call: "the name needs to be improved"): rename the marker to say what it holds, e.g. `last-id` or `highest-id-used`. Read the old and new names, write only the new one, so files on every machine migrate on their next sync. A comment under the old name is not enough.
+
+Ruled out: changing its meaning, because existing files on several machines rely on the floor semantics (B75, B80).
+
+Moved from the user's work `workspace` backlog (B168 there).
+
+## B145. A land step for children (/cairn:land), so a child need not wrap
+added `2026-11-28` · issue `#185`
+`Opus` · effort `high` · `HITL/Plan`
+
+Decided 2026-11-23 in a repo that runs a day-parent rhythm: child sessions *land* their item (user-facing docs, CHANGELOG, NEXT, BACKLOG, MISTAKES, one commit, no push, no receipt) and the day wraps once at the end, because a full `/cairn:wrap` per child was a large share of the week's tokens (about 18 wraps that week).
+
+Today the land steps live only in that repo's child-brief template, and its end-of-day skill writes each landed repo's `.claude/.last_wrap` by hand after pushing, so the next session does not report "did not finish cleanly". That is a stopgap: it stamps a marker no receipt checked.
+
+Wanted in cairn:
+1. A `land` skill (`/cairn:land`) with its own receipt: docs, changelog, next, commit measured; push and sync explicitly not required.
+2. The session-start hook accepts a land receipt as finished.
+3. Wrap step 3a's "the doc that explains it is part of the change" made explicit for user guides and READMEs, not only cairn's own files.
+
+Name: "land" is the user's choice of word, over a second meaning of "wrap".
+
+Moved from the user's work `workspace` backlog (B165 there).
+
+## B146. SessionStart hook prints full due-watch bodies: ~4.7K tokens per session in busy projects
+added `2026-11-28` · issue `#184`
+**Found by:** workspace session on SBOLE-NB1, W79 usage investigation (2026-11-22). Full numbers: `docs/usage/2026-11-16-nb1-overhead.md` in the work `workspace` repo (not on GitHub).
+
+**What:** The SessionStart hook prints each due watch's full dated history on every session start. In the `workspace` project that was 27.6 KB (~6.9K tokens); 18.7 KB (~4.7K tokens) was the 11 due-now watch bodies. In bfm and cairn the same hook output is only ~10.3 KB (~2.6K tokens).
+
+**Why it matters:** It is paid on every session, and again on every resume or compaction that re-runs the hook. It is about 5% of a ~92.7K-token session start (median across 13 NB1 sessions, week of 2026-11-16).
+
+**Proposal:** Print one line per due watch (id, title, model/effort/mode, age). The hook already tells the user "Say 'check Wn' and I will read its prompt off disk", so the body is read on demand. Estimated saving: ~3.5K tokens per session in a project with many due watches.
+
+**Not decided:** whether to cap the number of due watches shown, and whether the Queue entries (2.7 KB) should get the same one-line treatment.
+
+**Also measured, not part of this item:** the cairn rules block in `~/.claude/CLAUDE.md` is ~8.4K tokens. Every rule there is tied to an incident, so trimming it needs `incidents.md` read first.
+
+**Done when:** the hook output for a project with 10+ due watches is under ~12 KB and "check Wn" still shows the full body.
+
+## B147. sync_backlog.py wrote next-id 346 while B346 already existed
+added `2026-11-28` · issue `#183`
+In ai-coach on 2026-11-22, BACKLOG.md had `<!-- next-id (quoted): 345 -->` and a session added B345 and B346 by hand. `tools/sync_backlog.py` filed both (#382, #383 in superbole/forge-ai-coach) and rewrote the marker to `next-id (quoted): 346`, which is already taken. Fixed by hand to 347 in ai-coach 5b9372f. Expected: next-id = highest Bn in the file + 1. Untraced: whether it increments the old marker by one per run instead of recomputing from the file.
+
+## B148. Fan-out: child side findings and 'keep open' notes are lost, and CAIRN SET cannot see it
+added `2026-11-28` · issue `#181`
+#### What happened (ai-coach, 2026-11-19)
+
+A parent session ran 15 AFK child sessions (one backlog item each), merged their branches, closed the items and wrapped. `wrap_receipt.py --record` printed `CAIRN SET`. Afterwards the user asked whether one child's side finding had been captured. It had not, and reading all 15 full reports found five losses:
+
+- One child found a production data-loss bug (a state file off the persistent volume, reset by every deploy). The brief forbade it from editing `BACKLOG.md`/`NEXT.md` (to avoid merge conflicts between 15 parallel branches) and gave it no other channel, so it wrote the finding to the side-session notes folder, outside every repo. No wrap step reads that folder.
+- Three children reported "part of this item is not done; keep it open". The parent closed all three whole.
+- One child asked for a pre-existing bug it found to be filed as its own item. It was not.
+
+#### Why the mechanism did not catch it
+
+1. **Child reports reach the parent cut to 400 characters.** The findings were all past that point. The parent read 2 of 15 reports in full, and closed items from the summary plus the diff.
+2. **A fan-out brief that says "don't touch the backlog" removes the side-quest channel** that the always-loaded rules require ("record a side quest thoroughly"), and nothing replaces it.
+3. **The receipt measures steps that leave residue in this repo.** "Every child's report was harvested" leaves no residue, so `CAIRN SET` was accurate about the steps and blind to this. The user read SET as "nothing lost": *"I nearly closed without checking, because I have confidence in Cairn."*
+
+#### Proposed fix
+
+- **Fan-out briefs give children a channel that merges.** For example, "append side findings and anything left open to `INBOX.md` on your branch". The parent's merge then carries them, and wrap step 8 already refuses to finish with un-triaged INBOX bullets. Unioning INBOX conflicts is trivial. This reuses an existing gate and adds no new one.
+- **Wrap step: harvest linked children.** For each session this one started (`list_sessions {"linked": true}`, archived included), read the full final report (`list_events`) and triage every "side finding", "untraced", "left open" or "should stay open" line into the backlog before closing the item it belongs to. Belongs with #164's coordinator playbook.
+- **Receipt:** if this session started linked sessions, add a step (`children`) that is `?` unless the harvest was recorded. A wrap with unharvested children then reads OPEN or shows a visible `?`, not a clean SET.
+- **Also a gate:** never close a backlog item whose child report says part of it stays open. Close it with a remainder item instead.
+
+Related: #164 (close-out coordinator), #155.
+
+## B149. sync_backlog.py run on its own fails in a new repo: it never ensures the labels
+`AFK` · added `2026-11-28` · issue `#180`
+**Found 2026-11-19, first sync of a brand-new repo (superbole/route-browser).**
+
+`sync_backlog.py --root <repo>` was run directly, not through `/cairn:wrap`. Both items failed with
+`could not add label: 'backlog' not found (stays local)`. The labels only exist once
+`tools/label_backlog.py --ensure` has run, and only the wrap's step runs it, before the sync.
+
+So any sync outside a wrap (a session syncing after merging a child, a user saying "sync them",
+a new repo's first push) fails the same way. It fails loudly and loses nothing (the items stay
+local), but it reads as broken, and a user asked why a globally installed plugin needs
+"something special" per repo.
+
+**Fix:** have `sync_backlog.py --push` call the same idempotent ensure (`issue_host` create_label,
+"already exists" swallowed) before filing, so the label step cannot be skipped. `label_backlog.py`
+keeps its second job, naming issues with no attendance label.
+
+Worked around here with `gh label clone superbole/cairn -R superbole/route-browser`.
