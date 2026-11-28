@@ -263,8 +263,9 @@ have seen, and still covers only that work.
 - **One backlog item, one branch, one PR.** The branch is `afk/<YYYY-MM-DD>-<nn>-<Bnn>-<slug>`,
   where `nn` is the item's order within that day's firing (`01`, `02`, …) and the slug is a few
   lowercase words. Example: `afk/2026-09-27-01-B69-settings-allow-deny`.
-- **Each branch starts from the current `origin/main`** (`git fetch origin`, then `git checkout
-  -b afk/… origin/main`), never from the previous item's branch, so the PRs merge in any order.
+- **Each branch starts from the current `origin/main`** (`git fetch origin`, then `git switch
+  --no-track -c afk/… origin/main`; `--no-track` so the branch does not take `origin/main` as its
+  upstream, which made `check_repos.py` call every pushed branch "unpushed", B85), never from the previous item's branch, so the PRs merge in any order.
   Stack one branch on another only where the second item truly depends on the first, and say so
   in both PR bodies.
 - **The PR body is the lane dossier**, with its four fixed sections: what changed and why; the
