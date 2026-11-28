@@ -6,6 +6,10 @@ Backlog: `BACKLOG.md` B38 (issue #36), `Opus 5` · effort `high` · `HITL/Plan` 
 Written by the scheduled firing on 2026-11-13 against `origin/main` at `68c0ba8`. Every file:line
 below was read at that commit.
 
+**Prior decisions:** D26 (`CAIRN UNKNOWN`; a baseline is stamped only for the session's own project or
+its opted-in children, so a wrap against a sibling repo reads UNKNOWN) and D63 (the morning project list is
+the neighbouring folders first, WSL and non-repo programmes later) both bear on this and are relied on below.
+
 ## The ask, as filed
 
 `/cairn:wrap` closes the repo the session stands in. The evening ask is "wrap everything, push,
