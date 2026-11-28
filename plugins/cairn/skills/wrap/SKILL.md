@@ -113,6 +113,13 @@ shell, and bare `python` is missing on stock Linux — so always go through `hoo
    the agent will stop for them — that is what makes the item's `HITL` tag actionable rather than a
    warning.
 
+   **Every brief carries a `**Prior decisions:**` line**, filled in when the brief is written: the
+   rationale-record rows (step 2a's file) the item must respect and not reopen, by id or heading —
+   e.g. `**Prior decisions:** D3, D7` — or `**Prior decisions:** none` when nothing recorded bears
+   on it. Name the rows; do not copy them in, so the record stays the one place each reason lives.
+   `none` is an answer, not a blank: it says the record was checked. A rule that is on disk but not
+   named in the brief gets re-derived, and re-derived wrong (`references/incidents.md`, "Step 3").
+
 3a. **If the session changed how something BEHAVES, the doc that explains it is part of the
    change, not a follow-up.** Update it now, in the same commit — not as a queue item.
 
