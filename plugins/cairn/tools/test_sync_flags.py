@@ -107,7 +107,7 @@ def remote_norm():
 
 def fake_run(calls, cli="gh"):
     """A stand-in for `IssueHost._run` — the ONE subprocess seam in the whole layer."""
-    def _run(self, *args):
+    def _run(self, *args, **_):
         calls.append(tuple(args))
         if args[:2] == ("repo", "view"):
             return json.dumps({"nameWithOwner": "example-user/agent-reentry",
@@ -219,7 +219,7 @@ print("\n6. label_backlog --ensure --dry-run creates nothing")
 calls = []
 
 
-def fake_lb_run(self, *args):
+def fake_lb_run(self, *args, **_):
     calls.append(tuple(args))
     if args[:2] == ("label", "list"):
         return json.dumps([{"name": "backlog"}]), ""
@@ -579,7 +579,7 @@ print("\n15. B13 — a sync whose ONLY action is a file writes the number back t
 
 def fake_run_b13(calls, open_issues=(), all_issues=None, created=129):
     """`_run` for B13: a controllable open list, any-state list, and create number."""
-    def _run(self, *args):
+    def _run(self, *args, **_):
         calls.append(tuple(args))
         if args[:2] == ("repo", "view"):
             return json.dumps({"nameWithOwner": "example-user/fixture",

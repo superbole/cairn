@@ -326,12 +326,12 @@ class IssueHost:
         self.repo_override = repo_override
 
     # -- the shared subprocess shim ----------------------------------------------------
-    def _run(self, *args: str) -> tuple[str | None, str]:
+    def _run(self, *args: str, stdin=None) -> tuple[str | None, str]:
         if self.repo_override:
             args = (*args, "-R", self.repo_override)
         try:
             r = subprocess.run((self.cli, *args), cwd=self.root, capture_output=True,
-                               text=True, encoding="utf-8", errors="replace",
+                               stdin=stdin, text=True, encoding="utf-8", errors="replace",
                                timeout=TIMEOUT, **NO_WINDOW,
                                env={**os.environ, "GIT_TERMINAL_PROMPT": "0",
                                     "GH_PROMPT_DISABLED": "1", "NO_COLOR": "1"})
@@ -354,18 +354,6 @@ class IssueHost:
             lines = [ln for ln in lines if ln and ln.strip("=-_ ").upper() not in ("", "ERROR")]
             return None, (lines[0][:200] if lines else f"{self.cli} returned non-zero")
         return r.stdout, ""
-
-    @staticmethod
-    def _body_file(text: str) -> str:
-        """Write a body to a temp file and return its path.
-
-        A FILE, NEVER A PIPE. PowerShell 5.1 re-encodes anything piped into a native
-        executable and has already corrupted one payload in this repo (2026-08-22).
-        """
-        fd, tmp = tempfile.mkstemp(suffix=".md", text=False)
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
-            fh.write(text)
-        return tmp
 
     # -- what every caller needs -------------------------------------------------------
     def repo(self) -> tuple[str, str, str]:              # pragma: no cover - overridden
@@ -472,18 +460,16 @@ class GitHubHost(IssueHost):
         args = ["issue", "edit", str(number)]
         if title:
             args += ["--title", title]
-        tmp = None
-        if body:
-            tmp = self._body_file(body)
-            args += ["--body-file", tmp]
-        try:
+        if not body:
             out, err = self._run(*args)
-        finally:
-            if tmp:
-                try:
-                    os.unlink(tmp)
-                except OSError:
-                    pass
+            return (out is not None), err
+        # `--body-file -`, NEVER A PATH: a Windows gh.exe run from WSL cannot open a Linux
+        # one (B7). The stdin is a real file written as UTF-8 bytes, so no shell re-encodes
+        # it and text mode cannot turn LF into CRLF, as `input=` would on Windows.
+        with tempfile.TemporaryFile() as fh:
+            fh.write(body.encode("utf-8"))
+            fh.seek(0)
+            out, err = self._run(*args, "--body-file", "-", stdin=fh)
         return (out is not None), err
 
     def add_labels(self, number, labels):
@@ -629,9 +615,8 @@ class GitLabHost(IssueHost):
         # with an opaque `could not file: ERROR` (B58, 2026-09-04). The body goes as an argv
         # string, exactly as the GitHub backend passes `--body`.
         #
-        # An argv string is NOT the pipe that `_body_file` exists to avoid: subprocess passes
-        # argv straight to the executable with no shell, so PowerShell never sees it and cannot
-        # re-encode it. The temp-file route stays for `gh`'s `--body-file`, which is real.
+        # An argv string is not a PowerShell pipe: subprocess passes argv straight to the
+        # executable with no shell, so nothing can re-encode it.
         args = ["issue", "create", "--yes", "--title", title, "--description", body]
         for lb in labels:
             args += ["--label", lb]
