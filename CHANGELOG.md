@@ -3,6 +3,14 @@
 Finished work, newest first, one entry per plugin version. `NEXT.md` is the queue and holds no
 history; this file holds the history and no queue.
 
+## 2026-11-28 — v1.71.0: nine reviewed PRs merged (#170, #172-#179)
+
+- Merged: #172 (B134, briefs need a Prior decisions line), #177 (B85, `check_repos.py` compares `afk/` branches with their own remote), #178 (B8, state files read with Read/Grep), #179 (B21, pointer shapes), and the groom briefs #170 (B38), #173 (B40), #174 (B45), #175 (B52), #176 (B11). Review found all CI green, clean merges in any order, 41/41 on the combined suite.
+- Two fixes before merging: #170 gained its Prior decisions line (D26, D63); #179 now also matches `blocked on Bn`.
+- **Behaviour change (#179):** the orphaned-pointer report counts only structured pointers (link, `blocked by/on`, arrow, Queue line). An id inside a prose sentence, for example a README saying "B87 is still open work", is no longer reported as a dangling pointer.
+- Closed B134, B85, B8, B21. B38, B40, B45, B52, B11 are groomed; stage 2 waits for his answers to each brief's questions. Dossiers for B85, B8, B21 moved to `docs/review/archive/`. Filed B140, B141, B142.
+- Version bumped once for the batch: #172, #177, #178, #179 change the payload and none bumped it. #178's proposed `rules/CLAUDE.md` line is left unapplied in its archived dossier (his call).
+
 ## 2026-11-27 — B138 and B139 filed (no code)
 
 - Backlog only: B138 (guard hook for shell writes outside the working directory, after the read block was swapped for a write block) and B139 (`log_mistake` tool so no agent reads `MISTAKES.md`). Nothing built.

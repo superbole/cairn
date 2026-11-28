@@ -1,5 +1,5 @@
 # BACKLOG — cairn
-<!-- next-id: 139 -->
+<!-- next-id: 143 -->
 
 Everything worth doing that is NOT in `NEXT.md`'s Queue. Unbounded and unordered —
 the ordering that matters lives in the Queue, which is capped at 5 and refilled from here.
@@ -7,6 +7,18 @@ the ordering that matters lives in the Queue, which is capped at 5 and refilled 
 Items marked `queued` are on the Queue right now and stay listed here until the work lands.
 Where the repo has GitHub Issues, `tools/sync_backlog.py` mirrors this file to them; the
 file is the writer and Issues is the copy that survives a lost machine.
+
+## B140. `wrap_receipt.py` `orientation_line()` reports a legitimate `NOT DUE` wrap as unfinished
+`Opus` · effort `high` · `HITL/Plan` · added `2026-11-28`
+Found by the B38 brief (docs/briefs/B38-afk-ready.md), confirmed by reading the code, NOT tested. In `plugins/cairn/hooks/wrap_receipt.py` `orientation_line()` (around line 1142), `if state != "SET":` returns "the previous session did not record a completed wrap" for a last verdict of `NOT DUE`. A session that correctly had nothing to wrap therefore looks unfinished at the next session start, which is the false alarm the user cannot hold an explanation for. Next step: reproduce with a recorded `NOT DUE` receipt, then decide whether `NOT DUE` is treated like `SET` there.
+
+## B141. The no-baseline note says SessionStart "never ran" on a resume, but it does run on resume
+`Sonnet` · effort `medium` · `AFK/Auto` · added `2026-11-28`
+Found by the B11 brief. `plugins/cairn/hooks/wrap_receipt.py` (around line 1193, the no-baseline note) says "SessionStart never ran for it here (a --resume or a crash-restart)", but `plugins/cairn/hooks/hooks.json` runs SessionStart on `startup|resume`, so a resume is not a case where it never ran. The wording sends the reader to the wrong cause. Fix the wording (a crash-restart, or a baseline stamped for a different directory), and check the matching text in the skills and docs.
+
+## B142. Old `agent-reentry` ids are still cited for different items; the user category has two names
+`Sonnet` · effort `medium` · `AFK/Auto` · added `2026-11-28`
+Ids from the old `agent-reentry` numbering still sit in this repo and now name other items. "B38" in `plugins/cairn/hooks/issue_host.py` (lines 206, 244, 260) and `plugins/cairn/tools/check_install.py` (line 207) means the old gh-not-on-PATH fix, not this repo's B38 (evening wrap driver). "B62" in `plugins/cairn/hooks/wrap_receipt.py` (lines 35-36) and `plugins/cairn/skills/wrap/references/incidents.md`, and "B63" in `docs/decisions.md` D33 (also `check_install.py` lines 78, 371, 374), likewise. Fix: qualify each as `agent-reentry Bn` or repoint it. Also: the user category is called `yours` in `docs/file-formats.md` (line 191) but `user` everywhere else; pick one. Found by the 2026-11-28 batch review.
 
 ## B139. `log_mistake`: a tool that prepends one entry to `~/.claude/MISTAKES.md`, so no agent reads the file to learn its format
 `Sonnet` · effort `medium` · `AFK/Auto` · added `2026-11-27`
@@ -216,6 +228,7 @@ reason to (the B87 case). Read D4, D21 and `skills/wrap/references/incidents.md`
 
 ## B11. A baseline keyed only by session id does not survive a crash-and-resume
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-06` · issue `#9`
+Groomed 2026-11-28: brief merged; stage 2 waits for his answers to the brief's questions.
 Was `agent-reentry` B106 (migrated 2026-09-23). **Half of it shipped:** v1.57.0's `CAIRN UNKNOWN` is
 the "distinct token for blindness" this item asked for. The fix that remains is (2) below.
 
@@ -281,7 +294,7 @@ nothing checks that `.gitignore` still contains the line.
 **Related:** B30 (a `~` directory in a repo, fixed by trusting the same unchecked file).
 
 ## B21. The dangling-pointer warning cannot tell a stale pointer from a historical citation
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#19`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-06` · issue `#19` · closed `2026-11-28`
 Was `agent-reentry` B92 (migrated 2026-09-23). **Partially fixed 2026-09-08, 48 → 26 lines, precision
 still 0.** `sync_backlog.py` now excludes known-historical paths (`CHANGELOG.md`, `docs/decisions.md`,
 `docs/review/**`, `skills/*/references/incidents.md`) and drops lines carrying
@@ -566,6 +579,7 @@ appends and the owner triages (B32).
 
 ## B38. Evening wrap is per-session; there is no driver over the machine
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#36`
+Groomed 2026-11-28: brief merged; stage 2 waits for his answers to the brief's questions.
 Was `agent-reentry` B61 (migrated 2026-09-23). `/cairn:wrap` closes the repo you stand in; the evening
 ask is "wrap everything, push, archive, so the other machine tomorrow does not skip a beat" — today N
 wraps from a remembered list. Drive it from what this machine touched (`check_repos.py`,
@@ -584,6 +598,7 @@ rejected per-session roll-up. **Do not weaken "stay"**; it is the right choice f
 
 ## B40. `state_dir()` hashes the resolved path, so one repo has several separate memories
 `Sonnet 5` · effort `medium` · `HITL/Plan` · added `2026-09-04` · issue `#38`
+Groomed 2026-11-28: brief merged; stage 2 waits for his answers to the brief's questions.
 Was `agent-reentry` B63 (migrated 2026-09-23). `state_dir()` keys on `root.resolve()`, so one repo
 checked out on Windows, in WSL (`/mnt/c/...` *or* `~/Projects/...`) and on a server is **separate
 silos** for wrap markers, item-open markers, dirty-tree breadcrumbs and timesheet rows. Git-tracked
@@ -646,6 +661,7 @@ sentence. **Read `MISTAKES.md` first** (42 entries at filing) as the evidence of
 
 ## B45. `MISTAKES.md` is written and never read
 `Opus 5` · effort `high` · `HITL/Plan` · added `2026-09-04` · issue `#43`
+Groomed 2026-11-28: brief merged; stage 2 waits for his answers to the brief's questions.
 Was `agent-reentry` B62 (migrated 2026-09-23). The file exists on every machine and `/cairn:wrap`
 appends to it; **nothing reviews it**, and its justification is that a recurring pattern gets
 *designed against* — which needs a reader. Not a dashboard: a skill or a dated review cadence that
@@ -740,6 +756,7 @@ unattended lane decided).
 
 ## B52. `timesheet.py` on a Cursor laptop reports the wrong machine's work, confidently
 `Sonnet 5` · effort `medium` · `HITL/Auto` · added `2026-09-04` · issue `#50`
+Groomed 2026-11-28: brief merged; stage 2 waits for his answers to the brief's questions.
 Was `agent-reentry` B65 (migrated 2026-09-23). Verified from a Cursor shell: the script runs (no Claude
 Code import), reads `~/.claude/projects/`, and reports the few *Claude Code* sessions there — read as
 "this week's work on this laptop", silently wrong where most hours are spent in Cursor. Cursor does
@@ -818,7 +835,7 @@ there (a 14.x endpoint). Token scope was measured as `api`, so scope is not the 
 fix belongs in `GitLabHost`, not callers. **Related:** B7 (the same write path failing on WSL + `gh.exe`).
 
 ## B8. `/cairn:next` and `/cairn:wrap` should tell the agent to read files with Read, not a shell chain
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23` · issue `#57`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-23` · issue `#57` · closed `2026-11-28`
 On re-entry, an agent read NEXT.md's Queue, INBOX.md and git state in ONE Bash call:
 `cd /c/…/agent-reentry && sed -n '/^## Queue/,/^## Decisions/p' NEXT.md; ls INBOX.md 2>/dev/null && cat INBOX.md; git log --oneline -3; git status -sb | head -3`.
 Every piece of it is read-only and auto-allowed on its own, but the chain (a `cd` combined with
@@ -1221,7 +1238,7 @@ Manual stall in a row (2026-09-06, 2026-09-25, 2026-09-27).
 the reminder (blocked on the work account). A cloud routine (GitHub blocked on the work account).
 
 ## B85. `check_repos.py` reports every pushed `afk/` worktree as "1 unpushed"
-`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-27` · issue `#92`
+`Sonnet 5` · effort `medium` · `AFK/Auto` · added `2026-09-27` · issue `#92` · closed `2026-11-28`
 **Seen at the 2026-09-27 batch's wrap.** `check_repos.py` flagged all seven `afk/2026-09-27-*` worktrees as
 `[!!] … 1 unpushed` (afk-02 as 2), and then said *"Do NOT write a CHANGELOG entry saying this work landed"*.
 Every branch was in fact identical to its remote: `git ls-remote origin refs/heads/<branch>` matched each
@@ -1644,7 +1661,7 @@ Proven on `forge-ai-coach`, 2026-11-04 to 11-07: **206 open issues down to 125, 
 A `/cairn:closeout` skill that turns the above into steps: starting the coordinator, the Wave 0 brief and the refute stage (the scripts are in `forge-ai-coach` `dev/workflows/backlog_verification.js` and `watch_audit.js`), the wave-plan template with a collision table, the child-brief template, the sync-after-merge rule, the pacing rule and the dated pause watch. The ai-coach run's artefacts, for reference: `docs/sweeps/2026-11-04_wave_plan.md`, `logs/backlog_verify/STATE.md` (gitignored), and NEXT.md W135.
 
 ## B134. A brief does not list the decisions it must respect, so the agent re-derives them
-added `2026-11-09` · issue `#161`
+added `2026-11-09` · issue `#161` · closed `2026-11-28`
 Moved from superbole/forge-ai-coach B183 (it is a cairn plugin change, not an ai-coach one). The ai-coach entry, verbatim:
 
 `Opus 5` · effort `high` · `AFK/Auto` · added `2026-09-30` · issue `#228`
