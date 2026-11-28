@@ -589,3 +589,13 @@ The asymmetry stays: BELOW is still a hard stop, because under-tier work looks i
 work. ABOVE now names the cheaper tier and waits, except for an item that is one reply or one
 small edit. The stop is cheap for the same reason the BELOW stop is: the user can switch
 mid-session. A model off the scale is named and asked about, never ranked.
+
+## Step 1 — a chained read of NEXT.md, INBOX.md and git state raised a prompt (2026-09-23, B8)
+
+On re-entry an agent read the Queue, `INBOX.md` and git state in one Bash call
+(`cd … && sed …; cat …; git log …`). Each piece is read-only and auto-allowed alone, but the
+chain (a `cd` plus `git`, `;`, `&&`, a pipe, a redirect) brought up an "Allow Claude to run …?"
+prompt at the very first step of re-entry. No `permissions.allow` pattern can match an arbitrary
+compound command, so the rule is on the agent: read the files with Read/Grep, one plain `git`
+call each, no `cd` chain. It contradicts nothing above: step 1 already says to read the files
+directly, this only fixes how.

@@ -40,6 +40,10 @@ working wrap never needs it.
 directory** (the `Base directory for this skill:` line). `$CLAUDE_PLUGIN_ROOT` is NOT set in your
 shell, and bare `python` is missing on stock Linux — so always go through `hooks/run.sh`. (B59)
 
+**Read `NEXT.md`, `INBOX.md` and `BACKLOG.md` with the Read/Grep tools** (offset/limit for one
+section), and run each `git` command as its own plain call — never chained behind a `cd` (a chain
+prompts for permission even when every part is read-only). (B8)
+
 1. **Survey the tree.** `git status`. Separate THIS session's files from anything another session
    may have touched; never stage another session's work. Not a git repo → skip steps 4, 5 and 5b
    and say so at the close. The queue still gets written.
